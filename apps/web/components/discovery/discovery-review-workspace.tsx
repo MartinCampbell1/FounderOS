@@ -894,7 +894,6 @@ export function DiscoveryReviewWorkspace({
   return (
     <ShellPage>
       <ShellHero
-        eyebrow={<Badge tone="info">Discovery review</Badge>}
         title="Review authoring gaps, trace signals, replay context, and handoff readiness in one shell-native route."
         description="This route turns discovery review into an explicit operator loop instead of scattering evidence coverage, trace interpretation, and handoff decisions across separate screens."
         meta={
@@ -921,7 +920,6 @@ export function DiscoveryReviewWorkspace({
             />
           </>
         }
-        aside={`Memory target ${reviewMemoryBucketLabel(reviewMemoryBucket)} is currently set to ${describeReviewPassPreference(rememberedReviewPass)}.`}
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -973,7 +971,6 @@ export function DiscoveryReviewWorkspace({
         <div className="space-y-4">
           <ShellQueueSectionCard
             title="Find the next discovery decision to revisit"
-            eyebrow={<div className="text-sm leading-6 text-muted-foreground">Review lane</div>}
             actions={<Badge tone="info">{filteredRecords.length} visible</Badge>}
             searchValue={query}
             onSearchChange={(event) => setQuery(event.target.value)}

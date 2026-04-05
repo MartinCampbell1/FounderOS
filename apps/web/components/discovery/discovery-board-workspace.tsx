@@ -14,7 +14,6 @@ import type {
   QuorumDiscoverySwipeAction,
   ShellPreferences,
 } from "@founderos/api-clients";
-import { Badge } from "@founderos/ui/components/badge";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
@@ -328,13 +327,17 @@ export function DiscoveryBoardWorkspace({
     () => fetchShellDiscoveryBoardSnapshot(),
     []
   );
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryBoardSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_BOARD_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   const settingsTargetIdeaId = useMemo(
@@ -397,7 +400,6 @@ export function DiscoveryBoardWorkspace({
   return (
     <ShellPage className="max-w-[1400px]">
       <ShellHero
-        eyebrow={<Badge tone="info">Board</Badge>}
         title="Board"
         meta={
           <>

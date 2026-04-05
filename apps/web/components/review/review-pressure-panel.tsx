@@ -255,11 +255,6 @@ export function ReviewPressurePanel({
     <ShellSectionCard
       title={title}
       description={summary.totalCount > 0 ? description : emptyDetail}
-      eyebrow={
-        <Badge tone={summary.totalCount > 0 ? "warning" : "success"}>
-          Review pressure
-        </Badge>
-      }
       actions={
         <>
           <Badge tone={summary.totalCount > 0 ? "warning" : "success"}>

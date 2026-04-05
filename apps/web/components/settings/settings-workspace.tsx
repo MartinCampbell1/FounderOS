@@ -39,17 +39,10 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
+import { EMPTY_RUNTIME_SNAPSHOT } from "@/lib/runtime";
 
 type SettingsRouteScope = ShellRouteScope;
 type SettingsParityTargets = ShellSettingsParityTargets;
-
-const EMPTY_RUNTIME_SNAPSHOT: ShellRuntimeSnapshot = {
-  generatedAt: "",
-  settings: null,
-  health: null,
-  errors: [],
-  loadState: "ready",
-};
 
 export function SettingsWorkspace({
   initialRuntimeSnapshot,
@@ -72,13 +65,17 @@ export function SettingsWorkspace({
   );
   const pollInterval = getShellPollInterval("settings", preferences.refreshProfile);
   const loadRuntimeSnapshot = useCallback(() => fetchShellRuntimeSnapshot(), []);
+  const selectLoadState = useCallback(
+    (s: ShellRuntimeSnapshot) => s.loadState,
+    []
+  );
   const { snapshot: runtimeSnapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_RUNTIME_SNAPSHOT,
     initialSnapshot: initialRuntimeSnapshot,
     refreshNonce: 0,
     pollIntervalMs: pollInterval,
     loadSnapshot: loadRuntimeSnapshot,
-    selectLoadState: (s) => s.loadState,
+    selectLoadState,
   });
 
   const health = runtimeSnapshot.health;

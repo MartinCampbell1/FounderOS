@@ -216,13 +216,17 @@ export function DiscoveryBoardSimulationsWorkspace({
     []
   );
 
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryBoardSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_BOARD_SNAPSHOT,
     initialSnapshot: initialSnapshot ?? undefined,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   // Local dismissed set — swipes remove items from view immediately

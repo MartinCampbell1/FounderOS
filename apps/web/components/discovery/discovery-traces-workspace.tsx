@@ -130,13 +130,17 @@ export function DiscoveryTracesWorkspace({
     () => fetchShellDiscoveryTracesSnapshot(activeIdeaId),
     [activeIdeaId]
   );
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryTracesSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot, loadState } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_TRACES_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   const traceItems = useMemo(() => snapshot.traces?.traces ?? [], [snapshot.traces]);

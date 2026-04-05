@@ -825,13 +825,17 @@ export function ReviewWorkspace({
     preferences.refreshProfile
   );
   const loadSnapshot = useCallback(() => fetchShellReviewCenterSnapshot(), []);
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellReviewCenterSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { loadState, snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_REVIEW_CENTER_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
   const routeViewKey = `${routeScope.projectId}:${routeScope.intakeSessionId}:${initialLane}:${initialPreset || "none"}`;
   const scopeActive = hasShellRouteScope(routeScope);

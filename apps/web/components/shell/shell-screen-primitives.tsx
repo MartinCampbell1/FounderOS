@@ -36,12 +36,10 @@ export function ShellHero({
   actions,
   className,
 }: {
-  eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
   meta?: React.ReactNode;
   actions?: React.ReactNode;
-  aside?: React.ReactNode;
   className?: string;
 }) {
   return (
@@ -103,7 +101,6 @@ export function ShellSectionCard({
   description?: React.ReactNode;
   children: React.ReactNode;
   icon?: React.ReactNode;
-  eyebrow?: React.ReactNode;
   actions?: React.ReactNode;
   headerChildren?: React.ReactNode;
   className?: string;
@@ -160,7 +157,6 @@ export function ShellSearchSectionCard({
   description,
   children,
   icon,
-  eyebrow,
   actions,
   beforeSearch,
   afterSearch,
@@ -181,7 +177,6 @@ export function ShellSearchSectionCard({
   description?: React.ReactNode;
   children: React.ReactNode;
   icon?: React.ReactNode;
-  eyebrow?: React.ReactNode;
   actions?: React.ReactNode;
   beforeSearch?: React.ReactNode;
   afterSearch?: React.ReactNode;
@@ -203,7 +198,6 @@ export function ShellSearchSectionCard({
       title={title}
       description={description}
       icon={icon}
-      eyebrow={eyebrow}
       actions={actions}
       className={className}
       headerClassName={cn("gap-4 pb-4", headerClassName)}
@@ -1184,7 +1178,6 @@ export function ShellCodeBlock({
 
 export function ShellQueueSectionCard({
   title,
-  eyebrow,
   actions,
   searchValue,
   onSearchChange,
@@ -1203,7 +1196,6 @@ export function ShellQueueSectionCard({
   toolbarClassName,
 }: {
   title: React.ReactNode;
-  eyebrow?: React.ReactNode;
   actions?: React.ReactNode;
   searchValue: string;
   onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -1224,7 +1216,6 @@ export function ShellQueueSectionCard({
   return (
     <ShellSectionCard
       title={title}
-      eyebrow={eyebrow}
       actions={actions}
       className={className}
       contentClassName={cn("space-y-4 pt-0", contentClassName)}

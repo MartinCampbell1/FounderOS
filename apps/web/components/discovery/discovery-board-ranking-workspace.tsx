@@ -309,13 +309,17 @@ export function DiscoveryBoardRankingWorkspace({
     () => fetchShellDiscoveryRankingSnapshot(),
     []
   );
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryRankingSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_RANKING_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   const handleCompare = useCallback(
