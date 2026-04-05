@@ -780,12 +780,13 @@ function UnifiedShellFrameContent({
         href={item.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "group flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
+          "shell-nav-item group flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
           renderSidebarCollapsed ? "justify-center px-0" : "px-2",
           isActive
             ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
             : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
         )}
+        data-active={isActive}
         aria-label={item.label}
       >
         <Icon className="h-4 w-4 shrink-0" />
@@ -803,11 +804,12 @@ function UnifiedShellFrameContent({
         href={child.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "group flex h-7 items-center gap-2.5 rounded-md pl-4 pr-2 text-[13px] font-medium transition-colors",
+          "shell-nav-item group flex h-7 items-center gap-2.5 rounded-md pl-4 pr-2 text-[13px] font-medium transition-colors",
           isActive
             ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
             : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
         )}
+        data-active={isActive}
         aria-label={child.label}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />

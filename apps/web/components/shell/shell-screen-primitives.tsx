@@ -20,7 +20,7 @@ export function ShellPage({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-[1680px] flex-col gap-4 px-4 py-4 md:px-6",
+        "shell-content-area mx-auto flex w-full max-w-[1680px] flex-col gap-4",
         className
       )}
     >
@@ -45,7 +45,7 @@ export function ShellHero({
   return (
     <div className={cn("space-y-1", className)}>
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-[20px] font-medium text-foreground">{title}</h2>
+        <h2 className="shell-page-title">{title}</h2>
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
       {description ? (
