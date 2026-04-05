@@ -1,0 +1,39 @@
+{
+  "name": "founderos-unified-shell",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:stack": "node ./scripts/run-stack.mjs dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "serve:stack": "node ./scripts/run-stack.mjs serve",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:live-parity:stack": "node ./scripts/run-stack.mjs parity",
+    "test:live-review-actions:stack": "node ./scripts/run-stack.mjs review-actions",
+    "test:live-review-batch-routes:stack": "node ./scripts/run-stack.mjs review-batch-routes",
+    "test:live-review-memory:stack": "node ./scripts/run-stack.mjs review-memory",
+    "test:live-review-pressure-actions:stack": "node ./scripts/run-stack.mjs review-pressure-actions",
+    "test:live-review-pressure-entry-links:stack": "node ./scripts/run-stack.mjs review-pressure-entry-links",
+    "test:live-settings-parity-links:stack": "node ./scripts/run-stack.mjs settings-parity-links",
+    "test:live-review-playbook:stack": "node ./scripts/run-stack.mjs review-playbooks",
+    "test:live-review-preset-suite:stack": "node ./scripts/run-stack.mjs review-preset-suite",
+    "test:live-review-suite:stack": "node ./scripts/run-live-review-suite.mjs",
+    "test:live-hardening:stack": "node ./scripts/run-live-hardening-suite.mjs"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "turbo": "^2.8.17",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

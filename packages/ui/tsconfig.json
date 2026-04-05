@@ -1,0 +1,11 @@
+{
+  "extends": "@founderos/typescript-config/react-library.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@founderos/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
+

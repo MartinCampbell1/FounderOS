@@ -1,0 +1,9 @@
+{
+  "name": "@founderos/autopilot-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "sh -c 'cd ../../autopilot && AUTOPILOT_API_HOST=${AUTOPILOT_API_HOST:-127.0.0.1} AUTOPILOT_API_PORT=${AUTOPILOT_API_PORT:-8420} ${AUTOPILOT_PYTHON_BIN:-./.venv/bin/python} -m autopilot.api.serve'",
+    "test": "sh -c 'cd ../../autopilot && ${AUTOPILOT_PYTHON_BIN:-./.venv/bin/python} -m pytest -q'"
+  }
+}
