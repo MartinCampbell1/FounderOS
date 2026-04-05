@@ -36,6 +36,7 @@ import {
   buildRememberedDiscoveryReviewScopeHref,
   resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
+import { safeFormatDate } from "@/lib/format-utils";
 import { fetchShellDiscoveryRankingSnapshot } from "@/lib/shell-snapshot-client";
 import {
   getShellPollInterval,
@@ -76,13 +77,7 @@ const EMPTY_DISCOVERY_RANKING_SNAPSHOT: ShellDiscoveryRankingSnapshot = {
 };
 
 function formatDate(value?: string | null) {
-  if (!value) return "n/a";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return safeFormatDate(value, "n/a");
 }
 
 function LeaderboardTable({

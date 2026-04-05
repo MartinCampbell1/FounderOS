@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
 
 import {
   SettingsLayout,
@@ -38,6 +38,7 @@ import {
   getShellPollInterval,
   useShellPreferences,
 } from "@/lib/shell-preferences";
+import { useIsHydrated } from "@/lib/use-is-hydrated";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
 import { EMPTY_RUNTIME_SNAPSHOT } from "@/lib/runtime";
 
@@ -55,11 +56,7 @@ export function SettingsWorkspace({
   parityTargets?: SettingsParityTargets;
 }) {
   const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false
-  );
+  const mounted = useIsHydrated();
   const { preferences, updatePreferences } = useShellPreferences(
     initialRuntimeSnapshot?.settings?.operatorControls.preferences
   );

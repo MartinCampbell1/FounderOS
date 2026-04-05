@@ -37,6 +37,7 @@ import {
   reviewPassFromExecutionReviewFilter,
   updateRememberedReviewPass,
 } from "@/lib/review-memory";
+import { safeFormatDate } from "@/lib/format-utils";
 import { fetchShellExecutionReviewSnapshot } from "@/lib/shell-snapshot-client";
 import {
   getShellPollInterval,
@@ -81,13 +82,7 @@ const EMPTY_EXECUTION_REVIEW_SNAPSHOT: ShellExecutionReviewSnapshot = {
 };
 
 function formatDate(value?: string | null) {
-  if (!value) return "n/a";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return safeFormatDate(value, "n/a");
 }
 
 function severityTone(severity: string): "danger" | "warning" | "info" | "neutral" {

@@ -51,6 +51,7 @@ import {
   buildRememberedDiscoveryReviewScopeHref,
   resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
+import { safeFormatDate } from "@/lib/format-utils";
 import { fetchShellDiscoveryArchiveSnapshot } from "@/lib/shell-snapshot-client";
 import {
   getShellPollInterval,
@@ -95,13 +96,7 @@ function percent(value: number) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return "n/a";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return safeFormatDate(value, "n/a");
 }
 
 function stageTone(stage: string) {
