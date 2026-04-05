@@ -25,22 +25,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ShellRecordSection } from "@/components/shell/shell-record-primitives";
 import {
   ShellActionStateLabel,
-  ShellActionLink,
   ShellComposerTextarea,
-  ShellEmptyState,
   ShellInlineStatus,
   ShellPillButton,
   ShellRefreshButton,
-  ShellSectionCard,
   ShellSelectField,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
-  shellChainRouteScope,
   type LinkedShellChainRecord,
   type ShellChainGraphStats,
 } from "@/lib/chain-graph";
@@ -71,17 +66,7 @@ import { useShellManualRefresh } from "@/lib/use-shell-manual-refresh";
 import { useShellRouteMutationRunner } from "@/lib/use-shell-route-mutation-runner";
 import { useShellSnapshotRefreshNonce } from "@/lib/use-shell-snapshot-refresh-nonce";
 import {
-  buildDiscoveryAuthoringScopeHref,
-  buildDiscoveryBoardArchiveScopeHref,
-  buildDiscoveryBoardFinalsScopeHref,
-  buildDiscoveryBoardScopeHref,
-  buildDiscoveryIdeaScopeHref,
-  buildDiscoveryReplayScopeHref,
   buildDiscoverySessionScopeHref,
-  buildDiscoveryTracesScopeHref,
-  buildInboxScopeHref,
-  buildSettingsScopeHref,
-  buildPortfolioScopeHref,
   hasShellRouteScope,
   type ShellRouteScope,
 } from "@/lib/route-scope";
@@ -489,7 +474,7 @@ function DiscoverySessionsList({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[14px] font-medium text-foreground">
+        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
           Sessions{" "}
           <span className="text-muted-foreground">{sessions.length}</span>
         </h3>
@@ -529,7 +514,7 @@ function DiscoverySessionsList({
                 key={session.id}
                 href={buildDiscoverySessionScopeHref(session.id, routeScope)}
                 className={cn(
-                  "block px-2 py-3 transition-colors hover:bg-[color:var(--shell-control-hover)]",
+                  "block px-2 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]",
                   isActive && "bg-[color:var(--shell-nav-active)]"
                 )}
               >
@@ -573,42 +558,37 @@ function DiscoveryConversation({
   );
 
   return (
-    <ShellSectionCard
-      title="Conversation"
-      className="min-h-[420px]"
-      contentClassName="space-y-3"
-    >
-        {visibleMessages.length === 0 ? (
-          <ShellEmptyState
-            title="Conversation state"
-            description="No readable messages are available yet."
-          />
-        ) : (
-          visibleMessages.map((message, index) => (
-            <ShellRecordSection
+    <div>
+      <h3 className="mb-3 text-[13px] font-semibold tracking-tight text-foreground">
+        Conversation
+      </h3>
+      {visibleMessages.length === 0 ? (
+        <div className="py-8 text-center text-[13px] text-muted-foreground">
+          No readable messages are available yet.
+        </div>
+      ) : (
+        <div className="divide-y divide-border/50">
+          {visibleMessages.map((message, index) => (
+            <div
               key={`${message.agent_id}-${message.timestamp}-${index}`}
-              title={
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="neutral" className="capitalize">
-                    {readableAgentName(message)}
-                  </Badge>
-                  <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    {message.phase}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateTime(message.timestamp)}
-                  </span>
-                </div>
-              }
-              className="bg-background/70"
+              className="py-3"
             >
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/88">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold text-foreground capitalize">
+                  {readableAgentName(message)}
+                </span>
+                <span className="text-[12px] text-muted-foreground">
+                  {formatDateTime(message.timestamp)}
+                </span>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed text-foreground">
                 {message.content.trim()}
               </p>
-            </ShellRecordSection>
-          ))
-        )}
-    </ShellSectionCard>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -622,46 +602,47 @@ function DiscoveryTimeline({
   const visibleEvents = [...events].reverse();
 
   return (
-    <ShellSectionCard
-      title="Timeline"
-      className="min-h-[420px]"
-      contentClassName="space-y-3"
-    >
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge tone={streamTone(streamState)}>{streamLabel(streamState)}</Badge>
-          <span>cursor {maxEventId(events)}</span>
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+          Timeline
+        </h3>
+        <Badge tone={streamTone(streamState)}>{streamLabel(streamState)}</Badge>
+      </div>
+      {visibleEvents.length === 0 ? (
+        <div className="py-8 text-center text-[13px] text-muted-foreground">
+          No runtime events are available yet.
         </div>
-        {visibleEvents.length === 0 ? (
-          <ShellEmptyState
-            title="Timeline state"
-            description="No runtime events are available yet."
-          />
-        ) : (
-          visibleEvents.map((event) => (
-            <ShellRecordSection
-              key={event.id}
-              title={
-                <div className="flex flex-wrap items-center gap-2">
+      ) : (
+        <div className="space-y-0">
+          {visibleEvents.map((event) => (
+            <div key={event.id} className="flex gap-3 py-2">
+              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-muted-foreground/30" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
                   <Badge tone={statusTone(event.status ?? "neutral")}>
                     {event.type}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     {formatDateTime(event.timestamp)}
                   </span>
                 </div>
-              }
-              className="bg-background/70"
-            >
-              <div className="mt-3 text-sm font-semibold text-foreground">
-                {event.title}
+                {event.title ? (
+                  <div className="mt-1 text-[13px] font-medium text-foreground">
+                    {event.title}
+                  </div>
+                ) : null}
+                {event.detail ? (
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+                    {event.detail}
+                  </p>
+                ) : null}
               </div>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                {event.detail}
-              </p>
-            </ShellRecordSection>
-          ))
-        )}
-    </ShellSectionCard>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -824,219 +805,197 @@ function SessionControlsPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <ShellSectionCard
-        title="Controls"
-        contentClassName="space-y-4"
-      >
-          <div className="flex flex-wrap gap-2">
-            {sessionActionState.isPaused ? (
-              <ShellPillButton
-                type="button"
-                tone="primary"
-                onClick={handleResume}
-                disabled={busyAction.length > 0 || !sessionActionState.canResume}
-              >
-                <ShellActionStateLabel
-                  busy={busyAction === "resume"}
-                  idleLabel="Resume session"
-                  busyLabel="Resume session"
-                  icon={<PlayCircle className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-            ) : null}
-
-            {sessionActionState.isRunning ? (
-              <ShellPillButton
-                type="button"
-                tone="outline"
-                onClick={handleCancel}
-                disabled={
-                  busyAction.length > 0 || !sessionActionState.canCancel
-                }
-              >
-                <ShellActionStateLabel
-                  busy={busyAction === "cancel"}
-                  idleLabel="Stop session"
-                  busyLabel="Stop session"
-                  icon={<Square className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-            ) : null}
-
-            {(sessionActionState.isPaused || sessionActionState.isTerminal) &&
-            sessionActionState.canRestart ? (
-              <ShellPillButton
-                type="button"
-                tone="outline"
-                onClick={handleRestartBranch}
-                disabled={busyAction.length > 0 || !session.current_checkpoint_id}
-              >
-                <ShellActionStateLabel
-                  busy={busyAction === "restart"}
-                  idleLabel="New branch"
-                  busyLabel="New branch"
-                  icon={<GitBranch className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-            ) : null}
-          </div>
-
-          {(sessionActionState.isPaused || sessionActionState.isTerminal) ? (
-            <ShellRecordSection
-              title={
-                sessionActionState.isPaused
-                  ? "Checkpoint instructions"
-                  : "Continue with the team"
-              }
-              className="bg-background/60"
-            >
-              <div className="mt-3 space-y-3">
-                <ShellComposerTextarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder={
-                    sessionActionState.isPaused
-                      ? "Add guidance for the next resumed step"
-                      : "Write the next instruction for the continuation branch"
-                  }
-                  className="min-h-[112px]"
-                />
-                <div className="flex flex-wrap gap-2">
-                  {sessionActionState.isPaused ? (
-                    <ShellPillButton
-                      type="button"
-                      tone="outline"
-                      onClick={handleQueueInstruction}
-                      disabled={
-                        busyAction.length > 0 ||
-                        !draft.trim() ||
-                        !sessionActionState.canQueueInstruction
-                      }
-                    >
-                      <ShellActionStateLabel
-                        busy={busyAction === "queue"}
-                        idleLabel="Save instruction"
-                        busyLabel="Save instruction"
-                        icon={<Send className="h-4 w-4" />}
-                      />
-                    </ShellPillButton>
-                  ) : null}
-
-                  {sessionActionState.isTerminal ? (
-                    <ShellPillButton
-                      type="button"
-                      tone="primary"
-                      onClick={handleContinueConversation}
-                      disabled={
-                        busyAction.length > 0 ||
-                        !draft.trim() ||
-                        !sessionActionState.canContinueConversation
-                      }
-                    >
-                      <ShellActionStateLabel
-                        busy={busyAction === "continue"}
-                        idleLabel="Continue discussion"
-                        busyLabel="Continue discussion"
-                        icon={<PlayCircle className="h-4 w-4" />}
-                      />
-                    </ShellPillButton>
-                  ) : null}
-                </div>
-              </div>
-            </ShellRecordSection>
-          ) : null}
-      </ShellSectionCard>
-
-      <ShellSectionCard
-        title="Execution handoff"
-        contentClassName="space-y-4"
-      >
-          {launchPresets.length > 0 ? (
-            <label className="block space-y-2">
-              <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Autopilot launch mode
-              </span>
-              <ShellSelectField
-                value={effectiveSelectedLaunchPresetId}
-                onChange={(event) => setSelectedLaunchPresetId(event.target.value)}
-              >
-                {launchPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </ShellSelectField>
-            </label>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <ShellPillButton
-              type="button"
-              tone="outline"
-              onClick={handleExportBrief}
-              disabled={busyAction.length > 0}
-            >
-              <ShellActionStateLabel
-                busy={busyAction === "export"}
-                idleLabel="Export Brief"
-                busyLabel="Export Brief"
-                icon={<Upload className="h-4 w-4" />}
-              />
-            </ShellPillButton>
-            <ShellPillButton
-              type="button"
-              tone="outline"
-              onClick={() => void handleOpenExecutionHandoff(false)}
-              disabled={busyAction.length > 0}
-            >
-              <ShellActionStateLabel
-                busy={busyAction === "handoff"}
-                idleLabel="Open in Execution"
-                busyLabel="Open in Execution"
-                icon={<Send className="h-4 w-4" />}
-              />
-            </ShellPillButton>
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {sessionActionState.isPaused ? (
             <ShellPillButton
               type="button"
               tone="primary"
-              onClick={() => void handleOpenExecutionHandoff(true)}
+              onClick={handleResume}
+              disabled={busyAction.length > 0 || !sessionActionState.canResume}
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "resume"}
+                idleLabel="Resume session"
+                busyLabel="Resume session"
+                icon={<PlayCircle className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          ) : null}
+
+          {sessionActionState.isRunning ? (
+            <ShellPillButton
+              type="button"
+              tone="outline"
+              onClick={handleCancel}
+              disabled={
+                busyAction.length > 0 || !sessionActionState.canCancel
+              }
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "cancel"}
+                idleLabel="Stop session"
+                busyLabel="Stop session"
+                icon={<Square className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          ) : null}
+
+          {(sessionActionState.isPaused || sessionActionState.isTerminal) &&
+          sessionActionState.canRestart ? (
+            <ShellPillButton
+              type="button"
+              tone="outline"
+              onClick={handleRestartBranch}
+              disabled={busyAction.length > 0 || !session.current_checkpoint_id}
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "restart"}
+                idleLabel="New branch"
+                busyLabel="New branch"
+                icon={<GitBranch className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          ) : null}
+        </div>
+
+        {(sessionActionState.isPaused || sessionActionState.isTerminal) ? (
+          <div className="space-y-3">
+            <ShellComposerTextarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder={
+                sessionActionState.isPaused
+                  ? "Add guidance for the next resumed step"
+                  : "Write the next instruction..."
+              }
+              className="min-h-[96px]"
+            />
+            <div className="flex flex-wrap gap-2">
+              {sessionActionState.isPaused ? (
+                <ShellPillButton
+                  type="button"
+                  tone="outline"
+                  onClick={handleQueueInstruction}
+                  disabled={
+                    busyAction.length > 0 ||
+                    !draft.trim() ||
+                    !sessionActionState.canQueueInstruction
+                  }
+                >
+                  <ShellActionStateLabel
+                    busy={busyAction === "queue"}
+                    idleLabel="Save instruction"
+                    busyLabel="Save instruction"
+                    icon={<Send className="h-4 w-4" />}
+                  />
+                </ShellPillButton>
+              ) : null}
+
+              {sessionActionState.isTerminal ? (
+                <ShellPillButton
+                  type="button"
+                  tone="primary"
+                  onClick={handleContinueConversation}
+                  disabled={
+                    busyAction.length > 0 ||
+                    !draft.trim() ||
+                    !sessionActionState.canContinueConversation
+                  }
+                >
+                  <ShellActionStateLabel
+                    busy={busyAction === "continue"}
+                    idleLabel="Continue discussion"
+                    busyLabel="Continue discussion"
+                    icon={<PlayCircle className="h-4 w-4" />}
+                  />
+                </ShellPillButton>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Execution handoff */}
+      <div className="space-y-3 border-t border-border pt-4">
+        <h4 className="text-[13px] font-semibold tracking-tight text-foreground">
+          Execution handoff
+        </h4>
+
+        {launchPresets.length > 0 ? (
+          <label className="block space-y-1.5">
+            <span className="text-[12px] text-muted-foreground">
+              Launch mode
+            </span>
+            <ShellSelectField
+              value={effectiveSelectedLaunchPresetId}
+              onChange={(event) => setSelectedLaunchPresetId(event.target.value)}
+            >
+              {launchPresets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </ShellSelectField>
+          </label>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <ShellPillButton
+            type="button"
+            tone="outline"
+            onClick={handleExportBrief}
+            disabled={busyAction.length > 0}
+          >
+            <ShellActionStateLabel
+              busy={busyAction === "export"}
+              idleLabel="Export Brief"
+              busyLabel="Export Brief"
+              icon={<Upload className="h-4 w-4" />}
+            />
+          </ShellPillButton>
+          <ShellPillButton
+            type="button"
+            tone="primary"
+            onClick={() => void handleOpenExecutionHandoff(true)}
+            disabled={busyAction.length > 0}
+          >
+            <ShellActionStateLabel
+              busy={busyAction === "launch"}
+              idleLabel="Launch"
+              busyLabel="Launch"
+              icon={<Rocket className="h-4 w-4" />}
+            />
+          </ShellPillButton>
+          {sessionActionState.showTournamentPrep ? (
+            <ShellPillButton
+              type="button"
+              tone="outline"
+              onClick={handlePrepareTournament}
               disabled={busyAction.length > 0}
             >
               <ShellActionStateLabel
-                busy={busyAction === "launch"}
-                idleLabel="Launch via Execution"
-                busyLabel="Launch via Execution"
-                icon={<Rocket className="h-4 w-4" />}
+                busy={busyAction === "tournament"}
+                idleLabel="Prepare tournament"
+                busyLabel="Prepare tournament"
+                icon={<PauseCircle className="h-4 w-4" />}
               />
             </ShellPillButton>
-            {sessionActionState.showTournamentPrep ? (
-              <ShellPillButton
-                type="button"
-                tone="outline"
-                onClick={handlePrepareTournament}
-                disabled={busyAction.length > 0}
-              >
-                <ShellActionStateLabel
-                  busy={busyAction === "tournament"}
-                  idleLabel="Prepare tournament"
-                  busyLabel="Prepare tournament"
-                  icon={<PauseCircle className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-            ) : null}
-          </div>
+          ) : null}
+        </div>
 
-          {statusMessage ? (
-            <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
-          ) : null}
-          {errorMessage ? (
-            <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
-          ) : null}
-          {isPending ? (
-            <ShellInlineStatus busy label="Updating discovery view..." className="text-xs" />
-          ) : null}
-      </ShellSectionCard>
+        {statusMessage ? (
+          <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
+        ) : null}
+        {errorMessage ? (
+          <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
+        ) : null}
+        {isPending ? (
+          <ShellInlineStatus busy label="Updating discovery view..." className="text-xs" />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -1095,41 +1054,25 @@ function DiscoverySessionMonitor({
             {session.task || session.id}
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-            <span>{session.mode}</span>
-            <span>·</span>
+            <Badge tone="neutral">{session.mode}</Badge>
             <Badge tone={statusTone(session.status)}>{session.status}</Badge>
-            <span>·</span>
             <span>{formatRelativeTime(session.created_at)}</span>
+            {typeof session.elapsed_sec === "number" ? (
+              <span>· {formatElapsed(session.elapsed_sec)}</span>
+            ) : null}
           </div>
         </div>
         <ShellRefreshButton type="button" onClick={onRefresh} busy={isRefreshing} />
       </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="grid gap-4">
-          <div className="flex flex-wrap gap-3">
-            <ShellActionLink
-              href={buildDiscoveryReplayScopeHref(session.id, routeScope)}
-              label="Open replay route"
-            />
-            <ShellActionLink
-              href={buildDiscoveryTracesScopeHref(routeScope)}
-              label="Open trace coverage"
-            />
-            <ShellActionLink
-              href={buildDiscoveryBoardArchiveScopeHref(routeScope)}
-              label="Open archive frontier"
-            />
-            <ShellActionLink
-              href={buildDiscoveryBoardFinalsScopeHref(routeScope)}
-              label="Open finals route"
-            />
-          </div>
-          <section className="grid gap-4 xl:grid-cols-2">
-            <DiscoveryConversation messages={session.messages} />
-            <DiscoveryTimeline events={events} streamState={streamState} />
-          </section>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        {/* Left: Conversation + Timeline */}
+        <div className="min-w-0 space-y-6">
+          <DiscoveryConversation messages={session.messages} />
+          <DiscoveryTimeline events={events} streamState={streamState} />
         </div>
+
+        {/* Right: Controls + Handoff */}
         <SessionControlsPanel
           isPending={isPending}
           session={session}

@@ -697,12 +697,12 @@ export function DashboardWorkspace({
       {/* ── Connection status ─────────────────────────── */}
       <div className="flex flex-wrap gap-4 text-[13px]">
         <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${health === null ? "bg-muted-foreground/20" : health.services.quorum.status === "ok" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-          <span className="text-muted-foreground">Quorum {health === null ? "connecting…" : health.services.quorum.status === "ok" ? "connected" : "offline"}</span>
+          <span className={`h-2 w-2 rounded-full ${health === null ? "bg-muted-foreground/20" : health.services.quorum.status === "ok" ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" : "bg-muted-foreground/30"}`} />
+          <span className="text-muted-foreground">Quorum {health === null ? "connecting\u2026" : health.services.quorum.status === "ok" ? "connected" : "offline"}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${health === null ? "bg-muted-foreground/20" : health.services.autopilot.status === "ok" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-          <span className="text-muted-foreground">Autopilot {health === null ? "connecting…" : health.services.autopilot.status === "ok" ? "connected" : "offline"}</span>
+          <span className={`h-2 w-2 rounded-full ${health === null ? "bg-muted-foreground/20" : health.services.autopilot.status === "ok" ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" : "bg-muted-foreground/30"}`} />
+          <span className="text-muted-foreground">Autopilot {health === null ? "connecting\u2026" : health.services.autopilot.status === "ok" ? "connected" : "offline"}</span>
         </div>
       </div>
 
@@ -711,31 +711,33 @@ export function DashboardWorkspace({
       ) : null}
 
       {/* ── Stats row ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-6 sm:grid-cols-5">
-        <Link href={buildDiscoveryScopeHref(routeScope)} className="group space-y-1">
-          <div className="text-[22px] font-medium text-foreground">{activeSessions.length}</div>
-          <div className="text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Active sessions</div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <Link href={buildDiscoveryScopeHref(routeScope)} className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">{activeSessions.length}</div>
+          <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Active sessions</div>
         </Link>
-        <Link href={buildDiscoveryIdeasScopeHref(routeScope)} className="group space-y-1">
-          <div className="text-[22px] font-medium text-foreground">{ideas.length}</div>
-          <div className="text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Ideas</div>
+        <Link href={buildDiscoveryIdeasScopeHref(routeScope)} className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">{ideas.length}</div>
+          <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Ideas</div>
         </Link>
-        <Link href={buildExecutionScopeHref(routeScope)} className="group space-y-1">
-          <div className="text-[22px] font-medium text-foreground">{runningProjects.length}</div>
-          <div className="text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Running projects</div>
+        <Link href={buildExecutionScopeHref(routeScope)} className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">{runningProjects.length}</div>
+          <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Running projects</div>
         </Link>
-        <Link href={buildExecutionIntakeScopeHref(undefined, routeScope)} className="group space-y-1">
-          <div className="text-[22px] font-medium text-foreground">{scopedIntakeSessions.length}</div>
-          <div className="text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Intake sessions</div>
+        <Link href={buildExecutionIntakeScopeHref(undefined, routeScope)} className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">{scopedIntakeSessions.length}</div>
+          <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Intake sessions</div>
         </Link>
-        <Link href={buildInboxScopeHref({ projectId: routeScope.projectId, intakeSessionId: derivedScopedIntakeSessionId })} className="group space-y-1">
-          <div className="text-[22px] font-medium text-foreground">{totalAttention}</div>
-          <div className="text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Open attention</div>
+        <Link href={buildInboxScopeHref({ projectId: routeScope.projectId, intakeSessionId: derivedScopedIntakeSessionId })} className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">{totalAttention}</div>
+          <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">Open attention</div>
         </Link>
       </div>
 
       {/* ── Errors (compact) ──────────────────────────── */}
-      {loadState === "ready" && errors.length > 0 ? (
+      {loadState === "ready" &&
+       errors.length > 0 &&
+       !(health?.services.quorum.status === "ok" && health?.services.autopilot.status === "ok") ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200">
           Some data sources are unavailable. Connect Quorum and Autopilot for full visibility.
         </div>
@@ -745,7 +747,7 @@ export function DashboardWorkspace({
       {sessions.length > 0 ? (
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[14px] font-medium text-foreground">Recent sessions</h3>
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Recent sessions</h3>
             <ShellActionLink href={buildDiscoveryScopeHref(routeScope)} label="View all" />
           </div>
           <div className="divide-y divide-border rounded-lg border border-border">
@@ -753,7 +755,7 @@ export function DashboardWorkspace({
               <Link
                 key={session.id}
                 href={buildDiscoverySessionScopeHref(session.id, routeScope)}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[color:var(--shell-control-hover)]"
+                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]"
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-medium text-foreground">
@@ -774,7 +776,7 @@ export function DashboardWorkspace({
       {scopedProjects.length > 0 ? (
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[14px] font-medium text-foreground">Projects</h3>
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Projects</h3>
             <ShellActionLink href={buildExecutionScopeHref(routeScope)} label="View all" />
           </div>
           <div className="divide-y divide-border rounded-lg border border-border">
@@ -785,7 +787,7 @@ export function DashboardWorkspace({
                   project.id,
                   routeScopeFromExecutionProject(project, routeScope)
                 )}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[color:var(--shell-control-hover)]"
+                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]"
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-medium text-foreground">

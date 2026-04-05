@@ -242,8 +242,11 @@ function InboxNotificationRow({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 border-b border-border/50 border-l-2 px-4 py-3 transition-colors hover:bg-muted/40",
-        toneBorderClass(record)
+        "group relative flex items-start gap-3 border-b border-border/50 border-l-2 px-4 py-3 transition-[background-color,border-color] duration-100 hover:bg-[color:var(--shell-control-hover)]",
+        toneBorderClass(record),
+        record.tone === "danger" && "hover:border-l-red-400",
+        record.tone === "warning" && "hover:border-l-amber-400",
+        record.tone === "info" && "hover:border-l-indigo-400"
       )}
     >
       {/* Unread dot */}

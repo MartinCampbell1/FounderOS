@@ -575,17 +575,23 @@ export function ShellEmptyState({
   return (
     <div
       className={cn(
-        "rounded-lg border border-dashed border-border px-4 py-6",
-        centered ? "flex flex-col items-center justify-center gap-4 text-center" : undefined,
+        "py-12",
+        centered ? "flex flex-col items-center justify-center gap-4 text-center" : "text-center",
         className
       )}
     >
-      {icon ? <div className="shrink-0">{icon}</div> : null}
+      {icon ? (
+        <div className="shrink-0">{icon}</div>
+      ) : (
+        <div className="mx-auto mb-3 w-fit rounded-full bg-muted/50 p-3">
+          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20" />
+        </div>
+      )}
       <div className="space-y-2">
         {title ? (
           <div className="text-sm font-medium text-foreground">{title}</div>
         ) : null}
-        <div className="text-sm leading-6 text-muted-foreground">{description}</div>
+        <div className="text-[13px] leading-6 text-muted-foreground/70">{description}</div>
       </div>
     </div>
   );
@@ -855,7 +861,7 @@ export function ShellKeyboardHint({
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-panel-muted)] px-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[color:var(--shell-control-muted)]",
+        "inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]",
         className
       )}
     >
