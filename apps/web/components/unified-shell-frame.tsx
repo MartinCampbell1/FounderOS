@@ -80,6 +80,63 @@ type CommandPaletteItem = {
     tone: "info" | "warning" | "danger" | "neutral" | "success";
   }>;
   searchText: string;
+  shortcut?: string;
+};
+
+/* ── Keyboard chord routes ───────────────────────────────── */
+
+const CHORD_ROUTES: Record<string, string> = {
+  d: "/dashboard",
+  i: "/inbox",
+  s: "/discovery",
+  a: "/discovery/ideas",
+  b: "/discovery/board",
+  r: "/discovery/board/ranking",
+  w: "/discovery/board/simulations",
+  e: "/execution",
+  n: "/execution/intake",
+  c: "/execution/review",
+  p: "/portfolio",
+  v: "/review",
+  t: "/settings",
+};
+
+const SHORTCUT_REFERENCE: ReadonlyArray<{
+  label: string;
+  keys: string;
+}> = [
+  { label: "Dashboard", keys: "G then D" },
+  { label: "Inbox", keys: "G then I" },
+  { label: "Sessions", keys: "G then S" },
+  { label: "Ideas", keys: "G then A" },
+  { label: "Board", keys: "G then B" },
+  { label: "Ranking", keys: "G then R" },
+  { label: "Simulations", keys: "G then W" },
+  { label: "Execution", keys: "G then E" },
+  { label: "New project", keys: "G then N" },
+  { label: "Control plane", keys: "G then C" },
+  { label: "Portfolio", keys: "G then P" },
+  { label: "Review", keys: "G then V" },
+  { label: "Settings", keys: "G then T" },
+  { label: "Command palette", keys: "\u2318K" },
+  { label: "Shortcuts reference", keys: "?" },
+];
+
+/** Map from command palette item id to chord shortcut display string. */
+const COMMAND_SHORTCUT_MAP: Record<string, string> = {
+  "nav:dashboard": "G D",
+  "nav:inbox": "G I",
+  "nav:discovery:sessions": "G S",
+  "nav:discovery:ideas": "G A",
+  "nav:discovery:board": "G B",
+  "nav:discovery:ranking": "G R",
+  "nav:discovery:swipe": "G W",
+  "nav:execution:projects": "G E",
+  "nav:execution:intake": "G N",
+  "nav:execution:controlplane": "G C",
+  "nav:portfolio": "G P",
+  "nav:review": "G V",
+  "settings:preferences": "G T",
 };
 
 /* ── Sidebar nav sections ─────────────────────────────────── */
@@ -140,6 +197,9 @@ function UnifiedShellFrameContent({
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const [commandActiveId, setCommandActiveId] = useState<string | null>(null);
+  const [chordMode, setChordMode] = useState(false);
+  const chordTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const scopeActive = hasShellRouteScope(routeScope);
   const renderSidebarCollapsed = isHydrated
     ? preferences.sidebarCollapsed
@@ -280,8 +340,9 @@ function UnifiedShellFrameContent({
 
       // Top-level items without children get a single entry
       if (!item.children || item.children.length === 0) {
+        const cmdId = `nav:${item.key}`;
         navItems.push({
-          id: `nav:${item.key}`,
+          id: cmdId,
           label: item.label,
           detail: SECTION_MODELS[item.key].title,
           href: item.href,
@@ -290,11 +351,12 @@ function UnifiedShellFrameContent({
           badges: isCurrentRoute(item.href)
             ? [{ label: "Current", tone: "info" as const }]
             : [],
+          shortcut: COMMAND_SHORTCUT_MAP[cmdId],
           searchText: [
             item.label,
             item.key,
             SECTION_MODELS[item.key].title,
-            COMMAND_KEYWORDS[`nav:${item.key}`] ?? "",
+            COMMAND_KEYWORDS[cmdId] ?? "",
           ]
             .join(" ")
             .toLowerCase(),
@@ -315,6 +377,7 @@ function UnifiedShellFrameContent({
           badges: isCurrentRoute(child.href)
             ? [{ label: "Current", tone: "info" as const }]
             : [],
+          shortcut: COMMAND_SHORTCUT_MAP[cmdId],
           searchText: [
             item.label,
             child.label,
@@ -395,6 +458,7 @@ function UnifiedShellFrameContent({
       badges: isCurrentRoute(entry.href)
         ? [{ label: "Current", tone: "info" as const }]
         : [],
+      shortcut: COMMAND_SHORTCUT_MAP[entry.id],
       searchText: [
         "settings",
         entry.label,
@@ -594,20 +658,59 @@ function UnifiedShellFrameContent({
         target instanceof HTMLSelectElement ||
         Boolean(target?.isContentEditable);
 
+      // Cmd/Ctrl+K opens command palette (even from within it)
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         if (isTypingTarget && !commandOpen) return;
         event.preventDefault();
         openCommandPalette();
         return;
       }
+
+      // Escape closes command palette or shortcut overlay
       if (event.key === "Escape") {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+          return;
+        }
         closeCommandPalette();
+        return;
+      }
+
+      // Skip chord/shortcut keys when typing in an input or when command palette is open
+      if (isTypingTarget || commandOpen) return;
+
+      // ? toggles shortcut reference overlay
+      if (event.key === "?" && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        setShowShortcuts((s) => !s);
+        return;
+      }
+
+      // Chord mode: second key press navigates
+      if (chordMode) {
+        const route = CHORD_ROUTES[event.key.toLowerCase()];
+        if (route) {
+          event.preventDefault();
+          router.push(route);
+        }
+        setChordMode(false);
+        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
+        return;
+      }
+
+      // G starts chord mode
+      if (event.key === "g" && !event.metaKey && !event.ctrlKey) {
+        setChordMode(true);
+        chordTimeoutRef.current = setTimeout(() => setChordMode(false), 1000);
       }
     }
 
     window.addEventListener("keydown", handleGlobalKeydown);
-    return () => window.removeEventListener("keydown", handleGlobalKeydown);
-  }, [closeCommandPalette, commandOpen, openCommandPalette]);
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeydown);
+      if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
+    };
+  }, [chordMode, closeCommandPalette, commandOpen, openCommandPalette, router, showShortcuts]);
 
   const sidebarClassName = useMemo(
     () =>
@@ -659,6 +762,8 @@ function UnifiedShellFrameContent({
                   trailing={
                     activeCommandId === item.id ? (
                       <ShellShortcutCombo keys={["Enter"]} />
+                    ) : item.shortcut ? (
+                      <kbd className="text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.shortcut}</kbd>
                     ) : (
                       <ShellKeyboardHint>Go</ShellKeyboardHint>
                     )
@@ -869,6 +974,52 @@ function UnifiedShellFrameContent({
             </div>
           </div>
         </>
+      ) : null}
+
+      {/* ── Keyboard shortcut reference overlay ────────── */}
+      {showShortcuts ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close shortcuts reference"
+            className="fixed inset-0 z-50 bg-black/45"
+            onClick={() => setShowShortcuts(false)}
+          />
+          <div className="fixed inset-x-4 top-[15vh] z-[60] mx-auto w-full max-w-[480px] rounded-xl border border-[color:var(--shell-control-border)] bg-popover p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[16px] font-medium text-foreground">Keyboard shortcuts</h2>
+              <button
+                type="button"
+                onClick={() => setShowShortcuts(false)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close shortcuts reference"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div className="space-y-0 text-[13px]">
+              {SHORTCUT_REFERENCE.map((entry, idx) => (
+                <div
+                  key={entry.label}
+                  className={cn(
+                    "flex justify-between py-1.5",
+                    idx < SHORTCUT_REFERENCE.length - 1 && "border-b border-border"
+                  )}
+                >
+                  <span className="text-muted-foreground">{entry.label}</span>
+                  <kbd className="text-xs bg-muted px-1.5 py-0.5 rounded">{entry.keys}</kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {/* ── Chord mode indicator ───────────────────────── */}
+      {chordMode ? (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1.5 text-[12px] font-medium text-background shadow-lg">
+          G pressed — waiting for next key...
+        </div>
       ) : null}
 
       {/* ── Layout ──────────────────────────────────────── */}

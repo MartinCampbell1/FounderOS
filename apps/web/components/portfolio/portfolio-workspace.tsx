@@ -11,11 +11,11 @@ import {
   ShellActionLink,
   ShellEmptyState,
   ShellHero,
-  ShellLoadingState,
   ShellPage,
   ShellRefreshButton,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
+import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
   executionSourceLabel,
 } from "@/lib/attention-records";
@@ -179,7 +179,7 @@ function LinkedPortfolioRow({
   return (
     <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
       <div className="flex items-start justify-between gap-4">
-        <span className="text-[14px] font-medium text-foreground leading-snug">
+        <span className="truncate text-[14px] font-medium text-foreground leading-snug">
           {record.idea.title}
         </span>
         {dateText ? (
@@ -248,7 +248,7 @@ function OrphanProjectRow({
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-1.5">
           <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <span className="text-[14px] font-medium text-foreground leading-snug">
+          <span className="truncate text-[14px] font-medium text-foreground leading-snug">
             {record.project.name}
           </span>
         </div>
@@ -323,7 +323,7 @@ function IntakePortfolioRow({
   return (
     <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
       <div className="flex items-start justify-between gap-4">
-        <span className="text-[14px] font-medium text-foreground leading-snug">
+        <span className="truncate text-[14px] font-medium text-foreground leading-snug">
           {record.intakeSession?.title ?? `Intake ${record.intakeSessionId}`}
         </span>
         {dateText ? (
@@ -447,7 +447,7 @@ export function PortfolioWorkspace({
         actions={<ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />}
       />
 
-      <div className="flex h-8 max-w-md items-center gap-2 rounded-md border border-border px-2.5">
+      <div className="flex h-8 max-w-md items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
           type="text"
@@ -459,7 +459,7 @@ export function PortfolioWorkspace({
       </div>
 
       {loadState === "loading" && records.length === 0 ? (
-        <ShellLoadingState description="Loading cross-plane portfolio..." className="py-10" />
+        <SkeletonList rows={6} className="py-4" />
       ) : null}
 
       {error ? (

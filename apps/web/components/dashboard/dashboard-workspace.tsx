@@ -26,11 +26,11 @@ import {
   ShellActionLink,
   ShellEmptyState,
   ShellHero,
-  ShellLoadingState,
   ShellPage,
   ShellRefreshButton,
   ShellSectionCard,
 } from "@/components/shell/shell-screen-primitives";
+import { SkeletonList, SkeletonStats } from "@/components/shell/shell-skeleton";
 import {
   buildShellAttentionRecords,
   executionSourceLabel,
@@ -248,14 +248,13 @@ function EmptyState({
   return <ShellEmptyState title={title} description={detail} />;
 }
 
-function LoadingState({
-  title,
-  detail,
-}: {
-  title: string;
-  detail: string;
-}) {
-  return <ShellLoadingState title={title} description={detail} />;
+function LoadingState() {
+  return (
+    <div className="space-y-6">
+      <SkeletonStats count={5} />
+      <SkeletonList rows={5} />
+    </div>
+  );
 }
 
 function DashboardSummaryPanel({
@@ -706,6 +705,10 @@ export function DashboardWorkspace({
           <span className="text-muted-foreground">Autopilot {health === null ? "connecting…" : health.services.autopilot.status === "ok" ? "connected" : "offline"}</span>
         </div>
       </div>
+
+      {loadState === "loading" && sessions.length === 0 && projects.length === 0 ? (
+        <LoadingState />
+      ) : null}
 
       {/* ── Stats row ─────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-5">

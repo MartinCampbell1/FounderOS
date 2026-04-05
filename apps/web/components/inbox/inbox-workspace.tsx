@@ -18,11 +18,11 @@ import {
   ShellEmptyState,
   ShellFilterChipButton,
   ShellHero,
-  ShellLoadingState,
   ShellPage,
   ShellPillButton,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
+import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
   attentionPlaneTone,
   buildShellAttentionRecords,
@@ -270,7 +270,7 @@ function InboxNotificationRow({
         <Link href={record.href} className="block">
           <span
             className={cn(
-              "text-[13px] font-medium leading-5",
+              "block truncate text-[13px] font-medium leading-5",
               isUnread ? "text-foreground" : "text-muted-foreground"
             )}
           >
@@ -923,7 +923,7 @@ export function InboxWorkspace({
       {/* Notification list */}
       <div className="overflow-hidden rounded-lg border border-border bg-background">
         {loadState === "loading" && records.length === 0 ? (
-          <ShellLoadingState description="Loading inbox..." />
+          <SkeletonList rows={6} />
         ) : null}
 
         {sortedRecords.map((record) => {

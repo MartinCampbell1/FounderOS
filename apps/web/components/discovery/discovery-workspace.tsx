@@ -38,6 +38,7 @@ import {
   ShellSelectField,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
+import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
   shellChainRouteScope,
   type LinkedShellChainRecord,
@@ -491,7 +492,7 @@ function DiscoverySessionsList({
 
       {/* Search */}
       <div className="mb-3">
-        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5">
+        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
           <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input
             type="text"
@@ -506,9 +507,7 @@ function DiscoverySessionsList({
       {/* Session list */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loadState === "loading" && sessions.length === 0 ? (
-          <div className="py-8 text-center text-[13px] text-muted-foreground">
-            Loading sessions...
-          </div>
+          <SkeletonList rows={6} className="px-3" />
         ) : null}
 
         {error ? (
@@ -1063,11 +1062,7 @@ function DiscoverySessionMonitor({
   onRefresh: () => void;
 }) {
   if (loadState === "loading" && !session) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center text-[13px] text-muted-foreground">
-        Loading...
-      </div>
-    );
+    return <SkeletonList rows={6} className="py-4" />;
   }
 
   if (error) {
