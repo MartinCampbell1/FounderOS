@@ -2,10 +2,9 @@
 
 import type { ShellPreferences } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
-import {
-  CheckCircle2,
-  Orbit,
-} from "lucide-react";
+import { cn } from "@founderos/ui/lib/utils";
+import Link from "next/link";
+import { Orbit } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
@@ -21,15 +20,6 @@ import {
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import {
-  ShellRecordAccessory,
-  ShellRecordActionBar,
-  ShellRecordBody,
-  ShellRecordCard,
-  ShellRecordHeader,
-  ShellRecordLinkButton,
-  ShellRecordSection,
-} from "@/components/shell/shell-record-primitives";
-import {
   matchesShellChainRouteScope,
   shellChainRouteScope,
 } from "@/lib/chain-graph";
@@ -37,10 +27,7 @@ import type {
   ShellDiscoveryAuthoringQueueRecord,
   ShellDiscoveryAuthoringQueueSnapshot,
 } from "@/lib/discovery-authoring-queue";
-import {
-  discoveryAuthoringGapLabel,
-  discoveryAuthoringStatusTone,
-} from "@/lib/discovery-authoring";
+import { discoveryAuthoringGapLabel } from "@/lib/discovery-authoring";
 import {
   buildRememberedDiscoveryReviewScopeHref,
   resolveReviewMemoryBucket,
@@ -53,15 +40,9 @@ import {
 } from "@/lib/shell-preferences";
 import { useShellSnapshotRefreshNonce } from "@/lib/use-shell-snapshot-refresh-nonce";
 import {
-  buildDiscoveryAuthoringScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaAuthoringScopeHref,
-  buildDiscoveryIdeaScopeHref,
   buildDiscoveryIdeasScopeHref,
-  buildExecutionIntakeScopeHref,
-  buildExecutionProjectScopeHref,
-  buildInboxScopeHref,
-  buildSettingsScopeHref,
   hasShellRouteScope,
   type ShellRouteScope,
 } from "@/lib/route-scope";
@@ -107,19 +88,16 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
-function truncate(value: string, limit: number = 180) {
-  const compact = value.replace(/\s+/g, " ").trim();
-  if (compact.length <= limit) {
-    return compact;
-  }
-  return `${compact.slice(0, limit - 1).trimEnd()}...`;
-}
-
-function stageTone(stage: string) {
-  if (stage === "executed") return "success" as const;
-  if (stage === "handed_off") return "info" as const;
-  if (stage === "simulated" || stage === "debated") return "warning" as const;
-  return "neutral" as const;
+function formatRelativeTime(value?: string | null) {
+  if (!value) return "";
+  const ms = Date.now() - new Date(value).getTime();
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function matchesFilter(
@@ -168,7 +146,13 @@ function buildScopedStats(records: ShellDiscoveryAuthoringQueueRecord[]) {
   };
 }
 
-function AuthoringQueueRecordCard({
+function statusDotClass(status: string) {
+  if (status === "ready") return "bg-emerald-500";
+  if (status === "partial") return "bg-amber-500";
+  return "bg-red-500";
+}
+
+function AuthoringQueueRow({
   record,
   routeScope,
 }: {
@@ -182,161 +166,61 @@ function AuthoringQueueRecordCard({
     record.dossier.idea.idea_id,
     scopedRoute
   );
-  const settingsHref = buildSettingsScopeHref(scopedRoute, {
-    discoveryIdeaId: record.dossier.idea.idea_id,
-  });
+  const time = formatRelativeTime(record.authoring.lastUpdatedAt);
 
   return (
-    <ShellRecordCard>
-      <ShellRecordHeader
-        badges={
-          <>
-            <Badge tone={stageTone(record.dossier.idea.latest_stage)}>
-              {record.dossier.idea.latest_stage}
-            </Badge>
-            <Badge tone={discoveryAuthoringStatusTone(record.authoring.status)}>
-              authoring {record.authoring.status}
-            </Badge>
-            {record.chain ? <Badge tone="info">chain-linked</Badge> : null}
-            {record.chain?.project ? (
-              <Badge
-                tone={
-                  record.chain.project.status === "running"
-                    ? "success"
-                    : record.chain.project.status === "paused"
-                      ? "warning"
-                      : record.chain.project.status === "failed"
-                        ? "danger"
-                        : "neutral"
-                }
-              >
-                {record.chain.project.status}
-              </Badge>
-            ) : null}
-            {(record.chain?.attention?.total ?? 0) > 0 ? (
-              <Badge tone="warning">{record.chain?.attention?.total} attention</Badge>
-            ) : null}
-          </>
-        }
-        title={record.dossier.idea.title}
-        description={truncate(
-          record.dossier.idea.summary ||
-            record.dossier.idea.thesis ||
-            record.authoring.headline,
-          260
-        )}
-        accessory={
-          <ShellRecordAccessory
-            label="Coverage"
-            value={`${Math.round(record.authoring.coverageScore * 100)}%`}
-            detail={`updated ${formatDate(record.authoring.lastUpdatedAt)}`}
-          />
-        }
-      />
+    <div className="flex items-start gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40">
+      {/* Status dot */}
+      <div className="mt-1.5 flex-none">
+        <span
+          className={cn(
+            "block h-2 w-2 rounded-full",
+            statusDotClass(record.authoring.status)
+          )}
+          title={record.authoring.status}
+        />
+      </div>
 
-      <ShellRecordBody>
-        <ShellRecordSection
-          title="Coverage gap"
-          className="bg-[color:var(--shell-panel-muted)]/40"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            {record.authoring.gaps.length > 0 ? (
-              record.authoring.gaps.map((gap) => (
-                <Badge key={gap} tone="warning">
-                  {discoveryAuthoringGapLabel(gap)}
-                </Badge>
-              ))
-            ) : (
-              <Badge tone="success">
-                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                ready
-              </Badge>
-            )}
-          </div>
-          <div className="mt-2 text-[13px] font-medium leading-5 text-foreground">
-            {record.authoring.headline}
-          </div>
-          <div className="mt-1.5 text-[13px] leading-6 text-muted-foreground">
-            {record.authoring.detail}
-          </div>
-        </ShellRecordSection>
-
-        {record.chain ? (
-          <ShellRecordSection
-            title="Execution-chain context"
-            className="bg-[color:var(--shell-panel-muted)]/32"
+      {/* Main content */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <Link
+            href={authoringHref}
+            className="text-[13px] font-medium leading-5 text-foreground hover:underline"
           >
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="info">brief {record.chain.briefId}</Badge>
-              {record.chain.project ? (
-                <Badge tone="neutral">{record.chain.project.name}</Badge>
-              ) : null}
-              {record.chain.intakeSession ? (
-                <Badge tone="neutral">{record.chain.intakeSession.title}</Badge>
-              ) : null}
-            </div>
-          </ShellRecordSection>
-        ) : null}
-
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-          <ShellRecordSection title="Observations">
-            <div className="text-[20px] font-medium leading-none text-foreground">
-              {record.authoring.observationCount}
-            </div>
-          </ShellRecordSection>
-          <ShellRecordSection title="Evidence items">
-            <div className="text-[20px] font-medium leading-none text-foreground">
-              {record.authoring.evidenceCount}
-            </div>
-          </ShellRecordSection>
-          <ShellRecordSection title="Validation">
-            <div className="text-[20px] font-medium leading-none text-foreground">
-              {record.authoring.validationCount}
-            </div>
-          </ShellRecordSection>
-          <ShellRecordSection title="Decisions">
-            <div className="text-[20px] font-medium leading-none text-foreground">
-              {record.authoring.decisionCount}
-            </div>
-          </ShellRecordSection>
-          <ShellRecordSection title="Timeline">
-            <div className="text-[20px] font-medium leading-none text-foreground">
-              {record.authoring.timelineCount}
-            </div>
-          </ShellRecordSection>
+            {record.dossier.idea.title}
+          </Link>
+          {record.authoring.gaps.length > 0 ? (
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              missing:{" "}
+              {record.authoring.gaps
+                .map(discoveryAuthoringGapLabel)
+                .join(", ")}
+            </span>
+          ) : null}
         </div>
+        <div className="mt-0.5 flex items-center gap-2">
+          <span className="text-[12px] text-muted-foreground">
+            idea_{record.dossier.idea.idea_id}
+          </span>
+          {record.authoring.gaps.map((gap) => (
+            <span
+              key={gap}
+              className="rounded border border-border/60 px-1.5 py-px text-[10px] text-muted-foreground"
+            >
+              {discoveryAuthoringGapLabel(gap)}
+            </span>
+          ))}
+        </div>
+      </div>
 
-        <ShellRecordActionBar>
-          <ShellRecordLinkButton href={authoringHref} label="Open authoring route" />
-          <ShellRecordLinkButton
-            href={buildDiscoveryIdeaScopeHref(record.dossier.idea.idea_id, scopedRoute)}
-            label="Open dossier"
-          />
-          {record.chain?.project ? (
-            <ShellRecordLinkButton
-              href={buildExecutionProjectScopeHref(record.chain.project.id, scopedRoute)}
-              label="Open execution project"
-            />
-          ) : null}
-          {record.chain?.intakeSessionId ? (
-            <ShellRecordLinkButton
-              href={buildExecutionIntakeScopeHref(
-                record.chain.intakeSessionId,
-                scopedRoute
-              )}
-              label="Open intake session"
-            />
-          ) : null}
-          {record.chain ? (
-            <ShellRecordLinkButton
-              href={buildInboxScopeHref(scopedRoute)}
-              label="Open scoped inbox"
-            />
-          ) : null}
-          <ShellRecordLinkButton href={settingsHref} label="Open scoped settings" />
-        </ShellRecordActionBar>
-      </ShellRecordBody>
-    </ShellRecordCard>
+      {/* Time */}
+      {time ? (
+        <div className="flex-none pt-0.5 text-[12px] text-muted-foreground">
+          {time}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -422,7 +306,7 @@ export function DiscoveryAuthoringQueueWorkspace({
     <ShellPage>
       <ShellHero
         eyebrow={<Badge tone="info">Discovery authoring queue</Badge>}
-        title="Operator queue for dossiers that still need evidence, validation, decisions, or timeline coverage."
+        title="Authoring"
         meta={
           <>
             <span>{routeScopedRecords.length} dossiers in the current scope.</span>
@@ -492,7 +376,7 @@ export function DiscoveryAuthoringQueueWorkspace({
               ) : null}
 
               {filteredRecords.map((record) => (
-                <AuthoringQueueRecordCard
+                <AuthoringQueueRow
                   key={record.key}
                   record={record}
                   routeScope={routeScope}
@@ -502,11 +386,7 @@ export function DiscoveryAuthoringQueueWorkspace({
               {loadState !== "loading" && filteredRecords.length === 0 ? (
                 <ShellEmptyState
                   centered
-                  description={
-                    scopeActive
-                      ? "No authoring queue records match the current route scope and filter."
-                      : "No discovery authoring records match the current filter."
-                  }
+                  description="All dossiers have complete coverage. No authoring work needed."
                   className="py-10"
                 />
               ) : null}
