@@ -104,6 +104,14 @@ export function getExecutionBriefHandoff(
   return handoffStore.get(handoffId) ?? null;
 }
 
+export function listExecutionBriefHandoffs(): ExecutionBriefHandoffRecord[] {
+  const handoffStore = readHandoffStore();
+  cleanupExpiredHandoffs(handoffStore);
+  return [...handoffStore.values()].sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
+  );
+}
+
 export function inspectExecutionBriefHandoffStore(): ExecutionBriefHandoffStoreAudit {
   try {
     const handoffStore = readHandoffStore();
