@@ -305,7 +305,6 @@ export function DiscoveryAuthoringQueueWorkspace({
   return (
     <ShellPage>
       <ShellHero
-        eyebrow={<Badge tone="info">Discovery authoring queue</Badge>}
         title="Authoring"
         meta={
           <>
@@ -329,11 +328,6 @@ export function DiscoveryAuthoringQueueWorkspace({
             />
           </>
         }
-        aside={
-          scopeActive
-            ? "Queue state is pinned to the current execution chain, so coverage work, inbox returns, and execution links stay inside the same project and intake context."
-            : "Authoring readiness now lives as an explicit operator lane instead of being buried across dossier detail, portfolio, and dashboard summaries."
-        }
       />
 
 
@@ -345,7 +339,6 @@ export function DiscoveryAuthoringQueueWorkspace({
         <div className="space-y-4">
           <ShellQueueSectionCard
             title="Find the next dossier to complete"
-            eyebrow={<div className="text-sm leading-6 text-muted-foreground">Authoring backlog</div>}
             actions={<Badge tone="info">{filteredRecords.length} visible</Badge>}
             searchValue={query}
             onSearchChange={(event) => setQuery(event.target.value)}

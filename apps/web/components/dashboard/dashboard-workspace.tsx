@@ -18,26 +18,18 @@ import {
 import Link from "next/link";
 import { useCallback, useMemo, type ReactNode } from "react";
 
-import { ReviewPressurePanel } from "@/components/review/review-pressure-panel";
 import {
   ShellRecordActionBar,
-  ShellRecordLinkButton,
-  ShellRecordMeta,
   ShellRecordSection,
 } from "@/components/shell/shell-record-primitives";
 import {
   ShellActionLink,
   ShellEmptyState,
-  ShellFactList,
   ShellHero,
-  ShellListLink,
   ShellLoadingState,
-  ShellMetricCard,
   ShellPage,
   ShellRefreshButton,
   ShellSectionCard,
-  ShellStatusBanner,
-  ShellSubsection,
 } from "@/components/shell/shell-screen-primitives";
 import {
   buildShellAttentionRecords,
@@ -95,23 +87,9 @@ import { useShellManualRefresh } from "@/lib/use-shell-manual-refresh";
 import { useReviewPressureActions } from "@/lib/use-review-pressure-actions";
 import type { ShellDashboardSnapshot } from "@/lib/dashboard";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
+import { truncate } from "@/lib/format-utils";
 
 type DashboardRouteScope = ShellRouteScope;
-
-function humanizeToken(value: string) {
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function truncate(value: string, limit: number = 180) {
-  const compact = value.replace(/\s+/g, " ").trim();
-  if (compact.length <= limit) {
-    return compact;
-  }
-  return `${compact.slice(0, limit - 1).trimEnd()}...`;
-}
 
 function formatDate(value?: string | number | null) {
   if (!value) return "n/a";
@@ -834,18 +812,3 @@ export function DashboardWorkspace({
   );
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// Unused imports kept to avoid breaking type-only references in page.tsx.
-void ShellStatusBanner;
-void ShellMetricCard;
-void ShellSectionCard;
-void ShellSubsection;
-void ShellListLink;
-void ShellEmptyState;
-void ShellLoadingState;
-void ShellFactList;
-void ReviewPressurePanel;
-void ShellRecordSection;
-void ShellRecordActionBar;
-void ShellRecordLinkButton;
-void ShellRecordMeta;

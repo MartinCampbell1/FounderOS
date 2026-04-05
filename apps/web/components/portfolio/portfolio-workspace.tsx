@@ -51,15 +51,13 @@ import {
   type ShellPortfolioSnapshot,
 } from "@/lib/portfolio";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
+import { safeFormatShortDate } from "@/lib/format-utils";
 
 type PortfolioRouteScope = ShellRouteScope;
 
-function formatShortDate(value?: string | null) {
-  if (!value) return null;
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
+function formatShortDate(value?: string | null): string | null {
+  const result = safeFormatShortDate(value ?? null, "");
+  return result === "" ? null : result;
 }
 
 function formatCost(usd: number) {

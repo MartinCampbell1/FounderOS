@@ -424,18 +424,22 @@ export function DiscoveryReplaysWorkspace({
     () => fetchShellDiscoveryReplaySnapshot(activeSessionId),
     [activeSessionId]
   );
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryReplaySnapshot) =>
+      activeSessionId
+        ? nextSnapshot.replayLoadState === "idle"
+          ? "ready"
+          : nextSnapshot.replayLoadState
+        : nextSnapshot.sessionsLoadState,
+    [activeSessionId]
+  );
   const { snapshot, loadState } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_REPLAY_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) =>
-      activeSessionId
-        ? nextSnapshot.replayLoadState === "idle"
-          ? "ready"
-          : nextSnapshot.replayLoadState
-        : nextSnapshot.sessionsLoadState,
+    selectLoadState,
   });
 
   const replay = snapshot.replay;

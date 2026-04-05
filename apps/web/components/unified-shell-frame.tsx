@@ -66,14 +66,7 @@ import {
   readShellRouteScopeFromSearchParams,
   withShellRouteScope,
 } from "@/lib/route-scope";
-
-const EMPTY_RUNTIME_SNAPSHOT: ShellRuntimeSnapshot = {
-  generatedAt: "",
-  settings: null,
-  health: null,
-  errors: [],
-  loadState: "ready",
-};
+import { EMPTY_RUNTIME_SNAPSHOT } from "@/lib/runtime";
 
 type CommandPaletteItem = {
   id: string;
@@ -156,13 +149,17 @@ function UnifiedShellFrameContent({
     preferences.refreshProfile
   );
   const loadRuntimeSnapshot = useCallback(() => fetchShellRuntimeSnapshot(), []);
+  const selectLoadState = useCallback(
+    (snapshot: ShellRuntimeSnapshot) => snapshot.loadState,
+    []
+  );
   const { snapshot: runtimeSnapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_RUNTIME_SNAPSHOT,
     initialSnapshot: initialRuntimeSnapshot,
     refreshNonce: 0,
     pollIntervalMs: healthPollInterval,
     loadSnapshot: loadRuntimeSnapshot,
-    selectLoadState: (snapshot) => snapshot.loadState,
+    selectLoadState,
   });
   const reviewMemoryBucket = useMemo(
     () => resolveReviewMemoryBucket({ scope: routeScope }),

@@ -190,7 +190,6 @@ function IdeaRail({
 
   return (
     <ShellSearchSectionCard
-      eyebrow="Authoring rail"
       title="Discovery ideas"
       actions={<Badge tone="info">{ideas.length} total</Badge>}
       searchValue={query}
@@ -372,16 +371,20 @@ export function DiscoveryIdeaAuthoringWorkspace({
     () => fetchShellDiscoveryIdeasSnapshot(activeIdeaId),
     [activeIdeaId]
   );
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryIdeasSnapshot) =>
+      nextSnapshot.dossierLoadState === "idle"
+        ? "ready"
+        : nextSnapshot.dossierLoadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_AUTHORING_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) =>
-      nextSnapshot.dossierLoadState === "idle"
-        ? "ready"
-        : nextSnapshot.dossierLoadState,
+    selectLoadState,
   });
 
   const [observationSource, setObservationSource] = useState("manual");
@@ -720,7 +723,6 @@ export function DiscoveryIdeaAuthoringWorkspace({
   return (
     <ShellPage>
       <ShellHero
-        eyebrow={<Badge tone="info">Discovery authoring</Badge>}
         title="Evidence, validation, decisions, and timeline writes now live inside the shell."
         meta={
           <>
@@ -754,11 +756,6 @@ export function DiscoveryIdeaAuthoringWorkspace({
               label="Ideas"
             />
           </>
-        }
-        aside={
-          linkedChain
-            ? "Authoring writes stay attached to the current execution chain, so dossier updates can bounce back into the same project, intake, inbox, and review surfaces."
-            : "This idea is still unlinked, so authoring is shell-native now and can be linked into execution later without losing the draft evidence trail."
         }
       />
 

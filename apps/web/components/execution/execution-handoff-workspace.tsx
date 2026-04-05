@@ -294,7 +294,6 @@ export function ExecutionHandoffWorkspace({
   return (
     <ShellPage className="max-w-[1480px]">
       <ShellHero
-        eyebrow={<Badge tone="info">Discovery handoff</Badge>}
         title={brief.title}
         meta={
           <>
@@ -311,7 +310,6 @@ export function ExecutionHandoffWorkspace({
             <ShellFilterChipLink href={unifiedReviewHref} label="Unified review" />
           </>
         }
-        aside="This handoff route preserves the current execution chain while discovery hands control to execution, so you can inspect the brief and still return to the same dashboard, portfolio, inbox, and settings loop."
       />
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_390px]">
       <div className="space-y-4">

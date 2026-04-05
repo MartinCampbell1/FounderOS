@@ -71,6 +71,7 @@ import {
   shellSettingsParityTargetsFromChainRecord,
 } from "@/lib/settings-parity-targets";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
+import { truncate } from "@/lib/format-utils";
 
 type QueueFilter =
   | "all"
@@ -92,14 +93,6 @@ function relativeTime(value?: string | null) {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   return `${days}d`;
-}
-
-function truncate(value: string, limit: number = 180) {
-  const compact = value.replace(/\s+/g, " ").trim();
-  if (compact.length <= limit) {
-    return compact;
-  }
-  return `${compact.slice(0, limit - 1).trimEnd()}...`;
 }
 
 function matchesFilter(record: InboxRecord, filter: QueueFilter) {

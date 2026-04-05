@@ -331,13 +331,17 @@ export function DiscoveryBoardArchiveWorkspace({
     preferences.refreshProfile
   );
   const loadSnapshot = useCallback(() => fetchShellDiscoveryArchiveSnapshot(), []);
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryArchiveSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_ARCHIVE_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   const [archiveIdeaId, setArchiveIdeaId] = useState("");
@@ -414,7 +418,6 @@ export function DiscoveryBoardArchiveWorkspace({
   return (
     <ShellPage className="max-w-[1600px]">
       <ShellHero
-        eyebrow={<Badge tone="info">Archive frontier</Badge>}
         title="Discovery archive evolution now has its own shell-native route."
         meta={
           <>
@@ -440,7 +443,6 @@ export function DiscoveryBoardArchiveWorkspace({
             ))}
           </>
         }
-        aside="Archive checkpoints, niche coverage, and archive writes now stay on the same scoped shell loop as ranking, finals, and downstream execution returns."
       />
 
       {statusMessage ? (

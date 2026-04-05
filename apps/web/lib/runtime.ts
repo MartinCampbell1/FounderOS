@@ -6,6 +6,14 @@ import type {
 import { buildGatewayHealthSnapshot } from "@/lib/gateway";
 import { buildShellSettingsSnapshot } from "@/lib/settings";
 
+export const EMPTY_RUNTIME_SNAPSHOT: ShellRuntimeSnapshot = {
+  generatedAt: "",
+  settings: null,
+  health: null,
+  errors: [],
+  loadState: "ready",
+};
+
 export function emptyShellRuntimeSnapshot(): ShellRuntimeSnapshot {
   return {
     generatedAt: "",

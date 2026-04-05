@@ -398,13 +398,17 @@ export function DiscoveryBoardFinalsWorkspace({
     preferences.refreshProfile
   );
   const loadSnapshot = useCallback(() => fetchShellDiscoveryFinalsSnapshot(), []);
+  const selectLoadState = useCallback(
+    (nextSnapshot: ShellDiscoveryFinalsSnapshot) => nextSnapshot.loadState,
+    []
+  );
   const { snapshot } = useShellPolledSnapshot({
     emptySnapshot: EMPTY_DISCOVERY_FINALS_SNAPSHOT,
     initialSnapshot,
     refreshNonce: snapshotRefreshNonce,
     pollIntervalMs: pollInterval,
     loadSnapshot,
-    selectLoadState: (nextSnapshot) => nextSnapshot.loadState,
+    selectLoadState,
   });
 
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
@@ -459,7 +463,6 @@ export function DiscoveryBoardFinalsWorkspace({
   return (
     <ShellPage className="max-w-[1600px]">
       <ShellHero
-        eyebrow={<Badge tone="info">Finals resolution</Badge>}
         title="Discovery finals resolution now runs as a shell-native route."
         meta={
           <>
@@ -485,7 +488,6 @@ export function DiscoveryBoardFinalsWorkspace({
             ))}
           </>
         }
-        aside="Finals now share the same shell-owned workflow loop as ranking, archive frontier, scoped review, and downstream execution routes."
       />
 
       {statusMessage ? (
