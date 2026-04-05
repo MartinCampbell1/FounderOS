@@ -69,100 +69,7 @@ const DEFAULT_CHAIN_GRAPH_DISCOVERY_STAGES = [
   "executed",
 ];
 
-const CHAIN_GRAPH_DOSSIER_FETCH_CONCURRENCY = 6;
-const CHAIN_GRAPH_DOSSIER_CACHE_TTL_MS = 250;
-const CHAIN_GRAPH_DOSSIER_TIMEOUT_MS = 5000;
-
-type DiscoveryDossierCacheEntry = {
-  promise: Promise<QuorumIdeaDossier>;
-  pending: boolean;
-  expiresAt: number;
-};
-
-const discoveryDossierRequestCache = new Map<string, DiscoveryDossierCacheEntry>();
-
-function createDiscoveryDossierCacheEntry(ideaId: string): DiscoveryDossierCacheEntry {
-  const entry: DiscoveryDossierCacheEntry = {
-    pending: true,
-    expiresAt: Number.POSITIVE_INFINITY,
-    promise: requestUpstreamJson<QuorumIdeaDossier>(
-      "quorum",
-      `orchestrate/discovery/ideas/${encodeURIComponent(ideaId)}/dossier`,
-      undefined,
-      { timeoutMs: CHAIN_GRAPH_DOSSIER_TIMEOUT_MS }
-    )
-      .then((dossier) => {
-        entry.pending = false;
-        entry.expiresAt = Date.now() + CHAIN_GRAPH_DOSSIER_CACHE_TTL_MS;
-        return dossier;
-      })
-      .catch((error) => {
-        if (discoveryDossierRequestCache.get(ideaId) === entry) {
-          discoveryDossierRequestCache.delete(ideaId);
-        }
-        throw error;
-      }),
-  };
-
-  return entry;
-}
-
-function requestDiscoveryIdeaDossier(ideaId: string) {
-  const cached = discoveryDossierRequestCache.get(ideaId);
-
-  if (cached && (cached.pending || cached.expiresAt > Date.now())) {
-    return cached.promise;
-  }
-
-  // Several shell surfaces hydrate the same dossiers concurrently. Keep the
-  // same upstream request in-flight briefly so parity and review routes do not
-  // fan out into duplicate dossier loads.
-  const entry = createDiscoveryDossierCacheEntry(ideaId);
-  discoveryDossierRequestCache.set(ideaId, entry);
-  return entry.promise;
-}
-
-async function mapSettledWithConcurrency<TItem, TResult>(
-  items: TItem[],
-  concurrency: number,
-  mapper: (item: TItem) => Promise<TResult>
-): Promise<PromiseSettledResult<TResult>[]> {
-  if (items.length === 0) {
-    return [];
-  }
-
-  const results = new Array<PromiseSettledResult<TResult>>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      const item = items[currentIndex];
-
-      if (item === undefined) {
-        break;
-      }
-
-      try {
-        results[currentIndex] = {
-          status: "fulfilled",
-          value: await mapper(item),
-        };
-      } catch (error) {
-        results[currentIndex] = {
-          status: "rejected",
-          reason: error,
-        };
-      }
-    }
-  }
-
-  const workerCount = Math.min(Math.max(1, Math.trunc(concurrency)), items.length);
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
-
-  return results;
-}
+const CHAIN_GRAPH_DOSSIER_TIMEOUT_MS = 8000;
 
 export async function loadShellChainGraphSnapshotData(
   options: ShellChainGraphSnapshotOptions = {}
@@ -184,6 +91,7 @@ export async function loadShellChainGraphSnapshotData(
 
   const [
     ideasResult,
+    dossiersResult,
     projectsResult,
     intakeSessionsResult,
     issuesResult,
@@ -195,6 +103,15 @@ export async function loadShellChainGraphSnapshotData(
       "orchestrate/discovery/ideas",
       buildUpstreamQuery({ limit: discoveryIdeaLimit }),
       { timeoutMs: upstreamTimeoutMs }
+    ),
+    requestUpstreamJson<{ dossiers: QuorumIdeaDossier[] }>(
+      "quorum",
+      "orchestrate/discovery/dossiers",
+      buildUpstreamQuery({
+        limit: discoveryIdeaLimit,
+        include_archived: true,
+      }),
+      { timeoutMs: upstreamTimeoutMs ?? CHAIN_GRAPH_DOSSIER_TIMEOUT_MS }
     ),
     requestUpstreamJson<{ projects: AutopilotProjectSummary[] }>(
       "autopilot",
@@ -271,33 +188,16 @@ export async function loadShellChainGraphSnapshotData(
         ), []);
 
   const relevantIdeas = ideas.filter((idea) => discoveryStages.has(idea.latest_stage));
-  const dossierResults = await mapSettledWithConcurrency(
-    relevantIdeas,
-    CHAIN_GRAPH_DOSSIER_FETCH_CONCURRENCY,
-    (idea) => requestDiscoveryIdeaDossier(idea.idea_id)
-  );
-
-  const dossiers = dossierResults.flatMap((result) =>
-    result.status === "fulfilled" ? [result.value] : []
-  );
-  const failedDossierResults = dossierResults.filter(
-    (result): result is PromiseRejectedResult => result.status === "rejected"
-  );
-
-  const firstFailedDossierResult = failedDossierResults[0];
-
-  if (failedDossierResults.length === 1 && firstFailedDossierResult) {
-    errors.push(
-      formatUpstreamErrorMessage(
-        "Discovery dossier",
-        firstFailedDossierResult.reason
-      )
-    );
-  } else if (failedDossierResults.length > 1) {
-    errors.push(
-      `Discovery dossiers: ${failedDossierResults.length} requests failed while loading linked idea dossiers.`
-    );
-  }
+  const relevantIdeaIds = new Set(relevantIdeas.map((idea) => idea.idea_id));
+  const dossiers =
+    dossiersResult.status === "fulfilled"
+      ? dossiersResult.value.dossiers.filter((dossier) =>
+          relevantIdeaIds.has(dossier.idea.idea_id)
+        )
+      : (errors.push(
+          formatUpstreamErrorMessage("Discovery dossiers", dossiersResult.reason)
+        ),
+        []);
 
   return {
     ideas,
