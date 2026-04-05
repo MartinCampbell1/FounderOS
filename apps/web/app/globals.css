@@ -46,7 +46,7 @@ body {
 .shell-sidebar-panel {
   width: var(--shell-sidebar-width);
   border-color: var(--shell-sidebar-border);
-  background: var(--shell-sidebar-bg);
+  background: linear-gradient(180deg, var(--shell-sidebar-bg) 0%, color-mix(in srgb, var(--shell-sidebar-bg) 97%, var(--shell-sidebar-border)) 100%);
   transition: width 200ms ease;
 }
 
@@ -58,4 +58,61 @@ body {
   html[data-shell-sidebar-collapsed="true"] .shell-sidebar-copy {
     display: none;
   }
+}
+
+/* Nav item premium hover */
+.shell-nav-item {
+  position: relative;
+  transition: all 150ms ease;
+}
+
+.shell-nav-item:hover {
+  background: var(--shell-control-hover);
+}
+
+.shell-nav-item[data-active="true"] {
+  background: var(--shell-nav-active);
+}
+
+.shell-nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--primary);
+}
+
+/* Content area breathing room */
+.shell-content-area {
+  padding: 32px 40px;
+}
+
+/* Premium list row hover */
+.shell-list-row {
+  transition: background-color 120ms ease;
+}
+
+.shell-list-row:hover {
+  background: var(--shell-control-hover);
+}
+
+/* Refined section spacing */
+.shell-section + .shell-section {
+  margin-top: 32px;
+}
+
+/* Premium page title */
+.shell-page-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--foreground);
+}
+
+/* Subtle dividers */
+.shell-divider {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
 }
