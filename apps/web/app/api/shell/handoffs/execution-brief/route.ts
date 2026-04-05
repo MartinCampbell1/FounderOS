@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { createExecutionBriefHandoff } from "@/lib/execution-brief-handoffs";
+import {
+  createExecutionBriefHandoff,
+  listExecutionBriefHandoffs,
+} from "@/lib/execution-brief-handoffs";
+
+export async function GET() {
+  const handoffs = listExecutionBriefHandoffs();
+  return NextResponse.json({ status: "ok", handoffs });
+}
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as {

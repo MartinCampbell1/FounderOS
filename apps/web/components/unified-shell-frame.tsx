@@ -15,8 +15,11 @@ import {
   MoonStar,
   PanelLeftClose,
   PanelLeftOpen,
+  Play,
+  Plus,
   Search,
   SunMedium,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -77,7 +80,8 @@ type CommandPaletteItem = {
   label: string;
   detail: string;
   href: string;
-  group: "Routes" | "Scope";
+  icon?: LucideIcon;
+  group: "Navigation" | "Quick Actions" | "Settings" | "Scope";
   badges?: Array<{
     label: string;
     tone: "info" | "warning" | "danger" | "neutral" | "success";
@@ -240,31 +244,207 @@ function UnifiedShellFrameContent({
   }, []);
 
   /* ── Command palette items ─────────────────────────────── */
-  const commandItems = useMemo(() => {
-    const prioritizedNavItems = [
-      ...scopedNavItems.filter((item) => item.key === activeSection),
-      ...scopedNavItems.filter((item) => item.key !== activeSection),
-    ];
 
-    const routeItems: CommandPaletteItem[] = prioritizedNavItems.map((item) => {
-      const model = SECTION_MODELS[item.key];
-      return {
-        id: `route:${item.key}`,
-        label: `Open ${item.label}`,
-        detail: model.title,
-        href: item.href,
-        group: "Routes",
-        badges: [
-          ...(item.key === activeSection
-            ? [{ label: "Current route", tone: "info" as const }]
-            : []),
-        ],
-        searchText: [item.label, item.key, model.title]
-          .join(" ")
-          .toLowerCase(),
-      };
+  /** Extra search keywords per command id for richer fuzzy matching. */
+  const COMMAND_KEYWORDS: Record<string, string> = {
+    "nav:dashboard": "home overview",
+    "nav:inbox": "notifications queue attention",
+    "nav:discovery:sessions": "chat conversation session",
+    "nav:discovery:ideas": "brainstorm concept",
+    "nav:discovery:board": "kanban pipeline",
+    "nav:discovery:ranking": "leaderboard score ranking",
+    "nav:discovery:swipe": "tinder swipe simulation",
+    "nav:discovery:research": "trace observability search",
+    "nav:discovery:authoring": "write author dossier",
+    "nav:discovery:replays": "replay history debate",
+    "nav:execution:projects": "project list",
+    "nav:execution:intake": "chat new project intake",
+    "nav:execution:controlplane": "review approve control",
+    "nav:execution:handoffs": "handoff transfer",
+    "nav:portfolio": "portfolio investments outcomes",
+    "nav:review": "review audit cross-plane",
+    "settings:preferences": "preferences config options",
+    "settings:accounts": "accounts providers api keys",
+    "settings:capabilities": "capabilities features flags tools",
+    "action:new-session": "new session start chat",
+    "action:new-project": "new project create intake",
+  };
+
+  const commandItems = useMemo((): CommandPaletteItem[] => {
+    const isCurrentRoute = (href: string) =>
+      href !== "/" && pathname.startsWith(href);
+
+    // ── Navigation items (parent sections + all children) ──
+    const navItems: CommandPaletteItem[] = [];
+
+    for (const item of scopedNavItems) {
+      // Skip settings — handled separately below
+      if (item.key === "settings") continue;
+
+      // Top-level items without children get a single entry
+      if (!item.children || item.children.length === 0) {
+        navItems.push({
+          id: `nav:${item.key}`,
+          label: item.label,
+          detail: SECTION_MODELS[item.key].title,
+          href: item.href,
+          icon: item.icon,
+          group: "Navigation",
+          badges: isCurrentRoute(item.href)
+            ? [{ label: "Current", tone: "info" as const }]
+            : [],
+          searchText: [
+            item.label,
+            item.key,
+            SECTION_MODELS[item.key].title,
+            COMMAND_KEYWORDS[`nav:${item.key}`] ?? "",
+          ]
+            .join(" ")
+            .toLowerCase(),
+        });
+        continue;
+      }
+
+      // For sections with children, emit each child as a separate entry
+      for (const child of item.children) {
+        const cmdId = `nav:${child.key.replace(":", ":")}`;
+        navItems.push({
+          id: cmdId,
+          label: `${item.label} > ${child.label}`,
+          detail: child.href,
+          href: child.href,
+          icon: child.icon,
+          group: "Navigation",
+          badges: isCurrentRoute(child.href)
+            ? [{ label: "Current", tone: "info" as const }]
+            : [],
+          searchText: [
+            item.label,
+            child.label,
+            item.key,
+            child.key,
+            child.href,
+            COMMAND_KEYWORDS[cmdId] ?? "",
+          ]
+            .join(" ")
+            .toLowerCase(),
+        });
+      }
+    }
+
+    // Discovery > Replays (not in sidebar nav but required in palette)
+    const replaysHref = withShellRouteScope("/discovery/replays", routeScope);
+    navItems.push({
+      id: "nav:discovery:replays",
+      label: "Discovery > Replays",
+      detail: "/discovery/replays",
+      href: replaysHref,
+      icon: Play,
+      group: "Navigation",
+      badges: isCurrentRoute(replaysHref)
+        ? [{ label: "Current", tone: "info" as const }]
+        : [],
+      searchText: [
+        "discovery",
+        "replays",
+        "/discovery/replays",
+        COMMAND_KEYWORDS["nav:discovery:replays"] ?? "",
+      ]
+        .join(" ")
+        .toLowerCase(),
     });
 
+    // ── Settings items ──
+    const settingsParent = scopedNavItems.find((i) => i.key === "settings");
+    const settingsEntries: Array<{
+      id: string;
+      label: string;
+      href: string;
+      icon?: LucideIcon;
+    }> = [
+      {
+        id: "settings:preferences",
+        label: "Settings > Preferences",
+        href: withShellRouteScope("/settings", routeScope),
+        icon: settingsParent?.children?.find(
+          (c) => c.key === "settings:preferences"
+        )?.icon,
+      },
+      {
+        id: "settings:accounts",
+        label: "Settings > Accounts",
+        href: withShellRouteScope("/settings/accounts", routeScope),
+        icon: settingsParent?.children?.find(
+          (c) => c.key === "settings:accounts"
+        )?.icon,
+      },
+      {
+        id: "settings:capabilities",
+        label: "Settings > Capabilities",
+        href: withShellRouteScope("/settings/capabilities", routeScope),
+        icon: settingsParent?.children?.find(
+          (c) => c.key === "settings:capabilities"
+        )?.icon,
+      },
+    ];
+
+    const settingsItems: CommandPaletteItem[] = settingsEntries.map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      detail: entry.href,
+      href: entry.href,
+      icon: entry.icon,
+      group: "Settings" as const,
+      badges: isCurrentRoute(entry.href)
+        ? [{ label: "Current", tone: "info" as const }]
+        : [],
+      searchText: [
+        "settings",
+        entry.label,
+        entry.id,
+        COMMAND_KEYWORDS[entry.id] ?? "",
+      ]
+        .join(" ")
+        .toLowerCase(),
+    }));
+
+    // ── Quick actions ──
+    const quickActions: CommandPaletteItem[] = [
+      {
+        id: "action:new-session",
+        label: "New session",
+        detail: "Start a new discovery session",
+        href: withShellRouteScope("/discovery", routeScope),
+        icon: Plus,
+        group: "Quick Actions",
+        badges: [],
+        searchText: [
+          "new session",
+          "discovery",
+          COMMAND_KEYWORDS["action:new-session"] ?? "",
+        ]
+          .join(" ")
+          .toLowerCase(),
+      },
+      {
+        id: "action:new-project",
+        label: "New project",
+        detail: "Start a new execution intake",
+        href: withShellRouteScope("/execution/intake", routeScope),
+        icon: Plus,
+        group: "Quick Actions",
+        badges: [],
+        searchText: [
+          "new project",
+          "execution intake",
+          COMMAND_KEYWORDS["action:new-project"] ?? "",
+        ]
+          .join(" ")
+          .toLowerCase(),
+      },
+    ];
+
+    // ── Scope items ──
     const scopeItems: CommandPaletteItem[] = scopeActive
       ? [
           {
@@ -315,8 +495,8 @@ function UnifiedShellFrameContent({
         ]
       : [];
 
-    return [...routeItems, ...scopeItems];
-  }, [activeSection, pathname, reviewHref, routeScope, scopeActive, scopedNavItems]);
+    return [...quickActions, ...navItems, ...settingsItems, ...scopeItems];
+  }, [pathname, reviewHref, routeScope, scopeActive, scopedNavItems]);
 
   const filteredCommandItems = useMemo(() => {
     const normalizedQuery = commandQuery.trim().toLowerCase();
@@ -338,7 +518,15 @@ function UnifiedShellFrameContent({
 
   const groupedCommandItems = useMemo(
     () => ({
-      routes: filteredCommandItems.filter((item) => item.group === "Routes"),
+      quickActions: filteredCommandItems.filter(
+        (item) => item.group === "Quick Actions"
+      ),
+      navigation: filteredCommandItems.filter(
+        (item) => item.group === "Navigation"
+      ),
+      settings: filteredCommandItems.filter(
+        (item) => item.group === "Settings"
+      ),
       scope: filteredCommandItems.filter((item) => item.group === "Scope"),
     }),
     [filteredCommandItems]
@@ -434,38 +622,57 @@ function UnifiedShellFrameContent({
   );
 
   const renderCommandGroup = useCallback(
-    (title: string, items: CommandPaletteItem[]) => (
-      <div>
-        <div className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          {title}
+    (title: string, items: CommandPaletteItem[]) => {
+      if (items.length === 0) return null;
+      return (
+        <div>
+          <div className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            {title}
+          </div>
+          <div className="mt-2 space-y-2">
+            {items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <ShellOptionButton
+                  key={item.id}
+                  onClick={() => runCommandItem(item)}
+                  onMouseEnter={() => setCommandActiveId(item.id)}
+                  active={activeCommandId === item.id}
+                  buttonRef={
+                    activeCommandId === item.id
+                      ? activeCommandButtonRef
+                      : undefined
+                  }
+                  title={
+                    Icon ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        {item.label}
+                      </span>
+                    ) : (
+                      item.label
+                    )
+                  }
+                  description={item.detail}
+                  badges={item.badges?.map((badge) => (
+                    <Badge key={`${item.id}:${badge.label}`} tone={badge.tone}>
+                      {badge.label}
+                    </Badge>
+                  ))}
+                  trailing={
+                    activeCommandId === item.id ? (
+                      <ShellShortcutCombo keys={["Enter"]} />
+                    ) : (
+                      <ShellKeyboardHint>Go</ShellKeyboardHint>
+                    )
+                  }
+                />
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-2 space-y-2">
-          {items.map((item) => (
-            <ShellOptionButton
-              key={item.id}
-              onClick={() => runCommandItem(item)}
-              onMouseEnter={() => setCommandActiveId(item.id)}
-              active={activeCommandId === item.id}
-              buttonRef={activeCommandId === item.id ? activeCommandButtonRef : undefined}
-              title={item.label}
-              description={item.detail}
-              badges={item.badges?.map((badge) => (
-                <Badge key={`${item.id}:${badge.label}`} tone={badge.tone}>
-                  {badge.label}
-                </Badge>
-              ))}
-              trailing={
-                activeCommandId === item.id ? (
-                  <ShellShortcutCombo keys={["Enter"]} />
-                ) : (
-                  <ShellKeyboardHint>Go</ShellKeyboardHint>
-                )
-              }
-            />
-          ))}
-        </div>
-      </div>
-    ),
+      );
+    },
     [activeCommandButtonRef, activeCommandId, runCommandItem]
   );
 
@@ -632,10 +839,19 @@ function UnifiedShellFrameContent({
               </div>
               <div className="max-h-[62vh] overflow-y-auto p-3">
                 <div className="space-y-4">
-                  {renderCommandGroup("Routes", groupedCommandItems.routes)}
-                  {groupedCommandItems.scope.length > 0
-                    ? renderCommandGroup("Scope", groupedCommandItems.scope)
-                    : null}
+                  {renderCommandGroup(
+                    "Quick Actions",
+                    groupedCommandItems.quickActions
+                  )}
+                  {renderCommandGroup(
+                    "Navigation",
+                    groupedCommandItems.navigation
+                  )}
+                  {renderCommandGroup(
+                    "Settings",
+                    groupedCommandItems.settings
+                  )}
+                  {renderCommandGroup("Scope", groupedCommandItems.scope)}
                   {filteredCommandItems.length === 0 ? (
                     <ShellEmptyState
                       description="No command matched the current query."
