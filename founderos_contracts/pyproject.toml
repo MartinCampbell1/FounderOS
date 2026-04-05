@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "founderos-contracts"
+version = "0.1.0"
+description = "Shared canonical contracts for FounderOS cross-plane communication"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+]
+
+[tool.setuptools]
+packages = ["founderos_contracts"]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+founderos_contracts = "."
+
+[tool.setuptools.package-data]
+founderos_contracts = ["py.typed"]
