@@ -351,6 +351,7 @@ function useQuorumLiveSessionState(
       return;
     }
 
+    const MAX_SSE_RETRIES = 30; // ~5 minutes at max 10-second backoff
     let active = true;
     let source: EventSource | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -410,6 +411,10 @@ function useQuorumLiveSessionState(
         source?.close();
         source = null;
         if (!active) {
+          return;
+        }
+        if (retryAttempt >= MAX_SSE_RETRIES) {
+          updateLiveState("error");
           return;
         }
         updateLiveState("error");

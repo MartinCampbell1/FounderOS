@@ -29,6 +29,11 @@ export function useShellPolledSnapshot<TSnapshot>({
 
   useEffect(() => {
     let active = true;
+    // AbortController signals intent to cancel on cleanup. The network request
+    // itself cannot be cancelled because loadSnapshot() does not accept a signal
+    // — callers own the fetch implementation. State updates are already guarded
+    // by the `active` flag below.
+    const controller = new AbortController();
 
     async function reload() {
       setLoadState((current) => (current === "ready" ? "ready" : "loading"));
@@ -59,6 +64,7 @@ export function useShellPolledSnapshot<TSnapshot>({
 
     return () => {
       active = false;
+      controller.abort();
       window.clearInterval(intervalId);
     };
   }, [

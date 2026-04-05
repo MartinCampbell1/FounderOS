@@ -30,7 +30,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 
 import {
@@ -56,6 +55,7 @@ import {
   getShellPollInterval,
   useShellPreferences,
 } from "@/lib/shell-preferences";
+import { useIsHydrated } from "@/lib/use-is-hydrated";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
 import {
   buildDashboardScopeHref,
@@ -147,11 +147,7 @@ const FLAT_MID_NAV_KEYS = ["portfolio", "review"] as const;
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false
-  );
+  const mounted = useIsHydrated();
 
   const isDark = mounted ? resolvedTheme === "dark" : false;
   const label = mounted ? (isDark ? "Light" : "Dark") : "Theme";
@@ -186,11 +182,7 @@ function UnifiedShellFrameContent({
   const { preferences, updatePreferences } = useShellPreferences(
     initialPreferences ?? undefined
   );
-  const isHydrated = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false
-  );
+  const isHydrated = useIsHydrated();
   const activeCommandButtonRef = useRef<HTMLButtonElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
