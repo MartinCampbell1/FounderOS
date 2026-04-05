@@ -2,6 +2,7 @@ node_modules
 .turbo
 .next
 dist
+.pytest_cache/
 coverage
 *.log
 ._*
