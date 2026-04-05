@@ -18,26 +18,35 @@ export function OverviewStatRow({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap gap-6", className)}>
-      {items.map((item) => (
-        <div key={item.label} className="min-w-0">
-          <div className="text-[22px] font-medium text-foreground">
-            {item.value}
+    <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-5", className)}>
+      {items.map((item) => {
+        const content = (
+          <>
+            <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">
+              {item.value}
+            </div>
+            <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">
+              {item.label}
+            </div>
+          </>
+        );
+        return item.href ? (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]"
+          >
+            {content}
+          </Link>
+        ) : (
+          <div
+            key={item.label}
+            className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)]"
+          >
+            {content}
           </div>
-          <div className="mt-0.5 text-[12px] text-muted-foreground">
-            {item.href ? (
-              <Link
-                href={item.href}
-                className="transition-colors hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              item.label
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -67,8 +76,8 @@ export function ConnectionStatus({
           <span
             className={cn(
               "h-2 w-2 rounded-full",
-              item.status === "online" && "bg-emerald-500",
-              item.status === "offline" && "bg-muted-foreground/40",
+              item.status === "online" && "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]",
+              item.status === "offline" && "bg-muted-foreground/30",
               item.status === "degraded" && "bg-amber-400"
             )}
           />
@@ -188,7 +197,7 @@ export function OverviewSectionHeader({
         className
       )}
     >
-      <h3 className="text-[14px] font-medium text-foreground">{title}</h3>
+      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">{title}</h3>
       {action}
     </div>
   );

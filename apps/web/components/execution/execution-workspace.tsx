@@ -180,7 +180,7 @@ function ExecutionProjectsList({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[14px] font-medium text-foreground">
+        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
           Projects
           <span className="ml-2 text-muted-foreground">{projects.length}</span>
         </h3>
@@ -221,7 +221,7 @@ function ExecutionProjectsList({
                 key={project.id}
                 href={projectHref}
                 className={cn(
-                  "block px-2 py-3 transition-colors hover:bg-[color:var(--shell-control-hover)]",
+                  "block px-2 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]",
                   isActive && "bg-[color:var(--shell-nav-active)]"
                 )}
               >
@@ -337,7 +337,7 @@ function ExecutionLifecyclePanel({
 
   return (
     <div>
-      <h3 className="text-[14px] font-medium text-foreground">Controls</h3>
+      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Controls</h3>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {launchPresets.length > 0 ? (
           <ShellSelectField
@@ -447,7 +447,7 @@ function ProjectStoriesPanel({
 }) {
   return (
     <div>
-      <h3 className="text-[14px] font-medium text-foreground">
+      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
         Stories
         <span className="ml-2 text-[13px] font-normal text-muted-foreground">
           {storiesDone}/{storiesTotal}
@@ -496,7 +496,7 @@ function ProjectTimelinePanel({
 }) {
   return (
     <div>
-      <h3 className="text-[14px] font-medium text-foreground">Timeline</h3>
+      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Timeline</h3>
       <div className="mt-2 border-t border-border">
         {timeline.length === 0 ? (
           <div className="py-6 text-center text-[13px] text-muted-foreground">
@@ -638,7 +638,7 @@ function ExecutionProjectMonitor({
 
       {/* Profile */}
       <div>
-        <h3 className="text-[14px] font-medium text-foreground">
+        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
           Execution profile
         </h3>
         <div className="mt-2 space-y-1.5 text-[13px] text-muted-foreground">

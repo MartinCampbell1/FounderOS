@@ -721,41 +721,50 @@ function UnifiedShellFrameContent({
           <div className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             {title}
           </div>
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 space-y-1">
             {items.map((item) => {
               const Icon = item.icon;
+              const isActive = activeCommandId === item.id;
               return (
                 <ShellOptionButton
                   key={item.id}
                   onClick={() => runCommandItem(item)}
                   onMouseEnter={() => setCommandActiveId(item.id)}
-                  active={activeCommandId === item.id}
+                  active={isActive}
                   buttonRef={
-                    activeCommandId === item.id
+                    isActive
                       ? activeCommandButtonRef
                       : undefined
                   }
+                  className={cn(
+                    "px-3 py-2.5",
+                    isActive && "border-l-2 border-primary bg-primary/[0.08]"
+                  )}
                   title={
-                    Icon ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        {item.label}
-                      </span>
-                    ) : (
-                      item.label
-                    )
+                    <span className="text-[13px] font-medium text-foreground">
+                      {Icon ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Icon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                          {item.label}
+                        </span>
+                      ) : (
+                        item.label
+                      )}
+                    </span>
                   }
-                  description={item.detail}
+                  description={
+                    <span className="text-[12px] text-muted-foreground/60">{item.detail}</span>
+                  }
                   badges={item.badges?.map((badge) => (
                     <Badge key={`${item.id}:${badge.label}`} tone={badge.tone}>
                       {badge.label}
                     </Badge>
                   ))}
                   trailing={
-                    activeCommandId === item.id ? (
+                    isActive ? (
                       <ShellShortcutCombo keys={["Enter"]} />
                     ) : item.shortcut ? (
-                      <kbd className="text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.shortcut}</kbd>
+                      <kbd className="inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]">{item.shortcut}</kbd>
                     ) : (
                       <ShellKeyboardHint>Go</ShellKeyboardHint>
                     )
@@ -780,16 +789,16 @@ function UnifiedShellFrameContent({
         href={item.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "shell-nav-item group flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
+          "shell-nav-item group flex h-8 items-center gap-2 rounded-md text-[13px] transition-colors",
           renderSidebarCollapsed ? "justify-center px-0" : "px-2",
           isActive
-            ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
-            : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+            ? "bg-[color:var(--shell-nav-active)] font-medium text-foreground"
+            : "font-normal text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
         )}
         data-active={isActive}
         aria-label={item.label}
       >
-        <Icon className="h-4 w-4 shrink-0" />
+        <Icon className="h-[16px] w-[16px] shrink-0" />
         {renderSidebarCollapsed ? null : <span className="truncate">{item.label}</span>}
       </Link>
     );
@@ -804,15 +813,15 @@ function UnifiedShellFrameContent({
         href={child.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "shell-nav-item group flex h-7 items-center gap-2.5 rounded-md pl-4 pr-2 text-[13px] font-medium transition-colors",
+          "shell-nav-item group flex h-7 items-center gap-2 rounded-md pl-[28px] pr-2 text-[13px] transition-colors",
           isActive
-            ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
-            : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+            ? "bg-[color:var(--shell-nav-active)] font-medium text-foreground"
+            : "font-normal text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
         )}
         data-active={isActive}
         aria-label={child.label}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <Icon className="h-[14px] w-[14px] shrink-0" />
         <span className="truncate">{child.label}</span>
       </Link>
     );
@@ -833,12 +842,12 @@ function UnifiedShellFrameContent({
           className={cn(
             "group flex h-8 items-center justify-center rounded-md text-[13px] font-medium transition-colors",
             isActive
-              ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
+              ? "bg-[color:var(--shell-nav-active)] text-foreground"
               : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
           )}
           aria-label={item.label}
         >
-          <Icon className="h-4 w-4 shrink-0" />
+          <Icon className="h-[16px] w-[16px] shrink-0" />
         </Link>
       );
     }
@@ -849,19 +858,19 @@ function UnifiedShellFrameContent({
           type="button"
           onClick={() => toggleSection(item.key)}
           className={cn(
-            "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors",
+            "group/collapse flex h-8 w-full items-center justify-between rounded-md px-2 text-[13px] font-medium transition-colors",
             isActive
-              ? "text-[var(--shell-sidebar-foreground)]"
+              ? "text-foreground"
               : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
           )}
         >
-          <span className="flex items-center gap-2.5">
-            <Icon className="h-4 w-4 shrink-0" />
+          <span className="flex items-center gap-2">
+            <Icon className="h-[16px] w-[16px] shrink-0" />
             <span>{item.label}</span>
           </span>
           <ChevronRight
             className={cn(
-              "h-3 w-3 transition-transform",
+              "h-3 w-3 opacity-40 transition-transform duration-150 group-hover/collapse:opacity-100",
               isExpanded && "rotate-90"
             )}
           />
@@ -895,11 +904,11 @@ function UnifiedShellFrameContent({
           <button
             type="button"
             aria-label="Close command palette"
-            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[6px]"
             onClick={closeCommandPalette}
           />
           <div className="fixed inset-x-4 top-[8vh] z-[60] mx-auto w-full max-w-[720px]">
-            <div className="overflow-hidden rounded-xl border border-[color:var(--shell-control-border)] bg-popover text-popover-foreground shadow-[0_16px_70px_rgba(0,0,0,0.35)]">
+            <div className="overflow-hidden rounded-xl border border-[color:var(--shell-control-border)]/50 bg-popover text-popover-foreground shadow-[0_16px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl">
               <div className="border-b border-[color:var(--shell-control-border)] p-3">
                 <ShellSearchField
                   value={commandQuery}
@@ -928,7 +937,7 @@ function UnifiedShellFrameContent({
                   }}
                   placeholder="Type a command or search..."
                   className="w-full"
-                  inputClassName="bg-transparent"
+                  inputClassName="bg-transparent text-[15px] border-none placeholder:text-muted-foreground/40 focus:shadow-none"
                   accessory={<ShellKeyboardHint>Esc</ShellKeyboardHint>}
                   inputRef={commandInputRef}
                 />
@@ -976,12 +985,12 @@ function UnifiedShellFrameContent({
           <button
             type="button"
             aria-label="Close shortcuts reference"
-            className="fixed inset-0 z-50 bg-black/45"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[6px]"
             onClick={() => setShowShortcuts(false)}
           />
-          <div className="fixed inset-x-4 top-[15vh] z-[60] mx-auto w-full max-w-[480px] rounded-xl border border-[color:var(--shell-control-border)] bg-popover p-6 shadow-xl">
+          <div className="fixed inset-x-4 top-[15vh] z-[60] mx-auto w-full max-w-[480px] rounded-2xl border border-[color:var(--shell-control-border)]/50 bg-popover p-6 shadow-[var(--shadow-elevated,0_16px_70px_rgba(0,0,0,0.45))]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[16px] font-medium text-foreground">Keyboard shortcuts</h2>
+              <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Keyboard shortcuts</h2>
               <button
                 type="button"
                 onClick={() => setShowShortcuts(false)}
@@ -991,17 +1000,17 @@ function UnifiedShellFrameContent({
                 <span aria-hidden="true">&times;</span>
               </button>
             </div>
-            <div className="space-y-0 text-[13px]">
+            <div className="space-y-0">
               {SHORTCUT_REFERENCE.map((entry, idx) => (
                 <div
                   key={entry.label}
                   className={cn(
-                    "flex justify-between py-1.5",
-                    idx < SHORTCUT_REFERENCE.length - 1 && "border-b border-border"
+                    "flex justify-between py-2",
+                    idx < SHORTCUT_REFERENCE.length - 1 && "border-b border-border/40"
                   )}
                 >
-                  <span className="text-muted-foreground">{entry.label}</span>
-                  <kbd className="text-xs bg-muted px-1.5 py-0.5 rounded">{entry.keys}</kbd>
+                  <span className="text-[13px] text-muted-foreground">{entry.label}</span>
+                  <kbd className="inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]">{entry.keys}</kbd>
                 </div>
               ))}
             </div>
@@ -1011,7 +1020,7 @@ function UnifiedShellFrameContent({
 
       {/* ── Chord mode indicator ───────────────────────── */}
       {chordMode ? (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1.5 text-[12px] font-medium text-background shadow-lg">
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in duration-150 rounded-full bg-foreground/95 px-4 py-1.5 text-[11px] font-medium tracking-wide text-background shadow-[var(--shadow-elevated,0_8px_30px_rgba(0,0,0,0.35))] backdrop-blur-lg">
           G pressed — waiting for next key...
         </div>
       ) : null}
@@ -1024,7 +1033,7 @@ function UnifiedShellFrameContent({
           <div className="flex items-center gap-2 px-4 py-3">
             <Link
               href={buildDashboardScopeHref(routeScope)}
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[#5e6ad2] text-[10px] font-bold text-white"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#5e6ad2] to-[#4850b8] text-[10px] font-bold text-white shadow-sm"
             >
               FO
             </Link>
@@ -1032,7 +1041,7 @@ function UnifiedShellFrameContent({
               <>
                 <Link
                   href={buildDashboardScopeHref(routeScope)}
-                  className="shell-sidebar-copy min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--shell-sidebar-foreground)]"
+                  className="shell-sidebar-copy min-w-0 flex-1 truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--shell-sidebar-foreground)]"
                 >
                   FounderOS
                 </Link>
@@ -1043,7 +1052,7 @@ function UnifiedShellFrameContent({
               <div className="shell-sidebar-copy ml-auto flex items-center gap-0.5">
                 <button
                   type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
                   onClick={openCommandPalette}
                   aria-label="Search"
                 >
@@ -1085,9 +1094,9 @@ function UnifiedShellFrameContent({
             <div className="shell-sidebar-copy border-t border-[color:var(--shell-sidebar-border)] px-4 py-3">
               <Link
                 href="#"
-                className="flex items-center gap-2 text-[13px] text-[var(--shell-sidebar-muted)] transition-colors hover:text-[var(--shell-sidebar-foreground)]"
+                className="flex items-center gap-2 text-[12px] text-[var(--shell-sidebar-muted)] opacity-60 transition-opacity hover:opacity-100"
               >
-                <HelpCircle className="h-4 w-4" />
+                <HelpCircle className="h-3.5 w-3.5" />
                 <span>Help</span>
               </Link>
             </div>
@@ -1097,7 +1106,7 @@ function UnifiedShellFrameContent({
           <div className="hidden border-t border-[color:var(--shell-sidebar-border)] p-2 md:block">
             <button
               type="button"
-              className="flex h-7 w-full items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+              className="flex h-7 w-full items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] opacity-40 transition-opacity hover:opacity-100"
               onClick={() =>
                 updatePreferences({
                   sidebarCollapsed: !preferences.sidebarCollapsed,
@@ -1106,9 +1115,9 @@ function UnifiedShellFrameContent({
               aria-label={renderSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {renderSidebarCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
+                <PanelLeftOpen className="h-3.5 w-3.5" />
               ) : (
-                <PanelLeftClose className="h-4 w-4" />
+                <PanelLeftClose className="h-3.5 w-3.5" />
               )}
             </button>
           </div>
