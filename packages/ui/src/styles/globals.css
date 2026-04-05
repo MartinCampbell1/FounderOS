@@ -105,9 +105,9 @@
   --shell-panel-subtle: rgba(20, 21, 22, 0.92);
   --shell-control-bg: #141516;
   --shell-control-border: #252628;
-  --shell-control-hover: rgba(255, 255, 255, 0.07);
+  --shell-control-hover: #ffffff11;
   --shell-control-muted: #545557;
-  --shell-nav-active: rgba(255, 255, 255, 0.07);
+  --shell-nav-active: #ffffff11;
   --shell-topbar-bg: rgba(15, 15, 17, 0.88);
   --shell-topbar-border: #1c1e21;
 }

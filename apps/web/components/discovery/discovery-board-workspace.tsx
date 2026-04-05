@@ -12,44 +12,17 @@ import {
 import type {
   QuorumDiscoveryIdea,
   QuorumDiscoverySwipeAction,
-  QuorumIdeaQueueItem,
-  QuorumNextPairResponse,
-  QuorumRankedIdeaRecord,
   ShellPreferences,
 } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
-import {
-  Activity,
-  BrainCircuit,
-  Radar,
-  Sparkles,
-  Swords,
-  Telescope,
-  Trophy,
-} from "lucide-react";
+import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
 import {
-  ShellRecordAccessory,
-  ShellRecordActionBar,
-  ShellRecordBody,
-  ShellRecordCard,
-  ShellRecordHeader,
-  ShellRecordLinkButton,
-  ShellRecordMeta,
-  ShellRecordSection,
-} from "@/components/shell/shell-record-primitives";
-import {
-  ShellActionStateLabel,
-  ShellEmptyState,
   ShellFilterChipLink,
   ShellHero,
-  ShellLinkTileGrid,
-  ShellListLink,
   ShellPage,
-  ShellPillButton,
   ShellRefreshButton,
-  ShellSectionCard,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import type { ShellDiscoveryBoardSnapshot } from "@/lib/discovery-board";
@@ -59,21 +32,15 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import {
-  buildDashboardScopeHref,
   buildDiscoveryBoardArchiveScopeHref,
   buildDiscoveryBoardFinalsScopeHref,
   buildDiscoveryBoardRankingScopeHref,
-  buildDiscoveryBoardSimulationIdeaScopeHref,
   buildDiscoveryBoardSimulationsScopeHref,
-  buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaScopeHref,
   buildDiscoveryIdeasScopeHref,
   buildDiscoveryReplayScopeHref,
   buildDiscoveryTracesScopeHref,
   buildDiscoveryScopeHref,
-  buildInboxScopeHref,
-  buildPortfolioScopeHref,
-  buildSettingsScopeHref,
   type ShellRouteScope,
 } from "@/lib/route-scope";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
@@ -101,10 +68,6 @@ const EMPTY_DISCOVERY_BOARD_SNAPSHOT: ShellDiscoveryBoardSnapshot = {
   loadState: "ready",
 };
 
-function percent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
 function formatDate(value?: string | null) {
   if (!value) return "n/a";
   return new Intl.DateTimeFormat("en", {
@@ -115,179 +78,130 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
-function stageTone(stage: string) {
-  if (stage === "executed") return "success" as const;
-  if (stage === "handed_off") return "info" as const;
-  if (stage === "simulated" || stage === "debated") return "warning" as const;
-  return "neutral" as const;
+/* ------------------------------------------------------------------ */
+/*  Kanban column definitions                                         */
+/* ------------------------------------------------------------------ */
+
+interface BoardColumn {
+  readonly key: string;
+  readonly label: string;
+  readonly borderColor: string;
+  readonly badgeBg: string;
+  readonly stages: readonly string[];
 }
 
-function swipeTone(action: string) {
-  if (action === "now") return "success" as const;
-  if (action === "yes") return "info" as const;
-  if (action === "maybe") return "warning" as const;
-  if (action === "pass") return "neutral" as const;
-  return "neutral" as const;
+const BOARD_COLUMNS: readonly BoardColumn[] = [
+  {
+    key: "draft",
+    label: "Draft",
+    borderColor: "border-t-neutral-400",
+    badgeBg: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
+    stages: ["sourced"],
+  },
+  {
+    key: "queued",
+    label: "Queued",
+    borderColor: "border-t-blue-500",
+    badgeBg: "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    stages: ["ranked", "swiped"],
+  },
+  {
+    key: "simulated",
+    label: "Simulated",
+    borderColor: "border-t-amber-500",
+    badgeBg: "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    stages: ["simulated"],
+  },
+  {
+    key: "debated",
+    label: "Debated",
+    borderColor: "border-t-purple-500",
+    badgeBg: "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+    stages: ["debated"],
+  },
+  {
+    key: "validated",
+    label: "Validated",
+    borderColor: "border-t-green-500",
+    badgeBg: "bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    stages: ["executed"],
+  },
+  {
+    key: "handed_off",
+    label: "Handed off",
+    borderColor: "border-t-indigo-500",
+    badgeBg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+    stages: ["handed_off"],
+  },
+] as const;
+
+function collectAllIdeas(snapshot: ShellDiscoveryBoardSnapshot): QuorumDiscoveryIdea[] {
+  const seen = new Set<string>();
+  const result: QuorumDiscoveryIdea[] = [];
+
+  const push = (idea: QuorumDiscoveryIdea) => {
+    if (seen.has(idea.idea_id)) return;
+    seen.add(idea.idea_id);
+    result.push(idea);
+  };
+
+  for (const idea of snapshot.simulationIdeas) {
+    push(idea);
+  }
+  if (snapshot.leaderboard?.items) {
+    for (const item of snapshot.leaderboard.items) {
+      push(item.idea);
+    }
+  }
+  if (snapshot.swipeQueue?.items) {
+    for (const item of snapshot.swipeQueue.items) {
+      push(item.idea);
+    }
+  }
+  if (snapshot.nextPair) {
+    push(snapshot.nextPair.left.idea);
+    push(snapshot.nextPair.right.idea);
+  }
+
+  return result;
 }
 
-function simulationTone(state: string) {
-  if (state === "complete" || state === "market_complete") return "success" as const;
-  if (state === "running" || state === "queued") return "warning" as const;
-  if (state === "failed") return "danger" as const;
-  return "neutral" as const;
+function groupIdeasByColumn(
+  ideas: readonly QuorumDiscoveryIdea[],
+): ReadonlyMap<string, QuorumDiscoveryIdea[]> {
+  const stageToColumn = new Map<string, string>();
+  for (const col of BOARD_COLUMNS) {
+    for (const stage of col.stages) {
+      stageToColumn.set(stage, col.key);
+    }
+  }
+
+  const groups = new Map<string, QuorumDiscoveryIdea[]>();
+  for (const col of BOARD_COLUMNS) {
+    groups.set(col.key, []);
+  }
+
+  for (const idea of ideas) {
+    const columnKey = stageToColumn.get(idea.latest_stage) ?? "draft";
+    const bucket = groups.get(columnKey);
+    if (bucket) {
+      bucket.push(idea);
+    }
+  }
+
+  // Sort each column by rank_score descending
+  for (const bucket of groups.values()) {
+    bucket.sort((a, b) => b.rank_score - a.rank_score);
+  }
+
+  return groups;
 }
 
-function scorecardTone(value: number) {
-  if (value >= 0.7) return "success" as const;
-  if (value >= 0.45) return "warning" as const;
-  return "danger" as const;
-}
+/* ------------------------------------------------------------------ */
+/*  Kanban card                                                       */
+/* ------------------------------------------------------------------ */
 
-
-function RankRow({
-  item,
-  routeScope,
-}: {
-  item: QuorumRankedIdeaRecord;
-  routeScope: DiscoveryBoardRouteScope;
-}) {
-  return (
-    <ShellListLink
-      href={buildDiscoveryIdeaScopeHref(item.idea.idea_id, routeScope)}
-      className="grid gap-3 lg:grid-cols-[64px_minmax(0,1.4fr)_120px_120px_130px]"
-    >
-      <div className="flex items-center">
-        <div className="rounded-full border border-border/80 bg-card/70 px-3 py-1 text-[11px] font-semibold tracking-[0.04em] text-foreground">
-          #{item.rank_position}
-        </div>
-      </div>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-semibold text-foreground">{item.idea.title}</div>
-        <div className="mt-1 truncate text-xs leading-6 text-muted-foreground">
-          {item.idea.summary || item.idea.thesis || item.idea.description || item.idea.source}
-        </div>
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Rating
-        </div>
-        <div className="mt-1 text-sm font-semibold text-foreground">
-          {item.rating.toFixed(1)}
-        </div>
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Merit
-        </div>
-        <div className="mt-1 text-sm font-semibold text-foreground">
-          {percent(item.merit_score)}
-        </div>
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Stability
-        </div>
-        <div className="mt-1 text-sm font-semibold text-foreground">
-          {percent(item.stability_score)}
-        </div>
-      </div>
-    </ShellListLink>
-  );
-}
-
-function QueueRow({
-  item,
-  routeScope,
-  busyActionKey,
-  onSwipe,
-}: {
-  item: QuorumIdeaQueueItem;
-  routeScope: DiscoveryBoardRouteScope;
-  busyActionKey: string;
-  onSwipe: (ideaId: string, action: QuorumDiscoverySwipeAction) => void;
-}) {
-  const actions: QuorumDiscoverySwipeAction[] = ["pass", "maybe", "yes", "now"];
-
-  return (
-    <ShellRecordCard>
-      <ShellRecordHeader
-        badges={
-          <>
-            <Badge tone={stageTone(item.idea.latest_stage)}>{item.idea.latest_stage}</Badge>
-            <Badge tone={swipeTone(item.idea.swipe_state)}>{item.idea.swipe_state}</Badge>
-          </>
-        }
-        title={item.idea.title}
-        description={item.explanation.headline}
-        accessory={
-          <ShellRecordAccessory
-            label="Queue score"
-            value={`rank ${item.idea.rank_score.toFixed(2)}`}
-            detail={item.idea.source}
-          />
-        }
-      />
-      <ShellRecordBody>
-        <ShellRecordMeta>
-          <span>{item.idea.idea_id}</span>
-          <span>belief {item.idea.belief_score.toFixed(2)}</span>
-          <span>{formatDate(item.idea.updated_at)}</span>
-        </ShellRecordMeta>
-        <ShellRecordSection title="Why this moved">
-          <div className="text-[13px] leading-6 text-muted-foreground">
-            {item.explanation.change_summary[0] ||
-              item.explanation.source_signals[0] ||
-              "No change summary available yet."}
-          </div>
-        </ShellRecordSection>
-        {item.idea.topic_tags.length ? (
-          <ShellRecordSection title="Signals">
-            <div className="flex flex-wrap gap-2">
-              {item.idea.topic_tags.slice(0, 4).map((tag) => (
-                <Badge key={tag} tone="neutral">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </ShellRecordSection>
-        ) : null}
-        <ShellRecordActionBar>
-          <ShellRecordLinkButton
-            href={buildDiscoveryIdeaScopeHref(item.idea.idea_id, routeScope)}
-            label="Open dossier"
-          />
-          <ShellRecordLinkButton
-            href={buildDiscoveryBoardSimulationIdeaScopeHref(item.idea.idea_id, routeScope)}
-            label="Open simulation"
-          />
-        </ShellRecordActionBar>
-        <div className="flex flex-wrap gap-2">
-        {actions.map((action) => {
-          const isBusy = busyActionKey === `swipe:${item.idea.idea_id}:${action}`;
-          return (
-            <ShellPillButton
-              key={action}
-              type="button"
-              tone={action === "now" ? "primary" : "outline"}
-              disabled={Boolean(busyActionKey)}
-              onClick={() => onSwipe(item.idea.idea_id, action)}
-            >
-              <ShellActionStateLabel
-                busy={isBusy}
-                idleLabel={action}
-                busyLabel={action}
-                spinnerClassName="h-3.5 w-3.5 animate-spin"
-              />
-            </ShellPillButton>
-          );
-        })}
-        </div>
-      </ShellRecordBody>
-    </ShellRecordCard>
-  );
-}
-
-function SimulationIdeaRow({
+function BoardCard({
   idea,
   routeScope,
 }: {
@@ -295,182 +209,79 @@ function SimulationIdeaRow({
   routeScope: DiscoveryBoardRouteScope;
 }) {
   return (
-    <ShellRecordCard>
-      <ShellRecordHeader
-        badges={
-          <>
-            <Badge tone={stageTone(idea.latest_stage)}>{idea.latest_stage}</Badge>
-            <Badge tone={simulationTone(idea.simulation_state)}>{idea.simulation_state}</Badge>
-          </>
-        }
-        title={idea.title}
-        description={idea.summary || idea.thesis || idea.description}
-        accessory={
-          <ShellRecordAccessory
-            label="Rank"
-            value={idea.rank_score.toFixed(2)}
-            detail={`belief ${idea.belief_score.toFixed(2)}`}
-          />
-        }
-      />
-      <ShellRecordBody>
-        <ShellRecordMeta>
-          <span>{idea.idea_id}</span>
-          <span>{idea.source}</span>
-          <span>{formatDate(idea.updated_at)}</span>
-        </ShellRecordMeta>
-        {idea.topic_tags.length ? (
-          <ShellRecordSection title="Signals">
-            <div className="flex flex-wrap gap-2">
-              {idea.topic_tags.slice(0, 4).map((tag) => (
-                <Badge key={tag} tone="neutral">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </ShellRecordSection>
-        ) : null}
-        <ShellRecordActionBar>
-          <ShellRecordLinkButton
-            href={buildDiscoveryIdeaScopeHref(idea.idea_id, routeScope)}
-            label="Open dossier"
-          />
-          <ShellRecordLinkButton
-            href={buildDiscoveryBoardSimulationIdeaScopeHref(idea.idea_id, routeScope)}
-            label="Inspect simulation"
-          />
-        </ShellRecordActionBar>
-      </ShellRecordBody>
-    </ShellRecordCard>
-  );
-}
-
-function NextPairCard({
-  nextPair,
-  routeScope,
-  busyActionKey,
-  onCompare,
-}: {
-  nextPair: QuorumNextPairResponse | null;
-  routeScope: DiscoveryBoardRouteScope;
-  busyActionKey: string;
-  onCompare: (verdict: "left" | "right" | "tie") => void;
-}) {
-  if (!nextPair) {
-    return (
-      <ShellSectionCard
-        title="Next pair"
-        contentClassName="py-2"
-      >
-        <BoardEmptyState message="Ranking queue has no suggested next pair yet." />
-      </ShellSectionCard>
-    );
-  }
-
-  return (
-    <ShellSectionCard
-      title="Next pair"
-      contentClassName="space-y-4"
+    <Link
+      href={buildDiscoveryIdeaScopeHref(idea.idea_id, routeScope)}
+      className="group block rounded-lg border border-border/60 bg-card p-3 transition-shadow hover:shadow-sm"
     >
-        <ShellRecordSection title="Pair rationale">
-          <div className="text-[13px] leading-6 text-muted-foreground">{nextPair.reason}</div>
-        </ShellRecordSection>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {[nextPair.left, nextPair.right].map((item, index) => (
-            <ShellRecordCard
-              key={`${item.idea.idea_id}:${index}`}
-              className="shadow-none"
+      <div className="truncate text-[13px] font-medium leading-5 text-foreground group-hover:text-accent-foreground">
+        {idea.title}
+      </div>
+      <div className="mt-1.5 flex items-center gap-3 text-[12px] text-muted-foreground">
+        <span>Score: {idea.rank_score.toFixed(0)}</span>
+        <span>Belief: {idea.belief_score.toFixed(2)}</span>
+      </div>
+      {idea.topic_tags.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {idea.topic_tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[11px] leading-tight text-muted-foreground"
             >
-              <ShellRecordHeader
-                badges={<Badge tone={stageTone(item.idea.latest_stage)}>{item.idea.latest_stage}</Badge>}
-                title={item.idea.title}
-                description={item.idea.summary || item.idea.thesis || item.idea.description}
-                accessory={
-                  <ShellRecordAccessory
-                    label="Position"
-                    value={`#${item.rank_position}`}
-                    detail={`${percent(item.stability_score)} stable`}
-                  />
-                }
-              />
-              <ShellRecordBody>
-                <ShellRecordMeta>
-                  <span>{item.idea.idea_id}</span>
-                  <span>{item.idea.source}</span>
-                  <span>{percent(item.merit_score)} merit</span>
-                </ShellRecordMeta>
-                {item.idea.topic_tags.length ? (
-                  <ShellRecordSection title="Signals">
-                    <div className="flex flex-wrap gap-2">
-                      {item.idea.topic_tags.slice(0, 4).map((tag) => (
-                        <Badge key={tag} tone="neutral">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </ShellRecordSection>
-                ) : null}
-                <ShellRecordActionBar>
-                  <ShellRecordLinkButton
-                    href={buildDiscoveryIdeaScopeHref(item.idea.idea_id, routeScope)}
-                    label="Open dossier"
-                  />
-                </ShellRecordActionBar>
-              </ShellRecordBody>
-            </ShellRecordCard>
+              {tag}
+            </span>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <ShellPillButton
-            type="button"
-            tone="primary"
-            disabled={Boolean(busyActionKey)}
-            onClick={() => onCompare("left")}
-          >
-            <ShellActionStateLabel
-              busy={busyActionKey === "compare:left"}
-              idleLabel="Left wins"
-              busyLabel="Left wins"
-              spinnerClassName="h-3.5 w-3.5 animate-spin"
-            />
-          </ShellPillButton>
-          <ShellPillButton
-            type="button"
-            tone="primary"
-            disabled={Boolean(busyActionKey)}
-            onClick={() => onCompare("tie")}
-          >
-            <ShellActionStateLabel
-              busy={busyActionKey === "compare:tie"}
-              idleLabel="Tie"
-              busyLabel="Tie"
-              spinnerClassName="h-3.5 w-3.5 animate-spin"
-            />
-          </ShellPillButton>
-          <ShellPillButton
-            type="button"
-            tone="primary"
-            disabled={Boolean(busyActionKey)}
-            onClick={() => onCompare("right")}
-          >
-            <ShellActionStateLabel
-              busy={busyActionKey === "compare:right"}
-              idleLabel="Right wins"
-              busyLabel="Right wins"
-              spinnerClassName="h-3.5 w-3.5 animate-spin"
-            />
-          </ShellPillButton>
-        </div>
-    </ShellSectionCard>
+      ) : null}
+    </Link>
   );
 }
 
-function BoardEmptyState({
-  message,
+/* ------------------------------------------------------------------ */
+/*  Kanban column                                                     */
+/* ------------------------------------------------------------------ */
+
+function BoardColumnView({
+  column,
+  ideas,
+  routeScope,
 }: {
-  message: string;
+  column: BoardColumn;
+  ideas: readonly QuorumDiscoveryIdea[];
+  routeScope: DiscoveryBoardRouteScope;
 }) {
-  return <ShellEmptyState description={message} />;
+  return (
+    <div className="flex min-w-[220px] max-w-[280px] shrink-0 flex-col">
+      <div
+        className={`rounded-t-lg border-t-2 ${column.borderColor} border-x border-border/40 bg-muted/30 px-3 py-2.5`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[13px] font-medium text-foreground">
+            {column.label}
+          </span>
+          <span
+            className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-medium leading-none ${column.badgeBg}`}
+          >
+            {ideas.length}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-b-lg border-x border-b border-border/40 bg-muted/10 p-2">
+        {ideas.length > 0 ? (
+          ideas.map((idea) => (
+            <BoardCard
+              key={idea.idea_id}
+              idea={idea}
+              routeScope={routeScope}
+            />
+          ))
+        ) : (
+          <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/50 p-4">
+            <span className="text-[12px] text-muted-foreground">No ideas</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function DiscoveryBoardWorkspace({
@@ -575,22 +386,22 @@ export function DiscoveryBoardWorkspace({
     [routeScope, runMutation]
   );
 
+  const allIdeas = useMemo(() => collectAllIdeas(snapshot), [snapshot]);
+  const columnGroups = useMemo(() => groupIdeasByColumn(allIdeas), [allIdeas]);
+
   const errors = [
     ...snapshot.errors,
     errorMessage ?? "",
   ].filter(Boolean);
 
   return (
-    <ShellPage className="max-w-[1600px]">
+    <ShellPage className="max-w-[1400px]">
       <ShellHero
-        eyebrow={<Badge tone="info">FounderOS board</Badge>}
-        title="Ranking, swipe, and simulation now sit inside the unified shell."
+        eyebrow={<Badge tone="info">Board</Badge>}
+        title="Board"
         meta={
           <>
-            <span>{snapshot.scoreboard?.idea_count ?? 0} ideas observed</span>
-            <span>{snapshot.leaderboard?.metrics.comparisons_count ?? 0} comparisons</span>
-            <span>{snapshot.swipeQueue?.summary.active_count ?? 0} triage items</span>
-            <span>{snapshot.simulationIdeas.length} simulation candidates</span>
+            <span>{allIdeas.length} ideas</span>
             <span>{formatDate(snapshot.generatedAt)}</span>
           </>
         }
@@ -630,21 +441,6 @@ export function DiscoveryBoardWorkspace({
             />
           </>
         }
-        aside={
-          <div className="space-y-2.5">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              Current pulse
-            </div>
-            <div className="text-sm text-foreground">
-              {snapshot.nextPair
-                ? `${snapshot.nextPair.left.idea.title} vs ${snapshot.nextPair.right.idea.title}`
-                : "Ranking queue is waiting for the next strong comparison."}
-            </div>
-            <div className="text-[12px] leading-6 text-muted-foreground">
-              Board routes keep ranking, swipe, and simulation decisions in one operator loop with scoped returns across review, dashboard, and settings.
-            </div>
-          </div>
-        }
       />
 
       {statusMessage ? (
@@ -655,214 +451,16 @@ export function DiscoveryBoardWorkspace({
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       ) : null}
 
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
-        <div className="grid gap-4">
-          <NextPairCard
-            nextPair={snapshot.nextPair}
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {BOARD_COLUMNS.map((col) => (
+          <BoardColumnView
+            key={col.key}
+            column={col}
+            ideas={columnGroups.get(col.key) ?? []}
             routeScope={routeScope}
-            busyActionKey={busyActionKey}
-            onCompare={handleCompare}
           />
-
-          <ShellSectionCard
-            title="Ranking board"
-            contentClassName="space-y-3"
-          >
-            {snapshot.leaderboard?.items.length ? (
-              snapshot.leaderboard.items.slice(0, 6).map((item) => (
-                <RankRow
-                  key={item.idea.idea_id}
-                  item={item}
-                  routeScope={routeScope}
-                />
-              ))
-            ) : (
-              <BoardEmptyState message="Ranking leaderboard is not available yet." />
-            )}
-          </ShellSectionCard>
-
-          <ShellSectionCard
-            title="Observability watchlist"
-            contentClassName="grid gap-4 xl:grid-cols-2"
-          >
-            <div className="space-y-3">
-              <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Strongest ideas
-              </div>
-              {snapshot.scoreboard?.strongest_ideas.length ? (
-                snapshot.scoreboard.strongest_ideas.slice(0, 4).map((item) => (
-                  <ShellListLink
-                    key={item.idea_id}
-                    href={buildDiscoveryIdeaScopeHref(item.idea_id, routeScope)}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-medium text-foreground">{item.title}</div>
-                      <Badge tone={scorecardTone(item.overall_health)}>
-                        {percent(item.overall_health)}
-                      </Badge>
-                    </div>
-                  </ShellListLink>
-                ))
-              ) : (
-                <BoardEmptyState message="No strongest ideas are visible yet." />
-              )}
-            </div>
-            <div className="space-y-3">
-              <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Watchlist
-              </div>
-              {snapshot.scoreboard?.weakest_ideas.length ? (
-                snapshot.scoreboard.weakest_ideas.slice(0, 4).map((item) => (
-                  <ShellListLink
-                    key={item.idea_id}
-                    href={buildDiscoveryIdeaScopeHref(item.idea_id, routeScope)}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-medium text-foreground">{item.title}</div>
-                      <Badge tone={scorecardTone(item.overall_health)}>
-                        {percent(item.overall_health)}
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-xs leading-6 text-muted-foreground">
-                      {item.flags.slice(0, 2).join(" · ") || "No flags recorded."}
-                    </div>
-                  </ShellListLink>
-                ))
-              ) : (
-                <BoardEmptyState message="No watchlist ideas are visible yet." />
-              )}
-            </div>
-          </ShellSectionCard>
-        </div>
-
-        <div className="grid gap-4">
-          <ShellSectionCard
-            title="Swipe queue"
-            contentClassName="space-y-3"
-          >
-            {snapshot.swipeQueue?.items.length ? (
-              snapshot.swipeQueue.items.slice(0, 4).map((item) => (
-                <QueueRow
-                  key={item.queue_id}
-                  item={item}
-                  routeScope={routeScope}
-                  busyActionKey={busyActionKey}
-                  onSwipe={handleSwipe}
-                />
-              ))
-            ) : (
-              <BoardEmptyState message="Swipe queue is empty right now." />
-            )}
-          </ShellSectionCard>
-
-          <ShellSectionCard
-            title="Founder preference model"
-            contentClassName="space-y-3"
-          >
-            <ShellRecordSection title="Strong domains" className="bg-background/70">
-              <div className="text-sm leading-7 text-foreground">
-                {Object.entries(
-                  snapshot.swipeQueue?.preference_profile.domain_weights ?? {}
-                )
-                  .sort((left, right) => right[1] - left[1])
-                  .slice(0, 3)
-                  .map(([label]) => label)
-                  .join(", ") || "Neutral"}
-              </div>
-            </ShellRecordSection>
-          </ShellSectionCard>
-
-          <ShellSectionCard
-            title="Simulation lane"
-            contentClassName="space-y-3"
-          >
-            {snapshot.simulationIdeas.length ? (
-              snapshot.simulationIdeas.map((idea) => (
-                <SimulationIdeaRow
-                  key={idea.idea_id}
-                  idea={idea}
-                  routeScope={routeScope}
-                />
-              ))
-            ) : (
-              <BoardEmptyState message="No simulation candidates are visible yet." />
-            )}
-          </ShellSectionCard>
-        </div>
-      </section>
-
-      <ShellLinkTileGrid
-        className="md:grid-cols-3 xl:grid-cols-6"
-        items={[
-          {
-            href: buildDiscoveryBoardRankingScopeHref(routeScope),
-            label: "Open ranking detail",
-            icon: <Trophy className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardArchiveScopeHref(routeScope),
-            label: "Open archive frontier",
-            icon: <Telescope className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardFinalsScopeHref(routeScope),
-            label: "Open finals route",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: snapshot.simulationIdeas[0]
-              ? buildDiscoveryBoardSimulationIdeaScopeHref(
-                  snapshot.simulationIdeas[0].idea_id,
-                  routeScope
-                )
-              : buildDiscoveryBoardSimulationsScopeHref(routeScope),
-            label: "Open simulation review",
-            icon: <BrainCircuit className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryTracesScopeHref(routeScope),
-            label: "Open trace coverage",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryReplayScopeHref(undefined, routeScope),
-            label: "Open replay routes",
-            icon: <Swords className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildRememberedDiscoveryReviewScopeHref({
-              scope: routeScope,
-              preferences,
-              bucket: resolveReviewMemoryBucket({ scope: routeScope }),
-            }),
-            label: "Open discovery review",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDashboardScopeHref(routeScope),
-            label: "Open scoped dashboard",
-            icon: <Activity className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildInboxScopeHref(routeScope),
-            label: "Open scoped inbox",
-            icon: <Telescope className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildPortfolioScopeHref(routeScope),
-            label: "Open scoped portfolio",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildSettingsScopeHref(routeScope, {
-              discoveryIdeaId: settingsTargetIdeaId,
-            }),
-            label: "Open scoped settings",
-            icon: <Activity className="h-4 w-4 text-accent" />,
-          },
-        ]}
-      />
+        ))}
+      </div>
     </ShellPage>
   );
 }
