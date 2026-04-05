@@ -24,7 +24,6 @@ import {
   ShellActionStateLabel,
   ShellActionLink,
   ShellHero,
-  ShellLoadingState,
   ShellPage,
   ShellPillButton,
   ShellRefreshButton,
@@ -32,6 +31,7 @@ import {
   ShellSelectField,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
+import { SkeletonList } from "@/components/shell/shell-skeleton";
 import { cn } from "@founderos/ui/lib/utils";
 import {
   launchExecutionProject,
@@ -186,7 +186,7 @@ function ExecutionProjectsList({
         </h3>
       </div>
       <div className="mb-3">
-        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5">
+        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
           <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input
             type="text"
@@ -199,7 +199,7 @@ function ExecutionProjectsList({
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loadState === "loading" && projects.length === 0 ? (
-          <div className="py-8 text-center text-[13px] text-muted-foreground">Loading projects...</div>
+          <SkeletonList rows={6} className="px-3" />
         ) : null}
         {error ? (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200">
@@ -556,7 +556,7 @@ function ExecutionProjectMonitor({
         title="Execution project"
         contentClassName="py-10"
       >
-          <ShellLoadingState description="Loading project workspace..." />
+          <SkeletonList rows={6} />
       </ShellSectionCard>
     );
   }
