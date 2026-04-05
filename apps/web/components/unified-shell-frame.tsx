@@ -1,0 +1,867 @@
+"use client";
+
+import {
+  fetchShellRuntimeSnapshot,
+  type ShellPreferences,
+  type ShellRuntimeSnapshot,
+} from "@founderos/api-clients";
+import { Badge } from "@founderos/ui/components/badge";
+import { cn } from "@founderos/ui/lib/utils";
+import {
+  ChevronDown,
+  ChevronRight,
+  HelpCircle,
+  Menu,
+  MoonStar,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  SunMedium,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+
+import {
+  ShellEmptyState,
+  ShellKeyboardHint,
+  ShellOptionButton,
+  ShellSearchField,
+  ShellShortcutCombo,
+  ShellShortcutLegend,
+} from "@/components/shell/shell-screen-primitives";
+import {
+  NAV_ITEMS,
+  SECTION_MODELS,
+  sectionFromPathname,
+  type SubNavItem,
+} from "@/lib/navigation";
+import {
+  buildRememberedReviewScopeHref,
+  resolveReviewMemoryBucket,
+} from "@/lib/review-memory";
+import {
+  DEFAULT_SHELL_PREFERENCES,
+  getShellPollInterval,
+  useShellPreferences,
+} from "@/lib/shell-preferences";
+import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
+import {
+  buildDashboardScopeHref,
+  buildInboxScopeHref,
+  EMPTY_SHELL_ROUTE_SCOPE,
+  buildSettingsScopeHref,
+  hasShellRouteScope,
+  readShellRouteScopeFromSearchParams,
+  withShellRouteScope,
+} from "@/lib/route-scope";
+
+const EMPTY_RUNTIME_SNAPSHOT: ShellRuntimeSnapshot = {
+  generatedAt: "",
+  settings: null,
+  health: null,
+  errors: [],
+  loadState: "ready",
+};
+
+type CommandPaletteItem = {
+  id: string;
+  label: string;
+  detail: string;
+  href: string;
+  group: "Routes" | "Scope";
+  badges?: Array<{
+    label: string;
+    tone: "info" | "warning" | "danger" | "neutral" | "success";
+  }>;
+  searchText: string;
+};
+
+/* ── Sidebar nav sections ─────────────────────────────────── */
+
+const TOP_NAV_KEYS = ["dashboard", "inbox"] as const;
+const COLLAPSIBLE_NAV_KEYS = ["discovery", "execution", "settings"] as const;
+const FLAT_MID_NAV_KEYS = ["portfolio", "review"] as const;
+
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
+
+  const isDark = mounted ? resolvedTheme === "dark" : false;
+  const label = mounted ? (isDark ? "Light" : "Dark") : "Theme";
+
+  return (
+    <button
+      type="button"
+      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label="Toggle theme"
+      title={label}
+    >
+      {mounted && isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+    </button>
+  );
+}
+
+function UnifiedShellFrameContent({
+  children,
+  routeScope,
+  initialRuntimeSnapshot,
+  initialPreferences,
+}: {
+  children: React.ReactNode;
+  routeScope: { projectId: string; intakeSessionId: string };
+  initialRuntimeSnapshot?: ShellRuntimeSnapshot | null;
+  initialPreferences?: ShellPreferences | null;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeSection = sectionFromPathname(pathname);
+  const { preferences, updatePreferences } = useShellPreferences(
+    initialPreferences ?? undefined
+  );
+  const isHydrated = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
+  const activeCommandButtonRef = useRef<HTMLButtonElement | null>(null);
+  const commandInputRef = useRef<HTMLInputElement | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [commandActiveId, setCommandActiveId] = useState<string | null>(null);
+  const scopeActive = hasShellRouteScope(routeScope);
+  const renderSidebarCollapsed = isHydrated
+    ? preferences.sidebarCollapsed
+    : DEFAULT_SHELL_PREFERENCES.sidebarCollapsed;
+  const healthPollInterval = getShellPollInterval(
+    "health_strip",
+    preferences.refreshProfile
+  );
+  const loadRuntimeSnapshot = useCallback(() => fetchShellRuntimeSnapshot(), []);
+  const { snapshot: runtimeSnapshot } = useShellPolledSnapshot({
+    emptySnapshot: EMPTY_RUNTIME_SNAPSHOT,
+    initialSnapshot: initialRuntimeSnapshot,
+    refreshNonce: 0,
+    pollIntervalMs: healthPollInterval,
+    loadSnapshot: loadRuntimeSnapshot,
+    selectLoadState: (snapshot) => snapshot.loadState,
+  });
+  const reviewMemoryBucket = useMemo(
+    () => resolveReviewMemoryBucket({ scope: routeScope }),
+    [routeScope]
+  );
+  const reviewHref = useMemo(
+    () =>
+      buildRememberedReviewScopeHref({
+        scope: routeScope,
+        preferences,
+        bucket: reviewMemoryBucket,
+      }),
+    [preferences, reviewMemoryBucket, routeScope]
+  );
+  const scopedNavItems = useMemo(
+    () =>
+      NAV_ITEMS.map((item) => ({
+        ...item,
+        href:
+          item.key === "review"
+            ? reviewHref
+            : withShellRouteScope(item.href, routeScope),
+        children: item.children?.map((child) => ({
+          ...child,
+          href: withShellRouteScope(child.href, routeScope),
+        })),
+      })),
+    [reviewHref, routeScope]
+  );
+  const scopedSettingsHref = useMemo(
+    () => buildSettingsScopeHref(routeScope),
+    [routeScope]
+  );
+
+  // Collapsible section state — auto-expand sections whose children match the current path
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const item of NAV_ITEMS) {
+      if (item.children) {
+        const anyChildActive = item.children.some((child) =>
+          pathname.startsWith(child.href) && child.href !== "/"
+        );
+        if (anyChildActive || pathname.startsWith(item.href)) {
+          initial.add(item.key);
+        }
+      }
+    }
+    return initial;
+  });
+
+  // Auto-expand sections on client-side navigation
+  useEffect(() => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      for (const item of NAV_ITEMS) {
+        if (item.children) {
+          const anyChildActive = item.children.some(
+            (child) => pathname.startsWith(child.href) && child.href !== "/"
+          );
+          if (anyChildActive || pathname.startsWith(item.href)) {
+            next.add(item.key);
+          }
+        }
+      }
+      return next;
+    });
+  }, [pathname]);
+
+  const toggleSection = useCallback((key: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  /* ── Command palette items ─────────────────────────────── */
+  const commandItems = useMemo(() => {
+    const prioritizedNavItems = [
+      ...scopedNavItems.filter((item) => item.key === activeSection),
+      ...scopedNavItems.filter((item) => item.key !== activeSection),
+    ];
+
+    const routeItems: CommandPaletteItem[] = prioritizedNavItems.map((item) => {
+      const model = SECTION_MODELS[item.key];
+      return {
+        id: `route:${item.key}`,
+        label: `Open ${item.label}`,
+        detail: model.title,
+        href: item.href,
+        group: "Routes",
+        badges: [
+          ...(item.key === activeSection
+            ? [{ label: "Current route", tone: "info" as const }]
+            : []),
+        ],
+        searchText: [item.label, item.key, model.title]
+          .join(" ")
+          .toLowerCase(),
+      };
+    });
+
+    const scopeItems: CommandPaletteItem[] = scopeActive
+      ? [
+          {
+            id: "scope:settings",
+            label: "Open scoped settings",
+            detail: "Settings for current scope",
+            href: buildSettingsScopeHref(routeScope),
+            group: "Scope",
+            badges: [{ label: "Current scope", tone: "info" }],
+            searchText: "open scoped settings current scope",
+          },
+          {
+            id: "scope:dashboard",
+            label: "Open scoped dashboard",
+            detail: "Dashboard for current scope",
+            href: buildDashboardScopeHref(routeScope),
+            group: "Scope",
+            badges: [{ label: "Current scope", tone: "info" }],
+            searchText: "open scoped dashboard current scope",
+          },
+          {
+            id: "scope:inbox",
+            label: "Open scoped inbox",
+            detail: "Inbox for current scope",
+            href: buildInboxScopeHref(routeScope),
+            group: "Scope",
+            badges: [{ label: "Current scope", tone: "info" }],
+            searchText: "open scoped inbox current scope",
+          },
+          {
+            id: "scope:review",
+            label: "Open scoped review",
+            detail: "Review for current scope",
+            href: reviewHref,
+            group: "Scope",
+            badges: [{ label: "Current scope", tone: "info" }],
+            searchText: "open scoped review current scope",
+          },
+          {
+            id: "scope:clear",
+            label: "Clear current scope",
+            detail: "Remove scope filters",
+            href: pathname || "/dashboard",
+            group: "Scope",
+            badges: [{ label: "Scope reset", tone: "warning" }],
+            searchText: "clear current scope",
+          },
+        ]
+      : [];
+
+    return [...routeItems, ...scopeItems];
+  }, [activeSection, pathname, reviewHref, routeScope, scopeActive, scopedNavItems]);
+
+  const filteredCommandItems = useMemo(() => {
+    const normalizedQuery = commandQuery.trim().toLowerCase();
+    if (!normalizedQuery) return commandItems;
+    return commandItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(normalizedQuery) ||
+        item.detail.toLowerCase().includes(normalizedQuery) ||
+        item.searchText.includes(normalizedQuery)
+    );
+  }, [commandItems, commandQuery]);
+
+  const activeCommandId = useMemo(() => {
+    if (filteredCommandItems.length === 0) return null;
+    return filteredCommandItems.some((item) => item.id === commandActiveId)
+      ? commandActiveId
+      : filteredCommandItems[0]?.id ?? null;
+  }, [commandActiveId, filteredCommandItems]);
+
+  const groupedCommandItems = useMemo(
+    () => ({
+      routes: filteredCommandItems.filter((item) => item.group === "Routes"),
+      scope: filteredCommandItems.filter((item) => item.group === "Scope"),
+    }),
+    [filteredCommandItems]
+  );
+
+  const closeCommandPalette = useCallback(() => {
+    setCommandOpen(false);
+    setCommandQuery("");
+    setCommandActiveId(null);
+  }, []);
+
+  const openCommandPalette = useCallback(() => {
+    setCommandOpen(true);
+    setCommandQuery("");
+    setCommandActiveId(null);
+  }, []);
+
+  const runCommandItem = useCallback(
+    (item: CommandPaletteItem) => {
+      closeCommandPalette();
+      router.push(item.href);
+    },
+    [closeCommandPalette, router]
+  );
+
+  const moveCommandSelection = useCallback(
+    (direction: 1 | -1) => {
+      if (filteredCommandItems.length === 0) return;
+      const currentIndex = filteredCommandItems.findIndex(
+        (item) => item.id === activeCommandId
+      );
+      const nextIndex =
+        currentIndex < 0
+          ? 0
+          : (currentIndex + direction + filteredCommandItems.length) %
+            filteredCommandItems.length;
+      setCommandActiveId(filteredCommandItems[nextIndex]?.id ?? null);
+    },
+    [activeCommandId, filteredCommandItems]
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.shellSidebarCollapsed = preferences.sidebarCollapsed
+      ? "true"
+      : "false";
+  }, [preferences.sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!commandOpen) return;
+    const timer = window.setTimeout(() => {
+      commandInputRef.current?.focus();
+      commandInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [commandOpen]);
+
+  useEffect(() => {
+    if (!commandOpen || !activeCommandId) return;
+    activeCommandButtonRef.current?.scrollIntoView({ block: "nearest" });
+  }, [activeCommandId, commandOpen]);
+
+  useEffect(() => {
+    function handleGlobalKeydown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        Boolean(target?.isContentEditable);
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        if (isTypingTarget && !commandOpen) return;
+        event.preventDefault();
+        openCommandPalette();
+        return;
+      }
+      if (event.key === "Escape") {
+        closeCommandPalette();
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeydown);
+    return () => window.removeEventListener("keydown", handleGlobalKeydown);
+  }, [closeCommandPalette, commandOpen, openCommandPalette]);
+
+  const sidebarClassName = useMemo(
+    () =>
+      cn(
+        "shell-sidebar-panel fixed inset-y-0 left-0 z-40 flex max-w-[85vw] flex-col border-r text-[var(--shell-sidebar-foreground)] transition-transform duration-200 md:static md:z-auto md:max-w-none md:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      ),
+    [mobileOpen]
+  );
+
+  const renderCommandGroup = useCallback(
+    (title: string, items: CommandPaletteItem[]) => (
+      <div>
+        <div className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          {title}
+        </div>
+        <div className="mt-2 space-y-2">
+          {items.map((item) => (
+            <ShellOptionButton
+              key={item.id}
+              onClick={() => runCommandItem(item)}
+              onMouseEnter={() => setCommandActiveId(item.id)}
+              active={activeCommandId === item.id}
+              buttonRef={activeCommandId === item.id ? activeCommandButtonRef : undefined}
+              title={item.label}
+              description={item.detail}
+              badges={item.badges?.map((badge) => (
+                <Badge key={`${item.id}:${badge.label}`} tone={badge.tone}>
+                  {badge.label}
+                </Badge>
+              ))}
+              trailing={
+                activeCommandId === item.id ? (
+                  <ShellShortcutCombo keys={["Enter"]} />
+                ) : (
+                  <ShellKeyboardHint>Go</ShellKeyboardHint>
+                )
+              }
+            />
+          ))}
+        </div>
+      </div>
+    ),
+    [activeCommandButtonRef, activeCommandId, runCommandItem]
+  );
+
+  /* ── Render nav link ───────────────────────────────────── */
+  function renderNavLink(item: (typeof scopedNavItems)[number]) {
+    const Icon = item.icon;
+    const isActive = activeSection === item.key;
+    return (
+      <Link
+        key={item.key}
+        href={item.href}
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          "group flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
+          renderSidebarCollapsed ? "justify-center px-0" : "px-2",
+          isActive
+            ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
+            : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+        )}
+        aria-label={item.label}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        {renderSidebarCollapsed ? null : <span className="truncate">{item.label}</span>}
+      </Link>
+    );
+  }
+
+  function renderSubNavLink(child: SubNavItem & { href: string }) {
+    const Icon = child.icon;
+    const isActive = pathname.startsWith(child.href) && child.href !== "/";
+    return (
+      <Link
+        key={child.key}
+        href={child.href}
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          "group flex h-7 items-center gap-2.5 rounded-md pl-4 pr-2 text-[13px] font-medium transition-colors",
+          isActive
+            ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
+            : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+        )}
+        aria-label={child.label}
+      >
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{child.label}</span>
+      </Link>
+    );
+  }
+
+  function renderCollapsibleSection(item: (typeof scopedNavItems)[number]) {
+    const Icon = item.icon;
+    const isExpanded = expandedSections.has(item.key);
+    const isActive = activeSection === item.key;
+
+    if (renderSidebarCollapsed) {
+      // Collapsed mode: just show the parent icon
+      return (
+        <Link
+          key={item.key}
+          href={item.href}
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "group flex h-8 items-center justify-center rounded-md text-[13px] font-medium transition-colors",
+            isActive
+              ? "bg-[color:var(--shell-nav-active)] text-[var(--shell-sidebar-foreground)]"
+              : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+          )}
+          aria-label={item.label}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+        </Link>
+      );
+    }
+
+    return (
+      <div key={item.key} className="shell-sidebar-copy">
+        <button
+          type="button"
+          onClick={() => toggleSection(item.key)}
+          className={cn(
+            "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors",
+            isActive
+              ? "text-[var(--shell-sidebar-foreground)]"
+              : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+          )}
+        >
+          <span className="flex items-center gap-2.5">
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>{item.label}</span>
+          </span>
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 transition-transform",
+              isExpanded && "rotate-90"
+            )}
+          />
+        </button>
+        {isExpanded && item.children ? (
+          <div className="mt-0.5 space-y-0.5">
+            {item.children.map((child) =>
+              renderSubNavLink(child as SubNavItem & { href: string })
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const topNavItems = scopedNavItems.filter((item) =>
+    (TOP_NAV_KEYS as readonly string[]).includes(item.key)
+  );
+  const collapsibleNavItems = scopedNavItems.filter((item) =>
+    (COLLAPSIBLE_NAV_KEYS as readonly string[]).includes(item.key)
+  );
+  const flatMidNavItems = scopedNavItems.filter((item) =>
+    (FLAT_MID_NAV_KEYS as readonly string[]).includes(item.key)
+  );
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* ── Command Palette ─────────────────────────────── */}
+      {commandOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close command palette"
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]"
+            onClick={closeCommandPalette}
+          />
+          <div className="fixed inset-x-4 top-[8vh] z-[60] mx-auto w-full max-w-[720px]">
+            <div className="overflow-hidden rounded-xl border border-[color:var(--shell-control-border)] bg-popover text-popover-foreground shadow-[0_16px_70px_rgba(0,0,0,0.35)]">
+              <div className="border-b border-[color:var(--shell-control-border)] p-3">
+                <ShellSearchField
+                  value={commandQuery}
+                  onChange={(event) => {
+                    setCommandQuery(event.target.value);
+                    setCommandActiveId(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      moveCommandSelection(1);
+                      return;
+                    }
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      moveCommandSelection(-1);
+                      return;
+                    }
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      const nextItem = filteredCommandItems.find(
+                        (item) => item.id === activeCommandId
+                      );
+                      if (nextItem) runCommandItem(nextItem);
+                    }
+                  }}
+                  placeholder="Type a command or search..."
+                  className="w-full"
+                  inputClassName="bg-transparent"
+                  accessory={<ShellKeyboardHint>Esc</ShellKeyboardHint>}
+                  inputRef={commandInputRef}
+                />
+              </div>
+              <div className="max-h-[62vh] overflow-y-auto p-3">
+                <div className="space-y-4">
+                  {renderCommandGroup("Routes", groupedCommandItems.routes)}
+                  {groupedCommandItems.scope.length > 0
+                    ? renderCommandGroup("Scope", groupedCommandItems.scope)
+                    : null}
+                  {filteredCommandItems.length === 0 ? (
+                    <ShellEmptyState
+                      description="No command matched the current query."
+                      className="py-4"
+                    />
+                  ) : null}
+                </div>
+              </div>
+              <div className="border-t border-[color:var(--shell-control-border)] px-3 py-2.5">
+                <ShellShortcutLegend
+                  items={[
+                    { keys: ["↑", "↓"], label: "move" },
+                    { keys: ["Enter"], label: "open" },
+                    { keys: ["Esc"], label: "close" },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {/* ── Layout ──────────────────────────────────────── */}
+      <div className="flex min-h-screen">
+        {/* ── Sidebar ─────────────────────────────────── */}
+        <div className={sidebarClassName}>
+          {/* Workspace switcher */}
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Link
+              href={buildDashboardScopeHref(routeScope)}
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[#5e6ad2] text-[10px] font-bold text-white"
+            >
+              FO
+            </Link>
+            {renderSidebarCollapsed ? null : (
+              <>
+                <Link
+                  href={buildDashboardScopeHref(routeScope)}
+                  className="shell-sidebar-copy min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--shell-sidebar-foreground)]"
+                >
+                  FounderOS
+                </Link>
+                <ChevronDown className="shell-sidebar-copy h-3.5 w-3.5 shrink-0 text-[var(--shell-sidebar-muted)]" />
+              </>
+            )}
+            {renderSidebarCollapsed ? null : (
+              <div className="shell-sidebar-copy ml-auto flex items-center gap-0.5">
+                <button
+                  type="button"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+                  onClick={openCommandPalette}
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex-1 overflow-y-auto px-3 py-1">
+            {/* Top nav: Dashboard, Inbox */}
+            <nav className="space-y-0.5">
+              {topNavItems.map(renderNavLink)}
+            </nav>
+
+            {/* Collapsible sections: Discovery, Execution */}
+            <div className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+              {collapsibleNavItems
+                .filter((item) => item.key !== "settings")
+                .map(renderCollapsibleSection)}
+            </div>
+
+            {/* Flat mid items: Portfolio, Review */}
+            <nav className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+              {flatMidNavItems.map(renderNavLink)}
+            </nav>
+
+            {/* Configuration section: Settings (collapsible) */}
+            <div className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+              {collapsibleNavItems
+                .filter((item) => item.key === "settings")
+                .map(renderCollapsibleSection)}
+            </div>
+          </div>
+
+          {/* Sidebar footer */}
+          {renderSidebarCollapsed ? null : (
+            <div className="shell-sidebar-copy border-t border-[color:var(--shell-sidebar-border)] px-4 py-3">
+              <Link
+                href="#"
+                className="flex items-center gap-2 text-[13px] text-[var(--shell-sidebar-muted)] transition-colors hover:text-[var(--shell-sidebar-foreground)]"
+              >
+                <HelpCircle className="h-4 w-4" />
+                <span>Help</span>
+              </Link>
+            </div>
+          )}
+
+          {/* Sidebar collapse toggle (desktop) */}
+          <div className="hidden border-t border-[color:var(--shell-sidebar-border)] p-2 md:block">
+            <button
+              type="button"
+              className="flex h-7 w-full items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+              onClick={() =>
+                updatePreferences({
+                  sidebarCollapsed: !preferences.sidebarCollapsed,
+                })
+              }
+              aria-label={renderSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {renderSidebarCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+
+          {/* Mobile grid nav */}
+          <div className="border-t border-[color:var(--shell-sidebar-border)] p-4 md:hidden">
+            <div className="grid grid-cols-2 gap-2">
+              {scopedNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.key;
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border border-[color:var(--shell-control-border)] px-3 py-2 text-[13px]",
+                      isActive
+                        ? "bg-[color:var(--shell-nav-active)] text-foreground"
+                        : "text-[var(--shell-sidebar-muted)]"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile overlay */}
+        {mobileOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-black/40 md:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          />
+        ) : null}
+
+        {/* ── Main content ────────────────────────────── */}
+        <div className="min-w-0 flex-1 bg-background">
+          <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-5 backdrop-blur-xl">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex rounded-md p-1.5 text-foreground md:hidden"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+              <h1 className="truncate text-[13px] font-semibold text-foreground">
+                {NAV_ITEMS.find((item) => item.key === activeSection)?.label}
+              </h1>
+            </div>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+            </div>
+          </header>
+
+          <main className="pb-10">{children}</main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function UnifiedShellFrame({
+  children,
+  initialRuntimeSnapshot,
+  initialPreferences,
+}: {
+  children: React.ReactNode;
+  initialRuntimeSnapshot?: ShellRuntimeSnapshot | null;
+  initialPreferences?: ShellPreferences | null;
+}) {
+  const searchParams = useSearchParams();
+  const routeScope = useMemo(
+    () => readShellRouteScopeFromSearchParams(searchParams),
+    [searchParams]
+  );
+
+  return (
+    <UnifiedShellFrameContent
+      routeScope={routeScope}
+      initialRuntimeSnapshot={initialRuntimeSnapshot}
+      initialPreferences={initialPreferences}
+    >
+      {children}
+    </UnifiedShellFrameContent>
+  );
+}
+
+export function UnifiedShellFrameFallback({
+  children,
+  initialRuntimeSnapshot,
+  initialPreferences,
+}: {
+  children: React.ReactNode;
+  initialRuntimeSnapshot?: ShellRuntimeSnapshot | null;
+  initialPreferences?: ShellPreferences | null;
+}) {
+  return (
+    <UnifiedShellFrameContent
+      routeScope={EMPTY_SHELL_ROUTE_SCOPE}
+      initialRuntimeSnapshot={initialRuntimeSnapshot}
+      initialPreferences={initialPreferences}
+    >
+      {children}
+    </UnifiedShellFrameContent>
+  );
+}

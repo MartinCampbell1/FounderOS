@@ -1,0 +1,44 @@
+{
+  "liveRoutes": {
+    "runtime": "/api/shell/runtime",
+    "contractAudit": "/api/shell/contract",
+    "parityAudit": "/api/shell/parity",
+    "parityTargets": "/api/shell/parity-targets",
+    "operatorPreferences": "/api/shell/operator-preferences",
+    "handoffBase": "/api/shell/handoffs/execution-brief",
+    "dashboard": "/api/shell/dashboard",
+    "review": "/api/shell/review"
+  },
+  "deprecatedRoutes": [
+    {
+      "legacyPath": "/api/settings",
+      "method": "GET",
+      "shellNamespace": "/api/shell/runtime"
+    },
+    {
+      "legacyPath": "/api/health",
+      "method": "GET",
+      "shellNamespace": "/api/shell/runtime"
+    },
+    {
+      "legacyPath": "/api/operator-preferences",
+      "method": "GET",
+      "shellNamespace": "/api/shell/operator-preferences"
+    },
+    {
+      "legacyPath": "/api/handoffs/execution-brief",
+      "method": "POST",
+      "shellNamespace": "/api/shell/handoffs/execution-brief"
+    },
+    {
+      "legacyPath": "/api/_quorum/orchestrate/sessions",
+      "method": "GET",
+      "shellNamespace": "/api/shell/discovery/*"
+    },
+    {
+      "legacyPath": "/api/_autopilot/projects",
+      "method": "GET",
+      "shellNamespace": "/api/shell/execution/*"
+    }
+  ]
+}

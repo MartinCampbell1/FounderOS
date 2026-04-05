@@ -1,0 +1,60 @@
+@import "@founderos/ui/globals.css";
+
+:root {
+  color-scheme: light;
+  --shell-sidebar-width: 244px;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+}
+
+::selection {
+  background: rgba(94, 106, 210, 0.18);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(107, 111, 118, 0.38) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: rgba(107, 111, 118, 0.34);
+}
+
+.shell-sidebar-panel {
+  width: var(--shell-sidebar-width);
+  border-color: var(--shell-sidebar-border);
+  background: var(--shell-sidebar-bg);
+}
+
+@media (min-width: 768px) {
+  html[data-shell-sidebar-collapsed="true"] .shell-sidebar-panel {
+    width: 68px;
+  }
+
+  html[data-shell-sidebar-collapsed="true"] .shell-sidebar-copy {
+    display: none;
+  }
+}

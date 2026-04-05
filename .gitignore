@@ -1,0 +1,14 @@
+node_modules
+.turbo
+.next
+dist
+coverage
+*.log
+._*
+.env
+.env.*
+.DS_Store
+
+autopilot
+quorum
+.omc

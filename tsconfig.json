@@ -1,0 +1,4 @@
+{
+  "extends": "@founderos/typescript-config/base.json"
+}
+

@@ -1,0 +1,10 @@
+{
+  "name": "@founderos/quorum-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "sh -c 'cd ../../quorum && ${QUORUM_PYTHON_BIN:-./.venv/bin/python} gateway.py'",
+    "test": "sh -c 'cd ../../quorum && bash ./scripts/test_backend.sh'"
+  }
+}
+

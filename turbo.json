@@ -1,0 +1,56 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalEnv": [
+    "AUTOPILOT_API_BASE_URL",
+    "AUTOPILOT_API_HOST",
+    "AUTOPILOT_API_PORT",
+    "AUTOPILOT_PYTHON_BIN",
+    "FOUNDEROS_EXECUTION_HANDOFF_STORE_PATH",
+    "FOUNDEROS_PARITY_ALLOW_BLOCKED",
+    "FOUNDEROS_PARITY_BASE_URL",
+    "FOUNDEROS_PARITY_CHAIN_COUNT",
+    "FOUNDEROS_PARITY_DISCOVERY_IDEA_ID",
+    "FOUNDEROS_PARITY_DISCOVERY_SESSION_ID",
+    "FOUNDEROS_PARITY_INTAKE_SESSION_ID",
+    "FOUNDEROS_PARITY_MIN_COMPLETE_CHAIN_COUNT",
+    "FOUNDEROS_PARITY_MIN_SCENARIO_VARIANT_COUNT",
+    "FOUNDEROS_PARITY_PROJECT_ID",
+    "FOUNDEROS_PARITY_REQUIRE_DIVERSE_SCENARIOS",
+    "FOUNDEROS_PARITY_REQUIRE_COMPLETE_CHAIN",
+    "FOUNDEROS_PARITY_REQUIRE_OPERATOR_DATA",
+    "FOUNDEROS_REVIEW_ACTION_TARGETS_JSON",
+    "FOUNDEROS_REVIEW_PRESET",
+    "FOUNDEROS_REVIEW_SUITE_MODE",
+    "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON",
+    "FOUNDEROS_STACK_FORCE_BUILD",
+    "FOUNDEROS_STACK_READY_TIMEOUT_MS",
+    "FOUNDEROS_WEB_HOST",
+    "FOUNDEROS_WEB_PORT",
+    "GATEWAY_HOST",
+    "GATEWAY_PORT",
+    "NODE_ENV",
+    "QUORUM_API_BASE_URL",
+    "QUORUM_PYTHON_BIN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

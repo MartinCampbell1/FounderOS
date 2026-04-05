@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+  --font-size-micro: 11px;
+  --font-size-mini: 12px;
+  --font-size-small: 13px;
+  --font-size-normal: 15px;
+  --font-size-large: 18px;
+  --font-size-title-3: 20px;
+  --font-size-title-2: 24px;
+  --font-size-title-1: 36px;
+  --font-size-issue-title: 22px;
+  --line-height-normal: 22px;
+  --line-height-large: 28.8px;
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.09);
+  --shadow-button-strong: 0 1px 1px rgba(0, 0, 0, 0.15);
+  --shadow-tooltip: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-dropdown: 0 7px 32px rgba(0, 0, 0, 0.35);
+  --shadow-dropdown-soft: 0 4px 24px rgba(0, 0, 0, 0.2);
+  --radius-control: 8px;
+  --background: #fcfcfd;
+  --foreground: #1b1b1b;
+  --card: #ffffff;
+  --card-foreground: #1b1b1b;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b1b;
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --secondary: #ececed;
+  --secondary-foreground: #1b1b1b;
+  --muted: #f6f6f7;
+  --muted-foreground: #6b6f76;
+  --accent: #5e6ad2;
+  --accent-foreground: #ffffff;
+  --destructive: #d9343f;
+  --border: #f0f0f0;
+  --input: #e6e6e7;
+  --ring: rgba(109, 120, 213, 0.35);
+  --shell-sidebar-bg: #f5f5f5;
+  --shell-sidebar-border: #e8e8e8;
+  --shell-sidebar-foreground: #1b1b1b;
+  --shell-sidebar-muted: #6b6f76;
+  --shell-panel-muted: #f0f0f0;
+  --shell-panel-subtle: rgba(255, 255, 255, 0.92);
+  --shell-control-bg: #ffffff;
+  --shell-control-border: #e0e0e0;
+  --shell-control-hover: rgba(0, 0, 0, 0.04);
+  --shell-control-muted: #9e9ea0;
+  --shell-nav-active: rgba(0, 0, 0, 0.06);
+  --shell-topbar-bg: rgba(252, 252, 253, 0.88);
+  --shell-topbar-border: #ebebeb;
+}
+
+.dark {
+  --background: #0f0f11;
+  --foreground: #ffffff;
+  --card: #141516;
+  --card-foreground: #ffffff;
+  --popover: #141516;
+  --popover-foreground: #ffffff;
+  --primary: #5e6ad2;
+  --primary-foreground: #fefeff;
+  --secondary: #141516;
+  --secondary-foreground: #ffffff;
+  --muted: #141516;
+  --muted-foreground: #6b6f76;
+  --accent: #6b75df;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5b5d;
+  --border: #1c1e21;
+  --input: #252628;
+  --ring: rgba(94, 106, 210, 0.45);
+  --shell-sidebar-bg: #090909;
+  --shell-sidebar-border: #1c1e21;
+  --shell-sidebar-foreground: #e2e3e5;
+  --shell-sidebar-muted: #6b6f76;
+  --shell-panel-muted: #141516;
+  --shell-panel-subtle: rgba(20, 21, 22, 0.92);
+  --shell-control-bg: #141516;
+  --shell-control-border: #252628;
+  --shell-control-hover: rgba(255, 255, 255, 0.07);
+  --shell-control-muted: #545557;
+  --shell-nav-active: rgba(255, 255, 255, 0.07);
+  --shell-topbar-bg: rgba(15, 15, 17, 0.88);
+  --shell-topbar-border: #1c1e21;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
