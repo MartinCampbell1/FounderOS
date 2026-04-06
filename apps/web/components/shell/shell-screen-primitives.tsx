@@ -1034,7 +1034,7 @@ export function ShellPillCount({
       className={cn(
         "rounded-full px-1.5 py-0.5 text-[10px] leading-none",
         active
-          ? "bg-black/10 text-foreground"
+          ? "bg-foreground/10 text-foreground"
           : "bg-[color:var(--shell-panel-muted)] text-[color:var(--shell-control-muted)]",
         className
       )}
@@ -1070,7 +1070,7 @@ export function ShellPillButton({
         compact
           ? "h-7 rounded-[8px] px-3 text-[11px] shadow-none"
           : "h-8 rounded-full px-3 text-[11px] shadow-none",
-        tone === "primary" ? "bg-black text-white hover:bg-black/90" : undefined,
+        tone === "primary" ? "bg-foreground text-background hover:bg-foreground/90" : undefined,
         active && tone !== "primary"
           ? "border-primary/35 bg-[color:var(--shell-nav-active)] text-foreground hover:bg-[color:var(--shell-nav-active)]"
           : undefined,

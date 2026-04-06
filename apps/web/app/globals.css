@@ -21,6 +21,9 @@ body {
 ::selection {
   background: rgba(94, 106, 210, 0.18);
 }
+.dark ::selection {
+  background: rgba(94, 106, 210, 0.35);
+}
 
 * {
   scrollbar-width: thin;

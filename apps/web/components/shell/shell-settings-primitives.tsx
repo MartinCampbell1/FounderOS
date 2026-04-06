@@ -225,7 +225,7 @@ export function SettingsToggle({
     >
       <span
         className={cn(
-          "pointer-events-none inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform",
+          "pointer-events-none inline-block h-3.5 w-3.5 rounded-full bg-card shadow-sm transition-transform",
           checked ? "translate-x-[18px]" : "translate-x-[3px]"
         )}
       />
