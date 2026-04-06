@@ -1073,7 +1073,7 @@ function DiscoverySessionMonitor({
         <ShellRefreshButton type="button" onClick={onRefresh} busy={isRefreshing} />
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         {/* Left: Conversation + Timeline */}
         <div className="min-w-0 space-y-6">
           <DiscoveryConversation messages={session.messages} />
@@ -1185,7 +1185,7 @@ export function DiscoveryWorkspace({
   }, [activeSessionId, routeScope, router, scopeActive, sessions]);
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-89px)] w-full max-w-[1600px] gap-4 px-4 py-4 md:px-6">
+    <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[1600px] gap-4 px-4 py-4 md:h-[calc(100vh-89px)] md:px-6">
       <aside className="hidden min-h-0 w-[340px] shrink-0 xl:block">
         <DiscoverySessionsList
           sessions={sessions}
