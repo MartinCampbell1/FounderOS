@@ -49,6 +49,7 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import {
+  buildDiscoveryBoardArchiveScopeHref,
   buildDiscoveryBoardFinalsScopeHref,
   buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardScopeHref,
@@ -401,15 +402,17 @@ export function DiscoveryBoardArchiveWorkspace({
       <div className="flex items-center justify-end gap-2">
         <ShellRefreshButton type="button" onClick={() => refreshClient()} />
         {[
-          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
-          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
-          [reviewHref, "Review"],
-        ].map(([href, label]) => (
+          [buildDiscoveryBoardScopeHref(routeScope), "Board", false],
+          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking", false],
+          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive", true],
+          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals", false],
+          [reviewHref, "Review", false],
+        ].map(([href, label, active]) => (
           <ShellFilterChipLink
             key={String(href)}
             href={String(href)}
             label={String(label)}
+            active={Boolean(active)}
           />
         ))}
       </div>

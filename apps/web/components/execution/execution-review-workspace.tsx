@@ -400,7 +400,7 @@ export function ExecutionReviewWorkspace({
       ) : null}
 
       {/* Issues */}
-      <section className="space-y-2">
+      {(!initialFilter || initialFilter === "all" || initialFilter === "issues") ? <section className="space-y-2">
         <div className="flex items-center gap-2">
           <h3 className="text-[15px] font-medium text-foreground">Issues</h3>
           <Badge tone="neutral">{scopedStats.issueCount}</Badge>
@@ -448,10 +448,10 @@ export function ExecutionReviewWorkspace({
             })}
           </div>
         )}
-      </section>
+      </section> : null}
 
       {/* Approvals */}
-      <section className="space-y-2">
+      {(!initialFilter || initialFilter === "all" || initialFilter === "approvals") ? <section className="space-y-2">
         <div className="flex items-center gap-2">
           <h3 className="text-[15px] font-medium text-foreground">Approvals</h3>
           <Badge tone="neutral">{scopedStats.approvalCount}</Badge>
@@ -514,10 +514,10 @@ export function ExecutionReviewWorkspace({
             })}
           </div>
         )}
-      </section>
+      </section> : null}
 
       {/* Tool Permissions */}
-      <section className="space-y-2">
+      {(!initialFilter || initialFilter === "all" || initialFilter === "runtimes") ? <section className="space-y-2">
         <div className="flex items-center gap-2">
           <h3 className="text-[15px] font-medium text-foreground">Tool permissions</h3>
           <Badge tone="neutral">{scopedStats.runtimeCount}</Badge>
@@ -577,7 +577,7 @@ export function ExecutionReviewWorkspace({
             })}
           </div>
         )}
-      </section>
+      </section> : null}
 
       {isPending ? (
         <ShellInlineStatus busy label="Refreshing..." />
