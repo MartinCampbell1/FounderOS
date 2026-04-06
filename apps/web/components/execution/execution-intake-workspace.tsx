@@ -376,7 +376,7 @@ function PrdSummaryCard({
             ) : (
               <ShellStatusBanner tone="warning">
                 {launchPresetsError ||
-                  "Autopilot launch presets are unavailable right now. Create project still works, but create-and-launch will need attention once the upstream returns."}
+                  "Launch presets unavailable. You can still create projects manually."}
               </ShellStatusBanner>
             )}
 

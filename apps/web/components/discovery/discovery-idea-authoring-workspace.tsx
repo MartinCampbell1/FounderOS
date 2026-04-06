@@ -233,7 +233,7 @@ function LinkedChainPanel({
         contentClassName="pt-0"
       >
         <ShellEmptyState
-          description="Linking into the shell chain graph will unlock scoped returns into execution, intake, inbox, portfolio, and settings."
+          description="Link this idea to an execution project."
           className="min-h-[160px]"
           centered
         />

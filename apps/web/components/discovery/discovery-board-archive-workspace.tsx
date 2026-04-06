@@ -12,13 +12,6 @@ import type {
   ShellPreferences,
 } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
-import {
-  GitBranchPlus,
-  Radar,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
@@ -37,7 +30,6 @@ import {
   ShellEmptyState,
   ShellFilterChipLink,
   ShellInputField,
-  ShellLinkTileGrid,
   ShellPage,
   ShellActionStateLabel,
   ShellPillButton,
@@ -57,16 +49,11 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import {
-  buildDashboardScopeHref,
-  buildDiscoveryBoardArchiveScopeHref,
   buildDiscoveryBoardFinalsScopeHref,
   buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaAuthoringScopeHref,
   buildDiscoveryIdeaScopeHref,
-  buildInboxScopeHref,
-  buildPortfolioScopeHref,
-  buildSettingsScopeHref,
   type ShellRouteScope,
 } from "@/lib/route-scope";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
@@ -566,42 +553,6 @@ export function DiscoveryBoardArchiveWorkspace({
         </ShellSectionCard>
       </section>
 
-      <ShellLinkTileGrid
-        items={[
-          {
-            href: buildDiscoveryBoardFinalsScopeHref(routeScope),
-            label: "Open finals route",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDashboardScopeHref(routeScope),
-            label: "Open scoped dashboard",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildPortfolioScopeHref(routeScope),
-            label: "Open scoped portfolio",
-            icon: <GitBranchPlus className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildInboxScopeHref(routeScope),
-            label: "Open scoped inbox",
-            icon: <ShieldCheck className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardRankingScopeHref(routeScope),
-            label: "Back to ranking detail",
-            icon: <Trophy className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildSettingsScopeHref(routeScope, {
-              discoveryIdeaId: selectedIdeaId,
-            }),
-            label: "Open scoped settings",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-        ]}
-      />
     </ShellPage>
   );
 }

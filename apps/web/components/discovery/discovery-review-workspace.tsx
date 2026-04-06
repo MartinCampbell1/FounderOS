@@ -912,32 +912,26 @@ export function DiscoveryReviewWorkspace({
         <ShellMetricCard
           label="Review items"
           value={String(stats.totalCount)}
-          detail="Total review records visible inside the current shell scope."
         />
         <ShellMetricCard
           label="Authoring"
           value={String(stats.authoringCount)}
-          detail="Records where dossier coverage still needs operator input."
         />
         <ShellMetricCard
           label="Trace review"
           value={String(stats.traceReviewCount)}
-          detail="Records where recent trace activity suggests the decision should be re-read."
         />
         <ShellMetricCard
           label="Handoff ready"
           value={String(stats.handoffReadyCount)}
-          detail="Records where the dossier looks ready to move into execution review."
         />
         <ShellMetricCard
           label="Execution follow-through"
           value={String(stats.executionFollowthroughCount)}
-          detail="Records already linked into execution that still deserve operator review."
         />
         <ShellMetricCard
           label="Replay-linked"
           value={String(stats.replayLinkedCount)}
-          detail="Records carrying linked replay sessions for deeper decision context."
         />
       </section>
 

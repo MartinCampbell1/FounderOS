@@ -70,7 +70,7 @@ export function ShellMetricCard({
 }: {
   label: string;
   value: string;
-  detail: string;
+  detail?: string;
   href?: string;
   hrefLabel?: string;
   className?: string;
@@ -79,7 +79,7 @@ export function ShellMetricCard({
     <div className={cn("space-y-1 py-3", className)}>
       <div className="text-[12px] text-muted-foreground">{label}</div>
       <div className="text-[18px] font-medium text-foreground">{value}</div>
-      <div className="text-[12px] text-muted-foreground">{detail}</div>
+      {detail ? <div className="text-[12px] text-muted-foreground">{detail}</div> : null}
       {href && hrefLabel ? <ShellActionLink href={href} label={hrefLabel} /> : null}
     </div>
   );

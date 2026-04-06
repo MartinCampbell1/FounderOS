@@ -9,13 +9,6 @@ import type {
   ShellPreferences,
 } from "@founderos/api-clients";
 import { cn } from "@founderos/ui/lib/utils";
-import {
-  GitBranchPlus,
-  Radar,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
@@ -23,7 +16,6 @@ import {
   ShellActionStateLabel,
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellLinkTileGrid,
   ShellPage,
   ShellPillButton,
   ShellRefreshButton,
@@ -42,16 +34,11 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import {
-  buildDashboardScopeHref,
   buildDiscoveryBoardArchiveScopeHref,
   buildDiscoveryBoardFinalsScopeHref,
-  buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardSimulationsScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaScopeHref,
-  buildInboxScopeHref,
-  buildPortfolioScopeHref,
-  buildSettingsScopeHref,
   type ShellRouteScope,
 } from "@/lib/route-scope";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
@@ -384,57 +371,6 @@ export function DiscoveryBoardRankingWorkspace({
         <LeaderboardTable items={leaderboardItems} routeScope={routeScope} />
       </ShellSectionCard>
 
-      <ShellLinkTileGrid
-        items={[
-          {
-            href: buildDiscoveryBoardScopeHref(routeScope),
-            label: "Back to discovery board",
-            icon: <Trophy className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardArchiveScopeHref(routeScope),
-            label: "Open archive frontier",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardFinalsScopeHref(routeScope),
-            label: "Open finals route",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: reviewHref,
-            label: "Open discovery review",
-            icon: <ShieldCheck className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDashboardScopeHref(routeScope),
-            label: "Open scoped dashboard",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardSimulationsScopeHref(routeScope),
-            label: "Open simulation review",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildPortfolioScopeHref(routeScope),
-            label: "Open scoped portfolio",
-            icon: <GitBranchPlus className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildInboxScopeHref(routeScope),
-            label: "Open scoped inbox",
-            icon: <ShieldCheck className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildSettingsScopeHref(routeScope, {
-              discoveryIdeaId: settingsTargetIdeaId,
-            }),
-            label: "Open scoped settings",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-        ]}
-      />
     </ShellPage>
   );
 }
