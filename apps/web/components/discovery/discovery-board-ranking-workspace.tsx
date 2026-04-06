@@ -36,6 +36,7 @@ import {
 import {
   buildDiscoveryBoardArchiveScopeHref,
   buildDiscoveryBoardFinalsScopeHref,
+  buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardSimulationsScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaScopeHref,
@@ -339,16 +340,18 @@ export function DiscoveryBoardRankingWorkspace({
       <div className="flex items-center justify-end gap-2">
         <ShellRefreshButton type="button" onClick={() => refreshClient()} />
         {[
-          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
-          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
-          [buildDiscoveryBoardSimulationsScopeHref(routeScope), "Simulations"],
-          [reviewHref, "Review"],
-        ].map(([href, label]) => (
+          [buildDiscoveryBoardScopeHref(routeScope), "Board", false],
+          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking", true],
+          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive", false],
+          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals", false],
+          [buildDiscoveryBoardSimulationsScopeHref(routeScope), "Simulations", false],
+          [reviewHref, "Review", false],
+        ].map(([href, label, active]) => (
           <ShellFilterChipLink
             key={String(href)}
             href={String(href)}
             label={String(label)}
+            active={Boolean(active)}
           />
         ))}
       </div>

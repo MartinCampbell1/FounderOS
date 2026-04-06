@@ -47,6 +47,7 @@ import {
 } from "@/lib/shell-preferences";
 import {
   buildDiscoveryBoardArchiveScopeHref,
+  buildDiscoveryBoardFinalsScopeHref,
   buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaAuthoringScopeHref,
@@ -448,15 +449,17 @@ export function DiscoveryBoardFinalsWorkspace({
       <div className="flex items-center justify-end gap-2">
         <ShellRefreshButton type="button" onClick={() => refreshClient()} />
         {[
-          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
-          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
-          [reviewHref, "Review"],
-        ].map(([href, label]) => (
+          [buildDiscoveryBoardScopeHref(routeScope), "Board", false],
+          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking", false],
+          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive", false],
+          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals", true],
+          [reviewHref, "Review", false],
+        ].map(([href, label, active]) => (
           <ShellFilterChipLink
             key={String(href)}
             href={String(href)}
             label={String(label)}
+            active={Boolean(active)}
           />
         ))}
       </div>
@@ -495,12 +498,13 @@ export function DiscoveryBoardFinalsWorkspace({
           contentClassName="space-y-4"
         >
             <div className="space-y-3">
-              {ballots.length ? (
-                ballots.map((ballot) => (
+              {ballots.length ? (() => {
+                const finalistsById = new Map(selectedFinalists.map((item) => [item.idea.idea_id, item.idea.title]));
+                return ballots.map((ballot) => (
                   <ShellRecordCard key={ballot.voter_id}>
                     <ShellRecordHeader
                       title={ballot.judge_model}
-                      description={ballot.ranked_idea_ids.join(" -> ")}
+                      description={ballot.ranked_idea_ids.map((id) => finalistsById.get(id) ?? id.slice(0, 8)).join(" -> ")}
                       accessory={
                         <ShellRecordAccessory
                           label="Weight"
@@ -516,8 +520,8 @@ export function DiscoveryBoardFinalsWorkspace({
                       </ShellRecordMeta>
                     </ShellRecordBody>
                   </ShellRecordCard>
-                ))
-              ) : (
+                ));
+              })() : (
                 <ShellEmptyState description="Select at least two finalists to generate shell ballots." />
               )}
             </div>
