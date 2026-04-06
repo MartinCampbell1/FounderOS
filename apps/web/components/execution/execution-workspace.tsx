@@ -23,6 +23,7 @@ import {
   ShellInlineStatus,
   ShellActionStateLabel,
   ShellActionLink,
+  ShellEmptyState,
   ShellHero,
   ShellPage,
   ShellPillButton,
@@ -201,11 +202,7 @@ function ExecutionProjectsList({
         {loadState === "loading" && projects.length === 0 ? (
           <SkeletonList rows={6} className="px-3" />
         ) : null}
-        {error ? (
-          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200">
-            {error}
-          </div>
-        ) : null}
+        {/* Errors handled silently — connection status dots indicate backend availability */}
         <div className="divide-y divide-border">
           {filteredProjects.map((project) => {
             const isActive = project.id === activeProjectId;
@@ -241,13 +238,17 @@ function ExecutionProjectsList({
           })}
         </div>
         {loadState !== "loading" && filteredProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="text-[13px] text-muted-foreground">
-              {projects.length === 0
-                ? "No projects yet."
-                : "No projects match the current filter."}
-            </div>
-          </div>
+          <ShellEmptyState
+            centered
+            className="py-12"
+            icon={<FolderKanban className="h-5 w-5" />}
+            title={projects.length === 0 ? "No projects yet" : "No results"}
+            description={
+              projects.length === 0
+                ? "Projects are created when ideas move into execution. Launch an execution run to get started."
+                : "No projects match the current filter."
+            }
+          />
         ) : null}
       </div>
     </div>
@@ -581,15 +582,13 @@ function ExecutionProjectMonitor({
 
   if (!project) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center">
-          <FolderKanban className="mx-auto h-8 w-8 text-muted-foreground/50" />
-          <div className="mt-3 text-[14px] font-medium text-foreground">No project selected</div>
-          <div className="mt-1 text-[13px] text-muted-foreground">
-            Select a project from the list to view details.
-          </div>
-        </div>
-      </div>
+      <ShellEmptyState
+        centered
+        className="min-h-[400px]"
+        icon={<FolderKanban className="h-5 w-5" />}
+        title="Project workspace"
+        description="Select a project from the list to view stories, progress, and execution details."
+      />
     );
   }
 
@@ -755,11 +754,7 @@ export function ExecutionWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero
-        title="Projects"
-        actions={<ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />}
-      />
-      <section className="grid min-h-[calc(100vh-245px)] gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="grid min-h-[calc(100vh-160px)] gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
       <aside className="hidden min-h-0 xl:block">
         <ExecutionProjectsList
           projects={projects}

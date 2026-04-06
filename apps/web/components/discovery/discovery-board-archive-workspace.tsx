@@ -36,7 +36,6 @@ import {
   ShellComposerTextarea,
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellHero,
   ShellInputField,
   ShellLinkTileGrid,
   ShellPage,
@@ -412,33 +411,21 @@ export function DiscoveryBoardArchiveWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero
-        title="Discovery archive evolution now has its own shell-native route."
-        meta={
-          <>
-            <span>Generation {archive?.generation ?? 0}.</span>
-            <span>{percent(archive?.coverage ?? 0)} coverage.</span>
-            <span>Snapshot {formatDate(snapshot.generatedAt)}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton type="button" onClick={() => refreshClient()} />
-            {[
-              [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-              [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
-              [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
-              [reviewHref, "Review"],
-            ].map(([href, label]) => (
-              <ShellFilterChipLink
-                key={String(href)}
-                href={String(href)}
-                label={String(label)}
-              />
-            ))}
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton type="button" onClick={() => refreshClient()} />
+        {[
+          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
+          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
+          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
+          [reviewHref, "Review"],
+        ].map(([href, label]) => (
+          <ShellFilterChipLink
+            key={String(href)}
+            href={String(href)}
+            label={String(label)}
+          />
+        ))}
+      </div>
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>

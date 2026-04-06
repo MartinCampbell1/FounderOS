@@ -806,7 +806,7 @@ function UnifiedShellFrameContent({
 
   function renderSubNavLink(child: SubNavItem & { href: string }) {
     const Icon = child.icon;
-    const isActive = pathname.startsWith(child.href) && child.href !== "/";
+    const isActive = pathname === child.href || (pathname.startsWith(child.href + "/") && child.href !== "/");
     return (
       <Link
         key={child.key}
@@ -1070,19 +1070,24 @@ function UnifiedShellFrameContent({
             </nav>
 
             {/* Collapsible sections: Discovery, Execution */}
-            <div className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+            <div className={renderSidebarCollapsed ? "mt-3 space-y-0.5" : "shell-sidebar-copy mt-4 space-y-0.5"}>
+              {renderSidebarCollapsed ? null : (
+                <div className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider text-[var(--shell-sidebar-muted)]/50">
+                  Workspace
+                </div>
+              )}
               {collapsibleNavItems
                 .filter((item) => item.key !== "settings")
                 .map(renderCollapsibleSection)}
             </div>
 
             {/* Flat mid items: Portfolio, Review */}
-            <nav className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+            <nav className={renderSidebarCollapsed ? "mt-3 space-y-0.5" : "shell-sidebar-copy mt-4 space-y-0.5"}>
               {flatMidNavItems.map(renderNavLink)}
             </nav>
 
             {/* Configuration section: Settings (collapsible) */}
-            <div className={renderSidebarCollapsed ? "mt-2 space-y-0.5" : "shell-sidebar-copy mt-3 space-y-0.5"}>
+            <div className={renderSidebarCollapsed ? "mt-3 space-y-0.5" : "shell-sidebar-copy mt-4 space-y-0.5"}>
               {collapsibleNavItems
                 .filter((item) => item.key === "settings")
                 .map(renderCollapsibleSection)}
@@ -1171,8 +1176,23 @@ function UnifiedShellFrameContent({
               >
                 <Menu className="h-4 w-4" />
               </button>
-              <h1 className="truncate text-[13px] font-semibold text-foreground">
-                {NAV_ITEMS.find((item) => item.key === activeSection)?.label}
+              <h1 className="flex items-center gap-1.5 truncate text-[14px] text-foreground" style={{ fontFamily: "var(--font-heading, var(--font-sans))" }}>
+                <span className="font-semibold tracking-tight">{NAV_ITEMS.find((item) => item.key === activeSection)?.label}</span>
+                {(() => {
+                  const section = NAV_ITEMS.find((item) => item.key === activeSection);
+                  if (!section?.children) return null;
+                  // Prefer exact match, then prefix match — skip children whose href === section href
+                  const activeChild =
+                    section.children.find((child) => child.href !== section.href && pathname === child.href) ??
+                    section.children.find((child) => child.href !== section.href && pathname.startsWith(child.href + "/"));
+                  if (!activeChild) return null;
+                  return (
+                    <>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-medium text-muted-foreground">{activeChild.label}</span>
+                    </>
+                  );
+                })()}
               </h1>
             </div>
             <div className="flex items-center gap-1">

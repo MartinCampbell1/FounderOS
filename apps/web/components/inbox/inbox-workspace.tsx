@@ -5,6 +5,7 @@ import { Badge } from "@founderos/ui/components/badge";
 import { cn } from "@founderos/ui/lib/utils";
 import {
   CheckCheck,
+  Inbox,
   ShieldAlert,
   SkipForward,
   X,
@@ -883,30 +884,15 @@ export function InboxWorkspace({
 
   return (
     <ShellPage className="max-w-[1100px]">
-      <ShellHero
-        title={
-          <>
-            Inbox
-            {counts.all > 0 ? (
-              <span className="ml-2 text-[14px] font-normal text-muted-foreground">
-                {counts.all}
-              </span>
-            ) : null}
-          </>
-        }
-      />
-
       {statusMessage ? <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner> : null}
 
       {errorMessage ? <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner> : null}
 
-      {errors.length > 0 ? (
-        <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
-      ) : null}
-
-      {/* Filter chips */}
+      {/* Filter chips — hide zero-count unless active */}
       <div className="flex flex-wrap items-center gap-2">
-        {filters.map((option) => (
+        {filters
+          .filter((option) => option.key === "all" || option.count > 0 || filter === option.key)
+          .map((option) => (
           <ShellFilterChipButton
             key={option.key}
             onClick={() =>
@@ -1003,10 +989,14 @@ export function InboxWorkspace({
 
         {loadState !== "loading" && sortedRecords.length === 0 ? (
           <ShellEmptyState
+            centered
+            className="py-16"
+            icon={<Inbox className="h-5 w-5" />}
+            title={hasRouteScope(routeScope) ? undefined : "All clear"}
             description={
               hasRouteScope(routeScope)
-                ? "No inbox items match the current route scope and filter."
-                : "No inbox items match the current filter."
+                ? "No notifications match the current scope."
+                : "You\u2019re all caught up."
             }
           />
         ) : null}

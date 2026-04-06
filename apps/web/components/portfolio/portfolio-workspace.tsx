@@ -2,15 +2,16 @@
 
 import type { ShellPreferences } from "@founderos/api-clients";
 import {
+  Briefcase,
   Search,
   ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellActionLink,
   ShellEmptyState,
-  ShellHero,
   ShellPage,
   ShellRefreshButton,
   ShellStatusBanner,
@@ -442,11 +443,6 @@ export function PortfolioWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero
-        title="Portfolio"
-        actions={<ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />}
-      />
-
       <div className="flex h-8 max-w-md items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
@@ -462,20 +458,21 @@ export function PortfolioWorkspace({
         <SkeletonList rows={6} className="py-4" />
       ) : null}
 
-      {error ? (
-        <ShellStatusBanner tone="danger">{error}</ShellStatusBanner>
-      ) : null}
+      {loadState !== "loading" && (error || filteredRecords.length === 0) ? (
+        <div className="space-y-6">
+          {/* Empty state with CTA */}
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div className="text-[14px] font-medium tracking-tight text-foreground">Portfolio overview</div>
+            <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">Link discovery ideas to execution projects to track end-to-end progress here.</p>
+            <Link href="/discovery" className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+              Start discovery
+            </Link>
+          </div>
 
-      {loadState !== "loading" && filteredRecords.length === 0 ? (
-        <ShellEmptyState
-          centered
-          className="py-10"
-          description={
-            scopeActive
-              ? "No portfolio records match the current execution-chain scope and filter."
-              : "No portfolio items yet. Connect Discovery ideas to Execution projects."
-          }
-        />
+        </div>
       ) : null}
 
       {filteredRecords.length > 0 ? (

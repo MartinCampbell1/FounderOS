@@ -11,7 +11,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellEmptyState,
-  ShellHero,
   ShellLoadingState,
   ShellPage,
   ShellSearchSectionCard,
@@ -451,8 +450,6 @@ export function DiscoveryReplaysWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero title="Replays" />
-
       {errors.length > 0 && (
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       )}

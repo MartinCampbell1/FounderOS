@@ -29,7 +29,6 @@ import {
   ShellComposerTextarea,
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellHero,
   ShellInputField,
   ShellListLink,
   ShellPage,
@@ -722,42 +721,30 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
   return (
     <ShellPage>
-      <ShellHero
-        title="Evidence, validation, decisions, and timeline writes now live inside the shell."
-        meta={
-          <>
-            <span>{ideas.length} ideas visible in the authoring rail.</span>
-            <span>{effectiveEvidenceItems.length} evidence items currently staged.</span>
-            <span>Snapshot {formatDate(snapshot.generatedAt)}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton
-              type="button"
-              onClick={() => refreshClient()}
-              icon={<TimerReset className="h-4 w-4" />}
-            />
-            <ShellFilterChipLink
-              href={buildDiscoveryIdeaScopeHref(activeIdeaId, chainRouteScope)}
-              label="Dossier"
-            />
-            <ShellFilterChipLink
-              href={buildDiscoveryBoardScopeHref(chainRouteScope)}
-              label="Board"
-            />
-            <ShellFilterChipLink
-              href={buildDiscoveryAuthoringScopeHref(chainRouteScope)}
-              label="Queue"
-            />
-            <ShellFilterChipLink href={reviewHref} label="Review" />
-            <ShellFilterChipLink
-              href={buildDiscoveryIdeasScopeHref(chainRouteScope)}
-              label="Ideas"
-            />
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton
+          type="button"
+          onClick={() => refreshClient()}
+          icon={<TimerReset className="h-4 w-4" />}
+        />
+        <ShellFilterChipLink
+          href={buildDiscoveryIdeaScopeHref(activeIdeaId, chainRouteScope)}
+          label="Dossier"
+        />
+        <ShellFilterChipLink
+          href={buildDiscoveryBoardScopeHref(chainRouteScope)}
+          label="Board"
+        />
+        <ShellFilterChipLink
+          href={buildDiscoveryAuthoringScopeHref(chainRouteScope)}
+          label="Queue"
+        />
+        <ShellFilterChipLink href={reviewHref} label="Review" />
+        <ShellFilterChipLink
+          href={buildDiscoveryIdeasScopeHref(chainRouteScope)}
+          label="Ideas"
+        />
+      </div>
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>

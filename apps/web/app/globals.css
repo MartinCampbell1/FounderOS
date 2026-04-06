@@ -85,9 +85,9 @@ body {
   background: var(--primary);
 }
 
-/* Content area breathing room */
+/* Content area — tight like Linear */
 .shell-content-area {
-  padding: 32px 40px;
+  padding: 20px 24px;
 }
 
 /* Premium list row hover */
@@ -104,15 +104,73 @@ body {
   margin-top: 32px;
 }
 
-/* Premium page title */
+/* Page title — strong section header with heading font */
 .shell-page-title {
-  font-size: 24px;
+  font-family: var(--font-heading, var(--font-sans));
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: var(--foreground);
 }
 
 /* Subtle dividers */
 .shell-divider {
   border-color: color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* Section headers — stronger than body text */
+.shell-section-header {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+}
+
+/* Accent link — uses primary color on hover */
+.shell-accent-link {
+  color: var(--muted-foreground);
+  transition: color 150ms ease;
+}
+
+.shell-accent-link:hover {
+  color: var(--primary);
+}
+
+/* Stat card number — tabular, prominent, heading font */
+.shell-stat-value {
+  font-family: var(--font-heading, var(--font-sans));
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+/* Surface ramp — background → panel → card → elevated */
+.shell-surface-panel {
+  background: color-mix(in srgb, var(--background) 97%, var(--border));
+}
+
+.shell-surface-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.shell-surface-elevated {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Active indicator dot — pulsing green for connected services */
+.shell-status-dot-active {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.shell-status-dot-inactive {
+  background: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
 }

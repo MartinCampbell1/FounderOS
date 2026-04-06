@@ -7,6 +7,7 @@ import {
 } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
 import { cn } from "@founderos/ui/lib/utils";
+import { AlertCircle, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -186,18 +187,6 @@ function DiscoveryIdeasList({
         </span>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
-        <ShellFilterChipLink
-          href={buildDiscoveryAuthoringScopeHref(routeScope)}
-          label="Authoring"
-        />
-        <ShellFilterChipLink href={reviewHref} label="Review" />
-        <ShellFilterChipLink
-          href={buildDiscoveryBoardScopeHref(routeScope)}
-          label="Board"
-        />
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         {chainsError ? (
           <ShellStatusBanner tone="warning">{chainsError}</ShellStatusBanner>
@@ -205,10 +194,6 @@ function DiscoveryIdeasList({
 
         {loadState === "loading" && ideas.length === 0 ? (
           <ShellLoadingState description="Loading discovery ideas..." />
-        ) : null}
-
-        {error ? (
-          <ShellStatusBanner tone="danger">{error}</ShellStatusBanner>
         ) : null}
 
         <div className="divide-y divide-border">
@@ -256,7 +241,25 @@ function DiscoveryIdeasList({
         </div>
 
         {loadState !== "loading" && filteredIdeas.length === 0 ? (
-          <ShellEmptyState description="No discovery ideas match the current filter." />
+          <div className="space-y-4">
+            <ShellEmptyState
+              centered
+              className="py-12"
+              icon={<Lightbulb className="h-5 w-5" />}
+              title={ideas.length === 0 ? "No ideas yet" : "No results"}
+              description={
+                ideas.length === 0
+                  ? "Ideas are generated from discovery sessions. Start a session to populate this list."
+                  : "No discovery ideas match the current filter."
+              }
+            />
+            {error ? (
+              <div className="mx-auto flex max-w-sm items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-[12px] text-muted-foreground">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                <span>Service offline — <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">check connections</Link></span>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>
@@ -698,15 +701,12 @@ export function DiscoveryIdeasWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <div>
-          <h1 className="text-[15px] font-semibold text-foreground">Discovery Ideas</h1>
-          <div className="mt-1 flex items-center gap-3 text-[12px] text-muted-foreground">
-            <span className="tabular-nums">{ideas.length} ideas</span>
-            <span className="tabular-nums">{chains.length} linked</span>
-          </div>
+      <div className="flex items-center justify-between pb-2">
+        <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
+          <span className="tabular-nums">{ideas.length} ideas</span>
+          <span className="tabular-nums">{chains.length} linked</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <ShellFilterChipLink
             href={buildDiscoveryAuthoringScopeHref(routeScope)}
             label="Authoring"

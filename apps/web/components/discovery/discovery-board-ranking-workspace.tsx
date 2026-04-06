@@ -23,7 +23,6 @@ import {
   ShellActionStateLabel,
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellHero,
   ShellLinkTileGrid,
   ShellPage,
   ShellPillButton,
@@ -350,34 +349,22 @@ export function DiscoveryBoardRankingWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero
-        title="Ranking"
-        meta={
-          <>
-            <span>{leaderboardItems.length} ideas ranked</span>
-            <span>{metrics?.comparisons_count ?? 0} comparisons</span>
-            <span>Updated {formatDate(snapshot.generatedAt)}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton type="button" onClick={() => refreshClient()} />
-            {[
-              [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-              [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
-              [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
-              [buildDiscoveryBoardSimulationsScopeHref(routeScope), "Simulations"],
-              [reviewHref, "Review"],
-            ].map(([href, label]) => (
-              <ShellFilterChipLink
-                key={String(href)}
-                href={String(href)}
-                label={String(label)}
-              />
-            ))}
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton type="button" onClick={() => refreshClient()} />
+        {[
+          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
+          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
+          [buildDiscoveryBoardFinalsScopeHref(routeScope), "Finals"],
+          [buildDiscoveryBoardSimulationsScopeHref(routeScope), "Simulations"],
+          [reviewHref, "Review"],
+        ].map(([href, label]) => (
+          <ShellFilterChipLink
+            key={String(href)}
+            href={String(href)}
+            label={String(label)}
+          />
+        ))}
+      </div>
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>

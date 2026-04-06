@@ -11,7 +11,6 @@ import {
   ShellEmptyState,
   ShellFilterChipButton,
   ShellFilterChipLink,
-  ShellHero,
   ShellLoadingState,
   ShellPage,
   ShellQueueSectionCard,
@@ -304,31 +303,19 @@ export function DiscoveryAuthoringQueueWorkspace({
   );
   return (
     <ShellPage>
-      <ShellHero
-        title="Authoring"
-        meta={
-          <>
-            <span>{routeScopedRecords.length} dossiers in the current scope.</span>
-            <span>{scopedStats.needsWorkCount} still need coverage.</span>
-            <span>Snapshot {formatDate(snapshot.generatedAt)}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
-            <ShellFilterChipLink href={buildDiscoveryIdeasScopeHref(routeScope)} label="Ideas" />
-            <ShellFilterChipLink href={buildDiscoveryBoardScopeHref(routeScope)} label="Board" />
-            <ShellFilterChipLink
-              href={buildRememberedDiscoveryReviewScopeHref({
-                scope: routeScope,
-                preferences,
-                bucket: resolveReviewMemoryBucket({ scope: routeScope }),
-              })}
-              label="Review"
-            />
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
+        <ShellFilterChipLink href={buildDiscoveryIdeasScopeHref(routeScope)} label="Ideas" />
+        <ShellFilterChipLink href={buildDiscoveryBoardScopeHref(routeScope)} label="Board" />
+        <ShellFilterChipLink
+          href={buildRememberedDiscoveryReviewScopeHref({
+            scope: routeScope,
+            preferences,
+            bucket: resolveReviewMemoryBucket({ scope: routeScope }),
+          })}
+          label="Review"
+        />
+      </div>
 
 
       {snapshot.error ? (
