@@ -754,8 +754,8 @@ export function ExecutionWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)] xl:min-h-[calc(100vh-160px)]">
-      <aside className="hidden min-h-0 xl:block">
+      <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:min-h-[calc(100vh-160px)]">
+      <aside className="hidden min-h-0 lg:block">
         <ExecutionProjectsList
           projects={projects}
           activeProjectId={activeProjectId}
@@ -767,7 +767,7 @@ export function ExecutionWorkspace({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <div className="xl:hidden">
+        <div className="lg:hidden">
           <ExecutionProjectsList
             projects={projects}
             activeProjectId={activeProjectId}

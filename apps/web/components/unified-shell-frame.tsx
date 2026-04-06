@@ -1187,7 +1187,7 @@ function UnifiedShellFrameContent({
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                className="inline-flex rounded-md p-1.5 text-foreground md:hidden"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-foreground md:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open navigation"
               >
