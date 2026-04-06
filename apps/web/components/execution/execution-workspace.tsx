@@ -754,7 +754,7 @@ export function ExecutionWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <section className="grid min-h-[calc(100vh-160px)] gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)] xl:min-h-[calc(100vh-160px)]">
       <aside className="hidden min-h-0 xl:block">
         <ExecutionProjectsList
           projects={projects}

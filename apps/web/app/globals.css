@@ -90,7 +90,13 @@ body {
 
 /* Content area — tight like Linear */
 .shell-content-area {
-  padding: 20px 24px;
+  padding: 16px;
+}
+
+@media (min-width: 640px) {
+  .shell-content-area {
+    padding: 20px 24px;
+  }
 }
 
 /* Premium list row hover */
@@ -142,12 +148,18 @@ body {
 /* Stat card number — tabular, prominent, heading font */
 .shell-stat-value {
   font-family: var(--font-heading, var(--font-sans));
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--foreground);
+}
+
+@media (min-width: 640px) {
+  .shell-stat-value {
+    font-size: 28px;
+  }
 }
 
 /* Surface ramp — background → panel → card → elevated */

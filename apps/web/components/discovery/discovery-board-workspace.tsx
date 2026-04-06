@@ -246,7 +246,7 @@ function BoardColumnView({
   routeScope: DiscoveryBoardRouteScope;
 }) {
   return (
-    <div className="flex min-w-[200px] max-w-[260px] shrink-0 flex-col">
+    <div className="flex min-w-[160px] sm:min-w-[200px] max-w-[260px] shrink-0 flex-col">
       <div
         className={`rounded-t-lg border-t-2 ${column.borderColor} border-x border-border/40 bg-muted/30 px-3 py-2.5`}
       >
