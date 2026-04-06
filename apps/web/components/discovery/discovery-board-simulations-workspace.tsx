@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 
 import {
   ShellActionStateLabel,
+  ShellActionLink,
   ShellEmptyState,
   ShellPage,
   ShellPillButton,
@@ -24,7 +25,11 @@ import {
   getShellPollInterval,
   useShellPreferences,
 } from "@/lib/shell-preferences";
-import { type ShellRouteScope } from "@/lib/route-scope";
+import {
+  buildDiscoveryIdeaScopeHref,
+  buildSettingsScopeHref,
+  type ShellRouteScope,
+} from "@/lib/route-scope";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
 import { useShellRouteMutationRunner } from "@/lib/use-shell-route-mutation-runner";
 import { useShellSnapshotRefreshNonce } from "@/lib/use-shell-snapshot-refresh-nonce";
@@ -165,7 +170,7 @@ function SwipeCard({
 }
 
 export function DiscoveryBoardSimulationsWorkspace({
-  activeIdeaId: _activeIdeaId,
+  activeIdeaId,
   initialPreferences,
   initialSnapshot,
   routeScope = { projectId: "", intakeSessionId: "" },
@@ -237,32 +242,54 @@ export function DiscoveryBoardSimulationsWorkspace({
   const visibleItems = allItems.filter(
     (item) => !dismissedIds.has(item.idea.idea_id)
   );
-  const currentItem = visibleItems[0] ?? null;
-  const currentIndex = allItems.length - visibleItems.length;
+  const prioritizedItems = activeIdeaId
+    ? [
+        ...visibleItems.filter((item) => item.idea.idea_id === activeIdeaId),
+        ...visibleItems.filter((item) => item.idea.idea_id !== activeIdeaId),
+      ]
+    : visibleItems;
+  const currentItem = prioritizedItems[0] ?? null;
+  const currentIndex = currentItem
+    ? Math.max(
+        0,
+        allItems.findIndex((item) => item.idea.idea_id === currentItem.idea.idea_id)
+      )
+    : 0;
   const totalCount = allItems.length;
+  const requestedIdeaMissing = Boolean(activeIdeaId) && !currentItem;
+  const effectiveIdeaId = activeIdeaId || currentItem?.idea.idea_id || "";
+  const settingsHref = buildSettingsScopeHref(routeScope, {
+    discoveryIdeaId: effectiveIdeaId,
+  });
+  const dossierHref = effectiveIdeaId
+    ? buildDiscoveryIdeaScopeHref(effectiveIdeaId, routeScope)
+    : null;
 
-  const handleSwipe = useCallback(
-    (ideaId: string, action: QuorumDiscoverySwipeAction) => {
-      // Optimistically remove from view
-      setDismissedIds((prev) => new Set([...prev, ideaId]));
+  function handleSwipe(ideaId: string, action: QuorumDiscoverySwipeAction) {
+    // Optimistically remove from view.
+    setDismissedIds((prev) => new Set([...prev, ideaId]));
 
-      void runMutation(`swipe:${ideaId}:${action}`, () =>
-        swipeDiscoveryIdeaFromBoard({
-          ideaId,
-          action,
-          routeScope,
-          source: "discovery-board-simulations",
-        })
-      );
-    },
-    [routeScope, runMutation]
-  );
+    void runMutation(`swipe:${ideaId}:${action}`, () =>
+      swipeDiscoveryIdeaFromBoard({
+        ideaId,
+        action,
+        routeScope,
+        source: "discovery-board-simulations",
+      })
+    );
+  }
 
   const errors = [...snapshot.errors, errorMessage ?? ""].filter(Boolean);
 
   return (
     <ShellPage className="max-w-[800px] mx-auto">
-      <div className="flex items-center justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <ShellActionLink href={settingsHref} label="Open scoped settings" />
+          {dossierHref ? (
+            <ShellActionLink href={dossierHref} label="Open dossier" />
+          ) : null}
+        </div>
         <ShellPillButton
           type="button"
           tone="outline"
@@ -275,6 +302,12 @@ export function DiscoveryBoardSimulationsWorkspace({
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
+      ) : null}
+
+      {requestedIdeaMissing ? (
+        <ShellStatusBanner tone="info">
+          Requested simulation target {activeIdeaId} is not currently present in the swipe queue, so the page is holding scope and parity links while the queue refreshes.
+        </ShellStatusBanner>
       ) : null}
 
       {errors.length > 0 ? (

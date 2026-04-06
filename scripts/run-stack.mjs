@@ -33,6 +33,8 @@ const readyTimeoutMs = Number.parseInt(
   process.env.FOUNDEROS_STACK_READY_TIMEOUT_MS || "45000",
   10
 );
+const submoduleHelp =
+  "Run `bash scripts/bootstrap_founderos_local.sh` or `git submodule update --init --recursive` before starting the stack.";
 
 if (!validModes.has(mode)) {
   console.error(
@@ -48,6 +50,22 @@ let stackStateRoot = null;
 
 function log(message) {
   console.log(`[stack] ${message}`);
+}
+
+function requirePath(path, description) {
+  if (existsSync(path)) {
+    return;
+  }
+
+  throw new Error(`${description} is missing at ${path}. ${submoduleHelp}`);
+}
+
+function assertRuntimeLayout() {
+  requirePath(quorumRoot, "Quorum runtime root");
+  requirePath(join(quorumRoot, "gateway.py"), "Quorum gateway entrypoint");
+  requirePath(join(quorumRoot, "pyproject.toml"), "Quorum package metadata");
+  requirePath(autopilotRoot, "Autopilot runtime root");
+  requirePath(join(autopilotRoot, "pyproject.toml"), "Autopilot package metadata");
 }
 
 function trimTrailingSlash(value) {
@@ -545,6 +563,7 @@ const autopilotPython = resolvePythonBinary(
   "AUTOPILOT_PYTHON_BIN",
   join(autopilotRoot, ".venv", "bin", "python")
 );
+assertRuntimeLayout();
 
 if (
   mode === "parity" ||
