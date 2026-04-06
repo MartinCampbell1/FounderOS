@@ -99,6 +99,9 @@ const CHORD_ROUTES: Record<string, string> = {
   p: "/portfolio",
   v: "/review",
   t: "/settings",
+  y: "/discovery/replays",
+  f: "/discovery/board/finals",
+  x: "/discovery/board/archive",
 };
 
 const SHORTCUT_REFERENCE: ReadonlyArray<{
@@ -118,6 +121,9 @@ const SHORTCUT_REFERENCE: ReadonlyArray<{
   { label: "Portfolio", keys: "G then P" },
   { label: "Review", keys: "G then V" },
   { label: "Settings", keys: "G then T" },
+  { label: "Replays", keys: "G then Y" },
+  { label: "Finals", keys: "G then F" },
+  { label: "Archive", keys: "G then X" },
   { label: "Command palette", keys: "\u2318K" },
   { label: "Shortcuts reference", keys: "?" },
 ];
@@ -137,6 +143,9 @@ const COMMAND_SHORTCUT_MAP: Record<string, string> = {
   "nav:portfolio": "G P",
   "nav:review": "G V",
   "settings:preferences": "G T",
+  "nav:discovery:replays": "G Y",
+  "nav:discovery:finals": "G F",
+  "nav:discovery:archive": "G X",
 };
 
 /* ── Sidebar nav sections ─────────────────────────────────── */
@@ -305,11 +314,17 @@ function UnifiedShellFrameContent({
     "nav:discovery:swipe": "tinder swipe simulation",
     "nav:discovery:research": "trace observability search",
     "nav:discovery:authoring": "write author dossier",
-    "nav:discovery:replays": "replay history debate",
+    "nav:discovery:replays": "replay debate history protocol",
+    "nav:discovery:archive": "archive frontier quality diversity",
+    "nav:discovery:finals": "finals vote irv ranked",
+    "nav:discovery:review": "discovery review authoring trace handoff",
     "nav:execution:projects": "project list",
     "nav:execution:intake": "chat new project intake",
     "nav:execution:controlplane": "review approve control",
     "nav:execution:handoffs": "handoff transfer",
+    "nav:execution:issues": "issue blocker error critical",
+    "nav:execution:approvals": "approval pending approve reject",
+    "nav:execution:agents": "agent runtime worker bot",
     "nav:portfolio": "portfolio investments outcomes",
     "nav:review": "review audit cross-plane",
     "settings:preferences": "preferences config options",

@@ -18,6 +18,7 @@ import type {
 } from "@/lib/discovery";
 import type { ShellDiscoveryAuthoringQueueSnapshot } from "@/lib/discovery-authoring-queue";
 import type { ShellDiscoveryReviewSnapshot } from "@/lib/discovery-review";
+import type { ShellExecutionAgentsSnapshot } from "@/lib/execution-agents";
 import type {
   ShellExecutionHandoffSnapshot,
   ShellExecutionIntakeSnapshot,
@@ -852,4 +853,21 @@ export function fetchShellExecutionHandoffSnapshot(
         : "Execution handoff: request failed.",
     handoffLoadState: "error" as const,
   }));
+}
+
+export function fetchShellExecutionAgentsSnapshot(
+  input: RequestInfo | URL = "/api/shell/execution/agents",
+  init?: RequestInit
+): Promise<ShellExecutionAgentsSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionAgentsSnapshot>(input, init).catch(
+    (error) => ({
+      generatedAt: new Date().toISOString(),
+      projects: [],
+      projectsError:
+        error instanceof Error
+          ? `Autopilot projects: ${error.message}`
+          : "Autopilot projects: request failed.",
+      projectsLoadState: "error" as const,
+    })
+  );
 }
