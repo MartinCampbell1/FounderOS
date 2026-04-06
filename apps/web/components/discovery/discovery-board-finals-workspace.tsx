@@ -11,14 +11,7 @@ import type {
   ShellPreferences,
 } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
-import {
-  Crown,
-  GitBranchPlus,
-  Radar,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
+import { Crown } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
@@ -35,7 +28,6 @@ import {
 import {
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellLinkTileGrid,
   ShellPage,
   ShellActionStateLabel,
   ShellPillButton,
@@ -54,16 +46,11 @@ import {
   useShellPreferences,
 } from "@/lib/shell-preferences";
 import {
-  buildDashboardScopeHref,
   buildDiscoveryBoardArchiveScopeHref,
-  buildDiscoveryBoardFinalsScopeHref,
   buildDiscoveryBoardRankingScopeHref,
   buildDiscoveryBoardScopeHref,
   buildDiscoveryIdeaAuthoringScopeHref,
   buildDiscoveryIdeaScopeHref,
-  buildInboxScopeHref,
-  buildPortfolioScopeHref,
-  buildSettingsScopeHref,
   type ShellRouteScope,
 } from "@/lib/route-scope";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
@@ -422,11 +409,8 @@ export function DiscoveryBoardFinalsWorkspace({
   const selectedFinalists = leaderboardItems.filter((item) =>
     effectiveSelectedIds.includes(item.idea.idea_id)
   );
-  const settingsTargetIdeaId =
-    selectedFinalists[0]?.idea.idea_id || leaderboardItems[0]?.idea.idea_id || "";
   const ballots = buildShellFinalsBallots(selectedFinalists);
-  const archive = snapshot.archive;
-  const errors = [...snapshot.errors, errorMessage ?? ""].filter(Boolean);
+  const errors =[...snapshot.errors, errorMessage ?? ""].filter(Boolean);
 
   function toggleCandidate(ideaId: string) {
     setSelectedCandidateIds((current) => {
@@ -560,42 +544,6 @@ export function DiscoveryBoardFinalsWorkspace({
         />
       ) : null}
 
-      <ShellLinkTileGrid
-        items={[
-          {
-            href: buildDiscoveryBoardArchiveScopeHref(routeScope),
-            label: "Open archive route",
-            icon: <Sparkles className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDashboardScopeHref(routeScope),
-            label: "Open scoped dashboard",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildPortfolioScopeHref(routeScope),
-            label: "Open scoped portfolio",
-            icon: <GitBranchPlus className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildInboxScopeHref(routeScope),
-            label: "Open scoped inbox",
-            icon: <ShieldCheck className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildDiscoveryBoardRankingScopeHref(routeScope),
-            label: "Back to ranking detail",
-            icon: <Trophy className="h-4 w-4 text-accent" />,
-          },
-          {
-            href: buildSettingsScopeHref(routeScope, {
-              discoveryIdeaId: settingsTargetIdeaId,
-            }),
-            label: "Open scoped settings",
-            icon: <Radar className="h-4 w-4 text-accent" />,
-          },
-        ]}
-      />
     </ShellPage>
   );
 }
