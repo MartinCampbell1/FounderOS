@@ -39,5 +39,10 @@ jobs:
       - name: Run monorepo typechecks
         run: npm run typecheck
 
+      - name: Run shared contract regressions
+        run: |
+          python -m pip install pytest -e ./founderos_contracts
+          python -m pytest founderos_contracts/tests -q
+
       - name: Run monorepo tests
         run: npm run test

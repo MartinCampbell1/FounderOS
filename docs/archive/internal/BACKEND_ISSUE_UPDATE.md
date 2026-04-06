@@ -1,3 +1,5 @@
+> Archived internal note. This file is historical context only and is not part of the public FounderOS release contract.
+
 # Quorum Backend Issue — Deep Update 2026-04-05
 
 ## What Was Actually Wrong

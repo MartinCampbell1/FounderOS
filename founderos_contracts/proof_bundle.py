@@ -27,10 +27,10 @@ class ExecutionProofBundle(BaseModel):
     total_duration_seconds: float = 0.0
 
     # Changed files / diffs
-    changed_files: list[str] = []
+    changed_files: list[str] = Field(default_factory=list)
 
     # Testing
-    tests_executed: list[str] = []
+    tests_executed: list[str] = Field(default_factory=list)
     tests_passed: int = 0
     tests_failed: int = 0
 
@@ -39,18 +39,18 @@ class ExecutionProofBundle(BaseModel):
     review_summary: str = ""
 
     # Governance
-    approvals: list[str] = []
-    linked_issues: list[str] = []
-    unresolved_risks: list[str] = []
+    approvals: list[str] = Field(default_factory=list)
+    linked_issues: list[str] = Field(default_factory=list)
+    unresolved_risks: list[str] = Field(default_factory=list)
 
     # Artifacts
-    shipped_artifacts: list[str] = []
+    shipped_artifacts: list[str] = Field(default_factory=list)
 
     # Outcome
     outcome_status: str = ""
     outcome_verdict: str = ""
-    failure_modes: list[str] = []
-    lessons_learned: list[str] = []
+    failure_modes: list[str] = Field(default_factory=list)
+    lessons_learned: list[str] = Field(default_factory=list)
 
     # Operator / founder notes
     operator_summary: str = ""

@@ -1,3 +1,5 @@
+> Archived internal note. This file is historical context only and is not part of the public FounderOS release contract.
+
 # FounderOS Unified Shell UI Pass Handoff
 
 Date: 2026-04-05
