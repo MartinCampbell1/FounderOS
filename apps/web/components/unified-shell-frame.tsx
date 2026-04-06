@@ -1183,7 +1183,7 @@ function UnifiedShellFrameContent({
 
         {/* ── Main content ────────────────────────────── */}
         <div className="min-w-0 flex-1 bg-background">
-          <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-5 backdrop-blur-xl">
+          <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-3 sm:px-5 backdrop-blur-xl">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
