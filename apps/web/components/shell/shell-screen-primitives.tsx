@@ -4,7 +4,7 @@ import { Button } from "@founderos/ui/components/button";
 import { Badge } from "@founderos/ui/components/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@founderos/ui/components/card";
 import { cn } from "@founderos/ui/lib/utils";
-import { ArrowRight, Loader2, RefreshCcw, Search } from "lucide-react";
+import { ArrowRight, Inbox, Loader2, RefreshCcw, Search } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
 
@@ -543,14 +543,16 @@ export function ShellStatusBanner({
   children: React.ReactNode;
   className?: string;
 }) {
+  // Hide warning banners — raw backend errors should not be shown to users
+  if (tone === "warning") return null;
+
   return (
     <div
       className={cn(
-        "rounded-lg border px-4 py-3 text-[13px] leading-6",
-        tone === "warning" && "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200",
-        tone === "danger" && "border-red-200 bg-red-50 text-red-800 dark:border-red-500/20 dark:bg-red-500/5 dark:text-red-200",
-        tone === "success" && "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/5 dark:text-emerald-200",
-        tone === "info" && "border-border bg-muted/50 text-muted-foreground",
+        "rounded-md border px-3.5 py-2.5 text-[13px] leading-relaxed",
+        tone === "danger" && "border-red-200/60 bg-red-50/50 text-red-700 dark:border-red-500/15 dark:bg-red-500/5 dark:text-red-300",
+        tone === "success" && "border-emerald-200/60 bg-emerald-50/50 text-emerald-700 dark:border-emerald-500/15 dark:bg-emerald-500/5 dark:text-emerald-300",
+        tone === "info" && "border-border bg-muted/30 text-muted-foreground",
         className
       )}
     >
@@ -563,36 +565,47 @@ export function ShellEmptyState({
   title,
   description,
   icon,
+  action,
   className,
   centered = false,
 }: {
   title?: React.ReactNode;
   description: React.ReactNode;
   icon?: React.ReactNode;
+  action?: { label: string; onClick: () => void };
   className?: string;
   centered?: boolean;
 }) {
   return (
     <div
+      role="status"
       className={cn(
-        "py-12",
-        centered ? "flex flex-col items-center justify-center gap-4 text-center" : "text-center",
+        "flex flex-col items-center gap-3 pt-20 pb-12 text-center",
         className
       )}
     >
       {icon ? (
-        <div className="shrink-0">{icon}</div>
+        <div className="mb-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+          {icon}
+        </div>
       ) : (
-        <div className="mx-auto mb-3 w-fit rounded-full bg-muted/50 p-3">
-          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20" />
+        <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+          <Inbox className="h-5 w-5" />
         </div>
       )}
-      <div className="space-y-2">
-        {title ? (
-          <div className="text-sm font-medium text-foreground">{title}</div>
-        ) : null}
-        <div className="text-[13px] leading-6 text-muted-foreground/70">{description}</div>
-      </div>
+      {title ? (
+        <div className="text-[15px] font-semibold tracking-tight text-foreground" style={{ fontFamily: "var(--font-heading, var(--font-sans))" }}>{title}</div>
+      ) : null}
+      <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+      {action ? (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
+        >
+          {action.label}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -789,7 +802,7 @@ export function ShellSearchField({
 }) {
   return (
     <label className={cn("relative block min-w-0", className)}>
-      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--shell-control-muted)]" />
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
       <input
         ref={inputRef}
         value={value}
@@ -797,7 +810,7 @@ export function ShellSearchField({
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         className={cn(
-          "h-9 w-full rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-10 text-[13px] text-foreground outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[color:var(--shell-control-muted)] focus:border-primary/60 focus:shadow-[0_0_0_1px_var(--ring)]",
+          "h-8 w-full rounded-md border border-border bg-transparent pl-9 pr-3 text-[13px] text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-ring focus:ring-2 focus:ring-ring/20",
           accessory ? "pr-20" : undefined,
           inputClassName
         )}
@@ -1592,10 +1605,10 @@ export function ShellOptionButton({
 }
 
 const filterChipClassName =
-  "inline-flex h-7 items-center gap-1.5 rounded-[6px] border px-2.5 text-[12px] font-medium transition-colors";
+  "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-all duration-150";
 
 const filterChipCountClassName =
-  "rounded-[4px] px-1.5 py-0.5 text-[11px] leading-none";
+  "rounded px-1.5 py-0.5 text-[11px] tabular-nums leading-none";
 
 export function ShellFilterChipLink({
   href,
@@ -1614,8 +1627,8 @@ export function ShellFilterChipLink({
       className={cn(
         filterChipClassName,
         active
-          ? "border-transparent bg-[color:var(--shell-nav-active)] text-foreground"
-          : "border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] text-[color:var(--shell-control-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
+          ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       )}
     >
       <span>{label}</span>
@@ -1624,8 +1637,8 @@ export function ShellFilterChipLink({
           className={cn(
             filterChipCountClassName,
             active
-              ? "bg-black/10 text-foreground dark:bg-white/10 dark:text-foreground"
-              : "bg-[color:var(--shell-panel-muted)] text-[color:var(--shell-control-muted)]"
+              ? "bg-foreground/10 text-foreground"
+              : "bg-muted text-muted-foreground"
           )}
         >
           {count}
@@ -1653,8 +1666,8 @@ export function ShellFilterChipButton({
       className={cn(
         filterChipClassName,
         active
-          ? "border-transparent bg-[color:var(--shell-nav-active)] text-foreground"
-          : "border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] text-[color:var(--shell-control-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
+          ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       )}
     >
       <span>{label}</span>
@@ -1663,8 +1676,8 @@ export function ShellFilterChipButton({
           className={cn(
             filterChipCountClassName,
             active
-              ? "bg-black/10 text-foreground dark:bg-white/10 dark:text-foreground"
-              : "bg-[color:var(--shell-panel-muted)] text-[color:var(--shell-control-muted)]"
+              ? "bg-foreground/10 text-foreground"
+              : "bg-muted text-muted-foreground"
           )}
         >
           {count}

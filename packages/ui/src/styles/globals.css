@@ -26,8 +26,8 @@
 }
 
 :root {
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+  --font-sans: "Geist", "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "SFMono-Regular", ui-monospace, monospace;
   --font-size-micro: 11px;
   --font-size-mini: 12px;
   --font-size-small: 13px;
@@ -143,9 +143,15 @@
     border-radius: 4px;
   }
 
-  /* Typography refinement */
-  h1, h2, h3, h4, h5, h6 {
-    letter-spacing: -0.02em;
+  /* Typography — heading font for strong hierarchy */
+  h1, h2, h3 {
+    font-family: var(--font-heading, var(--font-sans));
+    letter-spacing: -0.025em;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h4, h5, h6 {
+    letter-spacing: -0.01em;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }

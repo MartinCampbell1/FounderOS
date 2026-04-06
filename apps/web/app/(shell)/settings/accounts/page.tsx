@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@founderos/ui/components/badge";
 import { cn } from "@founderos/ui/lib/utils";
 
-import { ShellPage, ShellHero } from "@/components/shell/shell-screen-primitives";
+import { ShellPage } from "@/components/shell/shell-screen-primitives";
 
 interface AccountEntry {
   name: string;
@@ -155,8 +155,6 @@ export default function SettingsAccountsPage() {
 
   return (
     <ShellPage>
-      <ShellHero title="Accounts" />
-
       {loading && (
         <div className="text-[13px] text-muted-foreground">Loading accounts...</div>
       )}

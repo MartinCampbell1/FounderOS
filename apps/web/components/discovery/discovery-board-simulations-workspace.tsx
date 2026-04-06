@@ -14,7 +14,6 @@ import { useCallback, useState } from "react";
 import {
   ShellActionStateLabel,
   ShellEmptyState,
-  ShellHero,
   ShellPage,
   ShellPillButton,
   ShellStatusBanner,
@@ -263,20 +262,16 @@ export function DiscoveryBoardSimulationsWorkspace({
 
   return (
     <ShellPage className="max-w-[800px] mx-auto">
-      <ShellHero
-        title="Swipe Queue"
-        description="Evaluate ideas one at a time. Swipe to triage your discovery queue."
-        actions={
-          <ShellPillButton
-            type="button"
-            tone="outline"
-            compact
-            onClick={() => refreshClient()}
-          >
-            Refresh
-          </ShellPillButton>
-        }
-      />
+      <div className="flex items-center justify-end">
+        <ShellPillButton
+          type="button"
+          tone="outline"
+          compact
+          onClick={() => refreshClient()}
+        >
+          Refresh
+        </ShellPillButton>
+      </div>
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>

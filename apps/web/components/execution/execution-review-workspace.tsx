@@ -54,7 +54,6 @@ import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
 import {
   ShellActionStateLabel,
   ShellEmptyState,
-  ShellHero,
   ShellInlineStatus,
   ShellLoadingState,
   ShellPage,
@@ -384,8 +383,6 @@ export function ExecutionReviewWorkspace({
 
   return (
     <ShellPage>
-      <ShellHero title="Control Plane" />
-
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
       ) : null}

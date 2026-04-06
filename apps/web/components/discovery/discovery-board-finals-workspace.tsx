@@ -35,7 +35,6 @@ import {
 import {
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellHero,
   ShellLinkTileGrid,
   ShellPage,
   ShellActionStateLabel,
@@ -462,33 +461,21 @@ export function DiscoveryBoardFinalsWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <ShellHero
-        title="Discovery finals resolution now runs as a shell-native route."
-        meta={
-          <>
-            <span>{leaderboardItems.length} candidates in the pool.</span>
-            <span>{selectedFinalists.length} finalists selected.</span>
-            <span>Snapshot {snapshot.generatedAt ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(snapshot.generatedAt)) : 'n/a'}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton type="button" onClick={() => refreshClient()} />
-            {[
-              [buildDiscoveryBoardScopeHref(routeScope), "Board"],
-              [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
-              [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
-              [reviewHref, "Review"],
-            ].map(([href, label]) => (
-              <ShellFilterChipLink
-                key={String(href)}
-                href={String(href)}
-                label={String(label)}
-              />
-            ))}
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton type="button" onClick={() => refreshClient()} />
+        {[
+          [buildDiscoveryBoardScopeHref(routeScope), "Board"],
+          [buildDiscoveryBoardRankingScopeHref(routeScope), "Ranking"],
+          [buildDiscoveryBoardArchiveScopeHref(routeScope), "Archive"],
+          [reviewHref, "Review"],
+        ].map(([href, label]) => (
+          <ShellFilterChipLink
+            key={String(href)}
+            href={String(href)}
+            label={String(label)}
+          />
+        ))}
+      </div>
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>

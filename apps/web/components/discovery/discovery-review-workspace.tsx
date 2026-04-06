@@ -15,7 +15,6 @@ import {
   ShellComposerTextarea,
   ShellEmptyState,
   ShellFilterChipLink,
-  ShellHero,
   ShellLoadingState,
   ShellMetricCard,
   ShellPage,
@@ -893,34 +892,21 @@ export function DiscoveryReviewWorkspace({
 
   return (
     <ShellPage>
-      <ShellHero
-        title="Review authoring gaps, trace signals, replay context, and handoff readiness in one shell-native route."
-        description="This route turns discovery review into an explicit operator loop instead of scattering evidence coverage, trace interpretation, and handoff decisions across separate screens."
-        meta={
-          <>
-            <span>{stats.totalCount} review items in the current scope.</span>
-            <span>{stats.replayLinkedCount} carry replay context.</span>
-            <span>Snapshot {formatDate(snapshot.generatedAt)}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
-            <ShellFilterChipLink
-              href={buildDiscoveryAuthoringScopeHref(routeScope)}
-              label="Authoring queue"
-            />
-            <ShellFilterChipLink
-              href={buildDiscoveryBoardScopeHref(routeScope)}
-              label="Board"
-            />
-            <ShellFilterChipLink
-              href={buildReviewScopeHref(routeScope, "discovery")}
-              label="Review center"
-            />
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
+        <ShellFilterChipLink
+          href={buildDiscoveryAuthoringScopeHref(routeScope)}
+          label="Authoring queue"
+        />
+        <ShellFilterChipLink
+          href={buildDiscoveryBoardScopeHref(routeScope)}
+          label="Board"
+        />
+        <ShellFilterChipLink
+          href={buildReviewScopeHref(routeScope, "discovery")}
+          label="Review center"
+        />
+      </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <ShellMetricCard

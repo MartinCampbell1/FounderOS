@@ -189,13 +189,13 @@ export const NAV_ITEMS: NavItem[] = [
       {
         key: "settings:accounts",
         label: "Accounts",
-        href: "/settings",
+        href: "/settings/accounts",
         icon: UserCircle,
       },
       {
         key: "settings:capabilities",
         label: "Capabilities",
-        href: "/settings",
+        href: "/settings/capabilities",
         icon: Puzzle,
       },
     ],

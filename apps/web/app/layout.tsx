@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter } from "next/font/google";
+import { DM_Sans, Geist, Geist_Mono } from "next/font/google";
 import type { CSSProperties } from "react";
 
 import { ThemeProvider } from "@founderos/ui/components/theme-provider";
 import "./globals.css";
 
-const sans = Inter({
+const sans = Geist({
   subsets: ["latin"],
   variable: "--font-shell-sans",
 });
 
-const mono = IBM_Plex_Mono({
+const heading = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["500", "600", "700"],
+  variable: "--font-shell-heading",
+});
+
+const mono = Geist_Mono({
+  subsets: ["latin"],
   variable: "--font-shell-mono",
 });
 
@@ -29,10 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${sans.variable} ${mono.variable}`}
+        className={`${sans.variable} ${heading.variable} ${mono.variable}`}
         style={
           {
             "--font-sans": "var(--font-shell-sans)",
+            "--font-heading": "var(--font-shell-heading), 'DM Sans', var(--font-shell-sans)",
             "--font-mono": "var(--font-shell-mono)",
           } as CSSProperties
         }

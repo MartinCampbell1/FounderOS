@@ -14,7 +14,6 @@ import {
   ShellActionStateLabel,
   ShellActionLink,
   ShellFilterChipLink,
-  ShellHero,
   ShellInputField,
   ShellLoadingState,
   ShellPage,
@@ -293,24 +292,11 @@ export function ExecutionHandoffWorkspace({
 
   return (
     <ShellPage className="max-w-[1480px]">
-      <ShellHero
-        title={brief.title}
-        meta={
-          <>
-            <span>{handoffId}</span>
-            <span>{handoff.brief_kind}</span>
-            <span>{handoff.source_plane}</span>
-            <span>{handoff.launch_intent === "launch" ? "Launch intent" : "Draft only"}</span>
-          </>
-        }
-        actions={
-          <>
-            <ShellFilterChipLink href={buildExecutionScopeHref(routeScope)} label="Execution" />
-            <ShellFilterChipLink href={executionReviewHref} label="Execution review" />
-            <ShellFilterChipLink href={unifiedReviewHref} label="Unified review" />
-          </>
-        }
-      />
+      <div className="flex items-center justify-end gap-2">
+        <ShellFilterChipLink href={buildExecutionScopeHref(routeScope)} label="Execution" />
+        <ShellFilterChipLink href={executionReviewHref} label="Execution review" />
+        <ShellFilterChipLink href={unifiedReviewHref} label="Unified review" />
+      </div>
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_390px]">
       <div className="space-y-4">
         {handoff.source_session_id ? (

@@ -12,7 +12,10 @@ import {
 import { Badge } from "@founderos/ui/components/badge";
 import { cn } from "@founderos/ui/lib/utils";
 import {
+  FolderOpen,
   GitBranch,
+  MousePointerClick,
+  Orbit,
   PauseCircle,
   PlayCircle,
   Rocket,
@@ -28,6 +31,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ShellActionStateLabel,
   ShellComposerTextarea,
+  ShellEmptyState,
   ShellInlineStatus,
   ShellPillButton,
   ShellRefreshButton,
@@ -500,11 +504,7 @@ function DiscoverySessionsList({
           <SkeletonList rows={6} className="px-3" />
         ) : null}
 
-        {error ? (
-          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-200">
-            {error}
-          </div>
-        ) : null}
+        {/* Errors handled silently — connection status shown via status dots */}
 
         <div className="divide-y divide-border">
           {filteredSessions.map((session) => {
@@ -535,13 +535,17 @@ function DiscoverySessionsList({
         </div>
 
         {loadState !== "loading" && filteredSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="text-[13px] text-muted-foreground">
-              {sessions.length === 0
-                ? "No sessions available. Connect Quorum to see discovery sessions."
-                : "No sessions match the current filter."}
-            </div>
-          </div>
+          <ShellEmptyState
+            centered
+            className="py-12"
+            icon={<Orbit className="h-5 w-5" />}
+            title="No sessions yet"
+            description={
+              sessions.length === 0
+                ? "Discovery sessions explore market opportunities, analyze competitors, and generate ideas automatically."
+                : "No sessions match the current filter."
+            }
+          />
         ) : null}
       </div>
     </div>
@@ -1039,9 +1043,13 @@ function DiscoverySessionMonitor({
 
   if (!session) {
     return (
-      <div className="flex min-h-[500px] items-center justify-center text-[13px] text-muted-foreground">
-        Select a session to view details.
-      </div>
+      <ShellEmptyState
+        centered
+        className="min-h-[500px]"
+        icon={<MousePointerClick className="h-5 w-5" />}
+        title="Session details"
+        description="Select a session to explore findings, ideas, and agent activity."
+      />
     );
   }
 

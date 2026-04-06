@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@founderos/ui/components/badge";
-import { ShellPage, ShellHero } from "@/components/shell/shell-screen-primitives";
+import { ShellPage } from "@/components/shell/shell-screen-primitives";
 import { listExecutionBriefHandoffs } from "@/lib/execution-brief-handoffs";
 import type { ExecutionBriefHandoffRecord } from "@/lib/execution-brief-handoffs";
 import { buildExecutionHandoffScopeHref } from "@/lib/route-scope";
@@ -65,7 +65,6 @@ export default function ExecutionHandoffsPage() {
 
   return (
     <ShellPage>
-      <ShellHero title="Handoffs" />
       {handoffs.length > 0 ? (
         <div className="rounded-lg border border-border bg-card">
           {handoffs.map((handoff) => (

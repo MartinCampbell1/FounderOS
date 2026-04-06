@@ -3,7 +3,7 @@
 import { cn } from "@founderos/ui/lib/utils";
 import { useEffect, useState } from "react";
 
-import { ShellPage, ShellHero } from "@/components/shell/shell-screen-primitives";
+import { ShellPage } from "@/components/shell/shell-screen-primitives";
 import type {
   ShellCapabilitiesSnapshot,
   CapabilityProvider,
@@ -254,8 +254,6 @@ export default function SettingsCapabilitiesPage() {
 
   return (
     <ShellPage>
-      <ShellHero title="Capabilities" />
-
       <div className="flex gap-1 border-b border-border">
         {TABS.map((tab) => (
           <button

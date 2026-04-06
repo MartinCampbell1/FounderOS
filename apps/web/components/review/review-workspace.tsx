@@ -7,6 +7,7 @@ import type {
 import { Badge } from "@founderos/ui/components/badge";
 import {
   AlertTriangle,
+  CheckCircle2,
   ClipboardCheck,
   CheckCheck,
   GitBranch,
@@ -1322,11 +1323,6 @@ export function ReviewWorkspace({
 
   return (
     <ShellPage>
-      <ShellHero title="Review" />
-
-      {snapshot.errors.length > 0 ? (
-        <ShellStatusBanner tone="warning">{snapshot.errors.join(" ")}</ShellStatusBanner>
-      ) : null}
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
@@ -1336,10 +1332,12 @@ export function ReviewWorkspace({
         <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="grid gap-4">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-1.5">
-            {filters.map((option) => (
+            {filters
+              .filter((option) => option.key === "all" || option.count > 0 || lane === option.key)
+              .map((option) => (
               <ShellFilterChipLink
                 key={option.key}
                 href={buildReviewScopeHref(
@@ -1421,16 +1419,18 @@ export function ReviewWorkspace({
             <ShellEmptyState
               centered
               className="py-10"
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              title="Review queue empty"
               description={
                 scopeActive
-                  ? "No review records match the current route scope and lane."
-                  : "No review records match the current lane."
+                  ? "No review items to process for the current scope."
+                  : "Items requiring your review will appear here \u2014 approvals, issues, and handoff decisions."
               }
             />
           ) : null}
         </div>
 
-        <div className="space-y-4">
+        <div className="hidden xl:hidden space-y-4">
           <ReviewPresetPanel
             activePreset={preset}
             busyActionKey={busyActionKey}
