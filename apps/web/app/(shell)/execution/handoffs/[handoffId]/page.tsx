@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { ExecutionHandoffWorkspace } from "@/components/execution/execution-handoff-workspace";
+import { buildExecutionHandoffSnapshot } from "@/lib/execution";
 import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
   resolveShellOperatorPreferencesSnapshot,
@@ -24,11 +25,12 @@ export default async function ExecutionHandoffPage({
   const operatorControls = resolveShellOperatorPreferencesSnapshot(
     cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
   );
+  const initialSnapshot = await buildExecutionHandoffSnapshot(handoffId);
   return (
     <ExecutionHandoffWorkspace
       handoffId={handoffId}
       initialPreferences={operatorControls.preferences}
-      initialSnapshot={null}
+      initialSnapshot={initialSnapshot}
       routeScope={readShellRouteScopeFromQueryRecord(query)}
     />
   );
