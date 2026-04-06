@@ -819,9 +819,11 @@ function UnifiedShellFrameContent({
     );
   }
 
-  function renderSubNavLink(child: SubNavItem & { href: string }) {
+  function renderSubNavLink(child: SubNavItem & { href: string }, parentHref?: string) {
     const Icon = child.icon;
-    const isActive = pathname === child.href || (pathname.startsWith(child.href + "/") && child.href !== "/");
+    // Exact match only for all sub-nav items — each sub-route has its own nav entry,
+    // so startsWith matching causes dual-highlight (e.g., Board + Archive both active).
+    const isActive = pathname === child.href;
     return (
       <Link
         key={child.key}
@@ -893,7 +895,7 @@ function UnifiedShellFrameContent({
         {isExpanded && item.children ? (
           <div className="mt-0.5 space-y-0.5">
             {item.children.map((child) =>
-              renderSubNavLink(child as SubNavItem & { href: string })
+              renderSubNavLink(child as SubNavItem & { href: string }, item.href)
             )}
           </div>
         ) : null}
