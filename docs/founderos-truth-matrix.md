@@ -17,7 +17,7 @@
 | 10 | Shared contracts dedup | done | `founderos_contracts/shared_v1.py` canonical; Quorum/Autopilot copies are re-export shims | — | Delete shims after all importers migrate |
 | 11 | UTC hygiene | done | `founderos_contracts/shared_v1.py` | — | — |
 | 12 | Research citations | partial | `founderos_contracts/citations.py` | — | Wire into research pipeline |
-| 13 | Cross-repo seam tests | done | `quorum/orchestrator/api.py` now lazy-loads the engine/runtime stack, so discovery/bootstrap/handoff route imports stay lean while seam tests cover the live router | `test_handoff_seam_integration.py`, `test_founder_bootstrap_route.py` | — |
+| 13 | Cross-repo seam tests | done | `quorum/orchestrator/api.py` lazy-loads the engine/runtime stack, so discovery/bootstrap/handoff route imports stay lean and the router still imports when `langchain_core` / `langchain_openai` / `langgraph` are unavailable | `test_bootstrap_imports.py::test_orchestrator_api_routes_import_without_langgraph_stack`, `test_handoff_seam_integration.py`, `test_founder_bootstrap_route.py` | — |
 | 14 | Lossy adapter fix | done | `autopilot/core/shared_contract_adapters.py` — `stage` now `"brief_drafted"` | `test_brief_v2_ingest.py` | — |
 | 15 | Brief dedup on ingest | done | `should_deduplicate_brief` called in `ingest_execution_brief_v2_project` before project creation | `test_v2_live_launch_gate.py::test_v2_route_rejects_duplicate_brief_ingest` | — |
 | 16 | Docs drift cleanup | done | Truth matrix synced after audit v5 fixes so founder gate, approval workflow, seam tests, and hygiene claims match current live-path behavior | — | — |
