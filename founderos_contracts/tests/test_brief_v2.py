@@ -151,3 +151,39 @@ def test_brief_v2_approval_status_defaults_to_pending() -> None:
     assert brief.brief_approval_status == "pending"
     assert brief.approved_at is None
     assert brief.approved_by is None
+
+
+def test_brief_v2_default_lists_are_not_shared() -> None:
+    first = ExecutionBriefV2(
+        schema_version="2.0",
+        brief_id="brief-a",
+        revision_id="rev-a",
+        initiative_id="init-a",
+        title="Brief A",
+        initiative_summary="A",
+        budget_policy=BudgetPolicy(tier="standard"),
+        approval_policy=ApprovalPolicy(),
+    )
+    second = ExecutionBriefV2(
+        schema_version="2.0",
+        brief_id="brief-b",
+        revision_id="rev-b",
+        initiative_id="init-b",
+        title="Brief B",
+        initiative_summary="B",
+        budget_policy=BudgetPolicy(tier="standard"),
+        approval_policy=ApprovalPolicy(),
+    )
+
+    first.assumptions.append("first-only")
+    first.story_breakdown.append(
+        StoryDecompositionSeed(
+            title="Shared nothing",
+            description="Lists must be isolated.",
+        )
+    )
+    first.citations.append(Citation(citation_id="cit-a", title="A"))
+
+    assert second.assumptions == []
+    assert second.story_breakdown == []
+    assert second.citations == []

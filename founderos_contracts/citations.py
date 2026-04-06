@@ -1,5 +1,5 @@
 """Citation and research source models for FounderOS discovery artifacts."""
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Citation(BaseModel):
@@ -17,10 +17,10 @@ class ResearchSource(BaseModel):
     title: str
     summary: str = ""
     url: str = ""
-    citations: list[Citation] = []
+    citations: list[Citation] = Field(default_factory=list)
 
 
 class SourcePackManifest(BaseModel):
     pack_id: str
-    sources: list[ResearchSource] = []
+    sources: list[ResearchSource] = Field(default_factory=list)
     generated_at: str = ""

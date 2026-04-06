@@ -16,7 +16,7 @@ def _utcnow() -> datetime:
 class StoryDecompositionSeed(BaseModel):
     title: str
     description: str
-    acceptance_criteria: list[str] = []
+    acceptance_criteria: list[str] = Field(default_factory=list)
     effort: str = ""
 
 
@@ -35,13 +35,13 @@ class EvidenceItem(BaseModel):
     artifact_path: str = ""
     source: str = ""
     confidence: float = 0.0
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
 
 
 class EvidenceBundle(BaseModel):
     bundle_id: str
     parent_id: str
-    items: list[EvidenceItem] = []
+    items: list[EvidenceItem] = Field(default_factory=list)
     overall_confidence: float = 0.0
 
 
@@ -55,7 +55,7 @@ class BudgetPolicy(BaseModel):
 class ApprovalPolicy(BaseModel):
     founder_approval_required: bool = True
     auto_launch_allowed: bool = False
-    required_approvers: list[str] = []
+    required_approvers: list[str] = Field(default_factory=list)
 
 
 class BriefRevision(BaseModel):
@@ -82,25 +82,25 @@ class ExecutionBriefV2(BaseModel):
     research_summary: str = ""
 
     # Requirements
-    assumptions: list[str] = []
-    constraints: list[str] = []
-    success_criteria: list[str] = []
+    assumptions: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    success_criteria: list[str] = Field(default_factory=list)
 
     # Policies
     budget_policy: BudgetPolicy
     approval_policy: ApprovalPolicy
 
     # Technical
-    recommended_tech_stack: list[str] = []
-    story_breakdown: list[StoryDecompositionSeed] = []
-    risks: list[RiskItem] = []
+    recommended_tech_stack: list[str] = Field(default_factory=list)
+    story_breakdown: list[StoryDecompositionSeed] = Field(default_factory=list)
+    risks: list[RiskItem] = Field(default_factory=list)
 
     # Repo
     repo_dna_snapshot: dict | None = None
-    repo_instruction_refs: list[str] = []
+    repo_instruction_refs: list[str] = Field(default_factory=list)
 
     # Research
-    citations: list[Citation] = []
+    citations: list[Citation] = Field(default_factory=list)
     evidence: EvidenceBundle | None = None
     source_pack_ref: str | None = None
 
@@ -113,7 +113,7 @@ class ExecutionBriefV2(BaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
-    revision_history: list[BriefRevision] = []
+    revision_history: list[BriefRevision] = Field(default_factory=list)
 
     def to_markdown(self) -> str:
         lines: list[str] = []
