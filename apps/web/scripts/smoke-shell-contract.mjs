@@ -85,6 +85,42 @@ async function fetchHtml(path, init) {
   return { response, html };
 }
 
+function signalServer(signal) {
+  if (server.exitCode !== null || !server.pid) {
+    return;
+  }
+
+  if (process.platform !== "win32") {
+    try {
+      process.kill(-server.pid, signal);
+      return;
+    } catch {
+      // Fall back to the direct child process below.
+    }
+  }
+
+  server.kill(signal);
+}
+
+async function waitForExit(timeoutMs) {
+  if (server.exitCode !== null) {
+    return true;
+  }
+
+  return new Promise((resolveExit) => {
+    const onExit = () => {
+      clearTimeout(timeoutId);
+      resolveExit(true);
+    };
+    const timeoutId = setTimeout(() => {
+      server.off("exit", onExit);
+      resolveExit(false);
+    }, timeoutMs);
+
+    server.once("exit", onExit);
+  });
+}
+
 const server = spawn("npm", ["run", "start"], {
   cwd: appRoot,
   env: {
@@ -92,6 +128,7 @@ const server = spawn("npm", ["run", "start"], {
     FOUNDEROS_WEB_HOST: host,
     FOUNDEROS_WEB_PORT: port,
   },
+  detached: process.platform !== "win32",
   stdio: ["ignore", "pipe", "pipe"],
 });
 
@@ -111,11 +148,22 @@ const teardown = async () => {
     return;
   }
 
-  server.kill("SIGINT");
-  await new Promise((resolveExit) => {
-    server.once("exit", () => resolveExit());
-    setTimeout(resolveExit, 2000);
-  });
+  signalServer("SIGINT");
+  if (await waitForExit(2000)) {
+    return;
+  }
+
+  signalServer("SIGTERM");
+  if (await waitForExit(2000)) {
+    return;
+  }
+
+  signalServer("SIGKILL");
+  await waitForExit(1000);
+
+  server.stdout.destroy();
+  server.stderr.destroy();
+  server.unref();
 };
 
 try {
