@@ -44,5 +44,14 @@ jobs:
           python -m pip install pytest -e ./founderos_contracts
           python -m pytest founderos_contracts/tests -q
 
-      - name: Run monorepo tests
-        run: npm run test
+      - name: Run release contract regressions
+        run: npm run test:release-contract
+
+      - name: Run web smoke tests
+        run: npm --workspace @founderos/web run test
+
+      - name: Run Quorum backend tests
+        run: npm --workspace @founderos/quorum-api run test
+
+      - name: Run Autopilot backend tests
+        run: npm --workspace @founderos/autopilot-api run test
