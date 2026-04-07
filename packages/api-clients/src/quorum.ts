@@ -474,6 +474,23 @@ export interface QuorumExecutionOutcome {
   ingested_at: string;
 }
 
+export interface QuorumIdeaDossierAuthoringSummary {
+  observation_count: number;
+  evidence_item_count: number;
+  validation_count: number;
+  decision_count: number;
+  timeline_count: number;
+  overall_confidence: string;
+  last_updated_at?: string | null;
+}
+
+export interface QuorumIdeaDossierSummary {
+  idea: QuorumDiscoveryIdea;
+  authoring_summary: QuorumIdeaDossierAuthoringSummary;
+  execution_brief_candidate?: QuorumExecutionBriefCandidate | null;
+  execution_outcomes: QuorumExecutionOutcome[];
+}
+
 export interface QuorumIdeaDossier {
   idea: QuorumDiscoveryIdea;
   evidence_bundle?: QuorumEvidenceBundle | null;
@@ -952,6 +969,280 @@ export interface QuorumIdeaArchiveSnapshot {
   checkpoints: QuorumArchiveCheckpointDigest[];
   checkpointed: boolean;
   created_at: string;
+}
+
+export type QuorumImprovementRole = "generator" | "judge" | "critic";
+
+export interface QuorumReflectiveSignal {
+  code: string;
+  severity: "low" | "medium" | "high";
+  detail: string;
+  target_roles: QuorumImprovementRole[];
+  suggested_patch: string;
+}
+
+export interface QuorumReflectiveEvalReport {
+  reflection_id: string;
+  source_kind: string;
+  source_id?: string | null;
+  task: string;
+  role_focus: QuorumImprovementRole[];
+  strengths: string[];
+  failure_tags: string[];
+  recommendations: string[];
+  signals: QuorumReflectiveSignal[];
+  score_hint: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export type QuorumSelfPlaySignalKind =
+  | "buyer"
+  | "distribution"
+  | "evidence"
+  | "risk"
+  | "scope"
+  | "novelty"
+  | "unsupported_claims"
+  | "scorecard";
+
+export interface QuorumSelfPlayChallengeCard {
+  challenge_id: string;
+  task: string;
+  desired_signals: QuorumSelfPlaySignalKind[];
+  pressure_tags: string[];
+  role_focus: QuorumImprovementRole[];
+}
+
+export interface QuorumSelfPlayCaseResult {
+  challenge_id: string;
+  left_score: number;
+  right_score: number;
+  winner: "left" | "right" | "tie";
+  rationale: string;
+}
+
+export interface QuorumPromptSelfPlayMatch {
+  match_id: string;
+  left_profile_id: string;
+  right_profile_id: string;
+  role_focus: QuorumImprovementRole[];
+  challenge_cards: QuorumSelfPlayChallengeCard[];
+  case_results: QuorumSelfPlayCaseResult[];
+  left_score_total: number;
+  right_score_total: number;
+  winner_profile_id?: string | null;
+  winner_reason: string;
+  created_at: string;
+}
+
+export type QuorumRepoSourceType = "local" | "github";
+export type QuorumRepoComplexity = "low" | "medium" | "high" | "very_high";
+
+export interface QuorumRepoHotFile {
+  path: string;
+  language?: string | null;
+  line_count: number;
+  importance_score: number;
+  reasons: string[];
+}
+
+export interface QuorumRepoIssueTheme {
+  label: string;
+  frequency: number;
+  evidence: string[];
+}
+
+export interface QuorumRepoDigestSummary {
+  digest_id: string;
+  source: string;
+  source_type: QuorumRepoSourceType;
+  repo_name: string;
+  repo_root?: string | null;
+  branch?: string | null;
+  commit_sha?: string | null;
+  generated_at: number;
+  tree_preview: string[];
+  languages: Record<string, number>;
+  tech_stack: string[];
+  dominant_domains: string[];
+  readme_claims: string[];
+  issue_themes: QuorumRepoIssueTheme[];
+  hot_files: QuorumRepoHotFile[];
+  key_paths: string[];
+  file_count: number;
+}
+
+export interface QuorumRepoDNAProfile {
+  profile_id: string;
+  source: string;
+  repo_name: string;
+  generated_at: number;
+  languages: string[];
+  domain_clusters: string[];
+  preferred_complexity: QuorumRepoComplexity;
+  recurring_pain_areas: string[];
+  adjacent_product_opportunities: string[];
+  repeated_builds: string[];
+  avoids: string[];
+  breaks_often: string[];
+  adjacent_buyer_pain: string[];
+  idea_generation_context: string;
+  ranking_priors: string[];
+  swipe_explanation_points: string[];
+}
+
+export interface QuorumRepoDigestResult {
+  digest: QuorumRepoDigestSummary;
+  profile: QuorumRepoDNAProfile;
+  cache_hit: boolean;
+  warnings: string[];
+}
+
+export interface QuorumRepoDigestAnalyzeRequest {
+  source: string;
+  branch?: string | null;
+  include_patterns?: string[];
+  exclude_patterns?: string[];
+  issue_texts?: string[];
+  issue_limit?: number;
+  max_files?: number;
+  hot_file_limit?: number;
+  refresh?: boolean;
+}
+
+export type QuorumRepoGraphTrigger = "promoted" | "explicit" | "background";
+
+export interface QuorumRepoGraphNodeRecord {
+  node_id: string;
+  kind: string;
+  label: string;
+  source_ref?: string | null;
+  weight: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface QuorumRepoGraphEdgeRecord {
+  edge_id: string;
+  kind: string;
+  source_node_id: string;
+  target_node_id: string;
+  weight: number;
+  evidence: string[];
+  metadata: Record<string, unknown>;
+}
+
+export interface QuorumRepoGraphCommunityRecord {
+  community_id: string;
+  title: string;
+  summary: string;
+  node_ids: string[];
+  finding_points: string[];
+  rank_score: number;
+}
+
+export interface QuorumRepoGraphEvidenceTrail {
+  trail_id: string;
+  thesis: string;
+  explanation: string;
+  supporting_node_ids: string[];
+  supporting_edge_ids: string[];
+}
+
+export interface QuorumRepoDeepDiveRecord {
+  deep_dive_id: string;
+  graph_id: string;
+  startup_territories: string[];
+  architectural_focus: string[];
+  risk_hotspots: string[];
+  adjacency_opportunities: string[];
+  why_now: string[];
+  evidence_trails: QuorumRepoGraphEvidenceTrail[];
+}
+
+export interface QuorumRepoGraphStats {
+  node_count: number;
+  edge_count: number;
+  community_count: number;
+  api_count: number;
+  package_count: number;
+  problem_count: number;
+  generated_at: number;
+}
+
+export interface QuorumRepoGraphResult {
+  graph_id: string;
+  source: string;
+  source_type: QuorumRepoSourceType;
+  repo_name: string;
+  branch?: string | null;
+  commit_sha?: string | null;
+  trigger: QuorumRepoGraphTrigger;
+  generated_at: number;
+  repo_dna_profile?: QuorumRepoDNAProfile | null;
+  nodes: QuorumRepoGraphNodeRecord[];
+  edges: QuorumRepoGraphEdgeRecord[];
+  communities: QuorumRepoGraphCommunityRecord[];
+  deep_dive: QuorumRepoDeepDiveRecord;
+  stats: QuorumRepoGraphStats;
+  cache_hit: boolean;
+  warnings: string[];
+}
+
+export interface QuorumRepoGraphAnalyzeRequest {
+  source: string;
+  branch?: string | null;
+  issue_texts?: string[];
+  max_files?: number;
+  refresh?: boolean;
+  trigger?: QuorumRepoGraphTrigger;
+}
+
+export interface QuorumImprovementArtifact {
+  artifact_id?: string;
+  role?: QuorumImprovementRole | string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface QuorumImprovementSessionReflectRequest {
+  session_id?: string | null;
+  task?: string;
+  source_kind?: string;
+  source_id?: string | null;
+  role_focus?: QuorumImprovementRole[];
+  failure_tags?: string[];
+  notes?: string[];
+  artifacts?: QuorumImprovementArtifact[];
+  judge_scores?: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface QuorumImprovementSelfPlayRequest {
+  left_profile_id?: string | null;
+  right_profile_id?: string | null;
+  reflection_ids?: string[];
+  task?: string;
+  role_focus?: QuorumImprovementRole[];
+  challenge_count?: number;
+  activate_winner?: boolean;
+}
+
+export interface QuorumImprovementEvolutionRequest {
+  seed_profile_id?: string | null;
+  reflection_ids?: string[];
+  task?: string;
+  mutation_budget?: number;
+  challenge_count?: number;
+  activate_best?: boolean;
+}
+
+export interface QuorumImprovementEvolutionResult {
+  seed_profile: QuorumPromptEvolutionProfile;
+  reflections: QuorumReflectiveEvalReport[];
+  generated_profiles: QuorumPromptEvolutionProfile[];
+  matches: QuorumPromptSelfPlayMatch[];
+  activated_profile_id?: string | null;
 }
 
 export type QuorumDiscoverySwipeAction = "pass" | "maybe" | "yes" | "now";
@@ -1656,6 +1947,112 @@ export async function fetchQuorumAutopilotLaunchPresets(): Promise<
   }
 
   return payload.launchPresets;
+}
+
+export async function activateQuorumImprovementPromptProfile(
+  profileId: string
+): Promise<{ status: string; profile: QuorumPromptEvolutionProfile }> {
+  return requestJson(
+    `/api/shell/discovery/actions/orchestrate/improvement/prompt-profiles/${encodePathSegment(profileId)}/activate`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    }
+  );
+}
+
+export async function runQuorumRepoDigestAnalysis(
+  body: QuorumRepoDigestAnalyzeRequest
+): Promise<QuorumRepoDigestResult> {
+  return requestJson(
+    "/api/shell/discovery/actions/orchestrate/repo-digest/analyze",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        source: body.source,
+        branch: body.branch ?? null,
+        include_patterns: body.include_patterns ?? [],
+        exclude_patterns: body.exclude_patterns ?? [],
+        issue_texts: body.issue_texts ?? [],
+        issue_limit: body.issue_limit,
+        max_files: body.max_files,
+        hot_file_limit: body.hot_file_limit,
+        refresh: body.refresh ?? false,
+      }),
+    }
+  );
+}
+
+export async function runQuorumRepoGraphAnalysis(
+  body: QuorumRepoGraphAnalyzeRequest
+): Promise<QuorumRepoGraphResult> {
+  return requestJson(
+    "/api/shell/discovery/actions/orchestrate/repo-graph/analyze",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        source: body.source,
+        branch: body.branch ?? null,
+        issue_texts: body.issue_texts ?? [],
+        max_files: body.max_files,
+        refresh: body.refresh ?? false,
+        trigger: body.trigger ?? "explicit",
+      }),
+    }
+  );
+}
+
+export async function runQuorumImprovementReflection(
+  body: QuorumImprovementSessionReflectRequest
+): Promise<{ status: string; reflection: QuorumReflectiveEvalReport }> {
+  return requestJson("/api/shell/discovery/actions/orchestrate/improvement/reflect", {
+    method: "POST",
+    body: JSON.stringify({
+      session_id: body.session_id ?? null,
+      task: body.task ?? "",
+      source_kind: body.source_kind ?? "manual",
+      source_id: body.source_id ?? null,
+      role_focus: body.role_focus ?? [],
+      failure_tags: body.failure_tags ?? [],
+      notes: body.notes ?? [],
+      artifacts: body.artifacts ?? [],
+      judge_scores: body.judge_scores ?? [],
+      metadata: body.metadata ?? {},
+    }),
+  });
+}
+
+export async function runQuorumImprovementSelfPlay(
+  body: QuorumImprovementSelfPlayRequest
+): Promise<{ status: string; match: QuorumPromptSelfPlayMatch }> {
+  return requestJson("/api/shell/discovery/actions/orchestrate/improvement/self-play", {
+    method: "POST",
+    body: JSON.stringify({
+      left_profile_id: body.left_profile_id ?? null,
+      right_profile_id: body.right_profile_id ?? null,
+      reflection_ids: body.reflection_ids ?? [],
+      task: body.task ?? "",
+      role_focus: body.role_focus ?? [],
+      challenge_count: body.challenge_count ?? 3,
+      activate_winner: body.activate_winner ?? false,
+    }),
+  });
+}
+
+export async function runQuorumImprovementEvolution(
+  body: QuorumImprovementEvolutionRequest
+): Promise<{ status: string; result: QuorumImprovementEvolutionResult }> {
+  return requestJson("/api/shell/discovery/actions/orchestrate/improvement/evolve", {
+    method: "POST",
+    body: JSON.stringify({
+      seed_profile_id: body.seed_profile_id ?? null,
+      reflection_ids: body.reflection_ids ?? [],
+      task: body.task ?? "",
+      mutation_budget: body.mutation_budget ?? 3,
+      challenge_count: body.challenge_count ?? 3,
+      activate_best: body.activate_best ?? true,
+    }),
+  });
 }
 
 export async function sendQuorumExecutionBriefToAutopilot(

@@ -8,6 +8,7 @@ import {
   launchAutopilotProject,
   pauseAutopilotProject,
   rejectAutopilotExecutionApproval,
+  resolveAutopilotExecutionShadowAudit,
   resolveAutopilotExecutionIssue,
   resumeAutopilotProject,
   sendAutopilotIntakeMessage,
@@ -16,6 +17,7 @@ import {
   type AutopilotCreateProjectResult,
   type AutopilotExecutionApprovalRecord,
   type AutopilotExecutionIssueRecord,
+  type AutopilotExecutionShadowAuditRecord,
   type AutopilotIntakeResponse,
   type AutopilotIssueResolutionResult,
   type AutopilotLaunchPreset,
@@ -517,6 +519,37 @@ export async function denyExecutionRuntime(args: {
       reason: "execution-runtime-deny",
       source: args.source || "inbox",
     }),
+    data: response,
+  };
+}
+
+export async function resolveExecutionShadowAudit(args: {
+  audit: Pick<AutopilotExecutionShadowAuditRecord, "id" | "project_id">;
+  routeScope?: Partial<ShellRouteScope> | null;
+  actor?: string;
+  note?: string;
+  outcome?: string;
+  source?: string;
+}): Promise<
+  ExecutionMutationEffect<{
+    status: string;
+    shadow_audit: AutopilotExecutionShadowAuditRecord;
+  }>
+> {
+  const response = await resolveAutopilotExecutionShadowAudit(args.audit.id, {
+    actor: args.actor,
+    note: args.note,
+    outcome: args.outcome,
+  });
+  return {
+    statusMessage: `Resolved shadow audit ${args.audit.id}.`,
+    invalidation: buildExecutionInvalidation({
+      projectId: args.audit.project_id,
+      routeScope: args.routeScope,
+      reason: "execution-shadow-audit-resolve",
+      source: args.source || "execution-audit",
+    }),
+    refreshClient: true,
     data: response,
   };
 }

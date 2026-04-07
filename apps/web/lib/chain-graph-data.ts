@@ -5,7 +5,7 @@ import type {
   AutopilotProjectSummary,
   AutopilotToolPermissionRuntimeRecord,
   QuorumDiscoveryIdea,
-  QuorumIdeaDossier,
+  QuorumIdeaDossierSummary,
 } from "@founderos/api-clients";
 
 import { buildShellChainGraph, type ShellChainRecord } from "@/lib/chain-graph";
@@ -17,7 +17,7 @@ import {
 
 export interface ShellChainGraphSnapshotData {
   ideas: QuorumDiscoveryIdea[];
-  dossiers: QuorumIdeaDossier[];
+  dossiers: QuorumIdeaDossierSummary[];
   projects: AutopilotProjectSummary[];
   intakeSessions: AutopilotIntakeSessionSummary[];
   issues: AutopilotExecutionIssueRecord[];
@@ -104,12 +104,13 @@ export async function loadShellChainGraphSnapshotData(
       buildUpstreamQuery({ limit: discoveryIdeaLimit }),
       { timeoutMs: upstreamTimeoutMs }
     ),
-    requestUpstreamJson<{ dossiers: QuorumIdeaDossier[] }>(
+    requestUpstreamJson<{ dossiers: QuorumIdeaDossierSummary[] }>(
       "quorum",
       "orchestrate/discovery/dossiers",
       buildUpstreamQuery({
         limit: discoveryIdeaLimit,
         include_archived: true,
+        summary: true,
       }),
       { timeoutMs: upstreamTimeoutMs ?? CHAIN_GRAPH_DOSSIER_TIMEOUT_MS }
     ),
