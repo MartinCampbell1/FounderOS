@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "sh -c 'cd ../../autopilot && AUTOPILOT_API_HOST=${AUTOPILOT_API_HOST:-127.0.0.1} AUTOPILOT_API_PORT=${AUTOPILOT_API_PORT:-8420} ${AUTOPILOT_PYTHON_BIN:-./.venv/bin/python} -m autopilot.api.serve'",
-    "test": "sh -c 'cd ../../autopilot && ${AUTOPILOT_PYTHON_BIN:-./.venv/bin/python} -m pytest -q'"
+    "test": "sh -c 'cd ../../autopilot && ./.venv/bin/python -m pytest -q'",
+    "build": "sh -c 'cd ../../autopilot && ./.venv/bin/python -m compileall -q autopilot'",
+    "lint": "sh -c 'cd ../../autopilot && ./.venv/bin/python -m ruff check autopilot/api autopilot/core/brief_v2_adapter.py autopilot/core/execution_outcomes.py autopilot/core/initiative_lineage.py autopilot/core/shared_contracts.py'",
+    "typecheck": "sh -c 'cd ../../autopilot && PYTHONPATH=..:. ./.venv/bin/python -m pytest -q tests/test_v2_live_launch_gate.py tests/test_v2_outcome_chain.py tests/test_execution_outcomes_api.py'"
   }
 }

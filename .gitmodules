@@ -1,0 +1,6 @@
+[submodule "autopilot"]
+	path = autopilot
+	url = https://github.com/MartinCampbell1/autopilot.git
+[submodule "quorum"]
+	path = quorum
+	url = https://github.com/MartinCampbell1/quorum.git

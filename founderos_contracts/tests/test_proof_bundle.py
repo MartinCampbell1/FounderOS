@@ -81,3 +81,26 @@ def test_proof_bundle_roundtrips() -> None:
     assert restored.outcome_verdict == original.outcome_verdict
     assert restored.lessons_learned == original.lessons_learned
     assert restored.created_at == original.created_at
+
+
+def test_proof_bundle_default_lists_are_not_shared() -> None:
+    first = ExecutionProofBundle(
+        bundle_id="bundle-a",
+        brief_id="brief-a",
+        initiative_id="init-a",
+        project_id="proj-a",
+    )
+    second = ExecutionProofBundle(
+        bundle_id="bundle-b",
+        brief_id="brief-b",
+        initiative_id="init-b",
+        project_id="proj-b",
+    )
+
+    first.changed_files.append("src/a.py")
+    first.approvals.append("alice")
+    first.failure_modes.append("timeout")
+
+    assert second.changed_files == []
+    assert second.approvals == []
+    assert second.failure_modes == []

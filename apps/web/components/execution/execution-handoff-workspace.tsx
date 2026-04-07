@@ -10,10 +10,12 @@ import { Rocket, FolderKanban } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ShellRecordSection } from "@/components/shell/shell-record-primitives";
+import { ShellRouteScopeBanner } from "@/components/shell/shell-route-scope-banner";
 import {
   ShellActionStateLabel,
   ShellActionLink,
   ShellFilterChipLink,
+  ShellHero,
   ShellInputField,
   ShellLoadingState,
   ShellPage,
@@ -43,7 +45,6 @@ import {
 } from "@/lib/execution-ui-state";
 import {
   buildDiscoverySessionScopeHref,
-  buildExecutionHandoffScopeHref,
   buildExecutionScopeHref,
   type ShellRouteScope,
 } from "@/lib/route-scope";
@@ -87,6 +88,48 @@ function briefOrNull(value: Record<string, unknown>): QuorumExecutionBrief | nul
 
 function stringList(items?: string[]) {
   return items && items.length > 0 ? items : [];
+}
+
+function formatRelativeTime(value?: string | null) {
+  if (!value) return "Unknown";
+
+  const diffMs = Math.max(0, Date.now() - new Date(value).getTime());
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
+function formatExpiry(value?: string | null) {
+  if (!value) return "No expiry";
+
+  const diffMs = new Date(value).getTime() - Date.now();
+  if (diffMs <= 0) return "Expired";
+
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 60) return `Expires in ${Math.max(1, diffMinutes)}m`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Expires in ${diffHours}h`;
+
+  return `Expires in ${Math.floor(diffHours / 24)}d`;
+}
+
+function launchIntentTone(intent: string | null | undefined) {
+  if (intent === "launch") return "success" as const;
+  if (intent === "create") return "info" as const;
+  return "neutral" as const;
+}
+
+function launchIntentLabel(intent: string | null | undefined) {
+  if (intent === "launch") return "Launch";
+  if (intent === "create") return "Create";
+  return "Draft";
 }
 
 function HandoffListSection({
@@ -140,9 +183,20 @@ export function ExecutionHandoffWorkspace({
         scope: routeScope,
         preferences,
         bucket: reviewMemoryBucket,
-      }),
+    }),
     [preferences, reviewMemoryBucket, routeScope]
   );
+  const handoffsHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (routeScope.projectId) {
+      params.set("project_id", routeScope.projectId);
+    }
+    if (routeScope.intakeSessionId) {
+      params.set("intake_session_id", routeScope.intakeSessionId);
+    }
+    const query = params.toString();
+    return query ? `/execution/handoffs?${query}` : "/execution/handoffs";
+  }, [routeScope.intakeSessionId, routeScope.projectId]);
   const {
     busyActionKey: busyAction,
     errorMessage,
@@ -292,11 +346,39 @@ export function ExecutionHandoffWorkspace({
 
   return (
     <ShellPage className="max-w-[1480px]">
-      <div className="flex items-center justify-end gap-2">
-        <ShellFilterChipLink href={buildExecutionScopeHref(routeScope)} label="Execution" />
-        <ShellFilterChipLink href={executionReviewHref} label="Execution review" />
-        <ShellFilterChipLink href={unifiedReviewHref} label="Unified review" />
-      </div>
+      <ShellHero
+        title={brief.title}
+        description={brief.thesis}
+        meta={
+          <>
+            <Badge tone={launchIntentTone(handoff.launch_intent)}>
+              {launchIntentLabel(handoff.launch_intent)}
+            </Badge>
+            <span>Source: {handoff.source_session_id ?? handoff.source_plane}</span>
+            <span>Created {formatRelativeTime(handoff.created_at)}</span>
+            <span>{formatExpiry(handoff.expires_at)}</span>
+          </>
+        }
+        actions={
+          <>
+            <ShellFilterChipLink
+              href={handoffsHref}
+              label="Queue"
+            />
+            <ShellFilterChipLink
+              href={buildExecutionScopeHref(routeScope)}
+              label="Execution"
+            />
+            <ShellFilterChipLink href={executionReviewHref} label="Execution review" />
+            <ShellFilterChipLink href={unifiedReviewHref} label="Unified review" />
+          </>
+        }
+      />
+      <ShellRouteScopeBanner
+        scope={routeScope}
+        description="This execution brief inherits the active project and intake scope so operators can stay on the same linked chain while moving between discovery, handoff, and execution review surfaces."
+        clearHref="/execution/handoffs"
+      />
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_390px]">
       <div className="space-y-4">
         {handoff.source_session_id ? (
@@ -399,9 +481,10 @@ export function ExecutionHandoffWorkspace({
                 ) : null}
               </label>
             ) : (
-              <ShellStatusBanner tone="warning">
-                {launchPresetsError ||
-                  "Autopilot launch presets are unavailable right now. Project creation still works, but create-and-launch will need attention once the upstream returns."}
+              <ShellStatusBanner tone="info">
+                {launchPresetsError
+                  ? "Autopilot launch presets are unavailable right now. Create-and-launch will recover once the upstream reconnects."
+                  : "Autopilot launch presets are unavailable right now. Project creation still works, but create-and-launch will need attention once the upstream returns."}
               </ShellStatusBanner>
             )}
 

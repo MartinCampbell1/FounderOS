@@ -13,6 +13,19 @@ coverage
 founderos_contracts/build/
 founderos_contracts/*.egg-info/
 
-autopilot
-quorum
-.omc
+# Codex desktop local state
+.omc/
+
+# Local/private planning and handoff artifacts that should not ship in the public repo
+BACKEND_HANDOFF.md
+BACKEND_ISSUE_UPDATE.md
+HANDOFF_2026-04-04_UNIFIED_SHELL.md
+HANDOFF_2026-04-05_LINEAR_REDESIGN.md
+HANDOFF_2026-04-05_UNIFIED_SHELL_UI_PASS.md
+REDESIGN_PLAN.md
+docs/BACKEND_HANDOFF.md
+docs/FRONTEND_HANDOFF.md
+docs/superpowers/plans/
+!docs/archive/
+!docs/archive/internal/
+!docs/archive/internal/*.md

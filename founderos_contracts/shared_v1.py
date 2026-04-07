@@ -17,7 +17,7 @@ from typing import Any, TypeVar, get_args, get_origin, get_type_hints
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(timezone.utc)
 
 
 # ---------------------------------------------------------------------------
@@ -248,11 +248,12 @@ def _coerce_value(annotation: Any, value: Any) -> Any:
             return annotation(value)
         if annotation is datetime:
             if isinstance(value, datetime):
-                return value
-            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+                parsed = value
+            else:
+                parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
             if parsed.tzinfo is None:
                 parsed = parsed.replace(tzinfo=timezone.utc)
-            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed.astimezone(timezone.utc)
 
     if origin is None:
         return value
