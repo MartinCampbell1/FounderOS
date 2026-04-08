@@ -31,8 +31,11 @@ For root-level shell or shared-package changes:
 
 ```bash
 npm run build
-npm run typecheck
+npm run verify:fast
 ```
+
+`npm run typecheck` is reserved for the TypeScript-only workspace check. Use
+`npm run verify:fast` when you need the release-focused fast suite.
 
 For release-surface changes:
 
@@ -46,4 +49,7 @@ For backend-specific changes, run the relevant test commands in `quorum` or `aut
 
 - Keep PRs narrow and explain which layer changed.
 - Include the verification commands you actually ran.
+- Release-candidate PRs must include the shipping commit SHA, the exact green `Release Acceptance`
+  run URL, and the changed submodule SHAs.
+- Call out what remains risky instead of claiming the release is complete before CI is green.
 - Avoid committing local state, archived scratch notes, or machine-specific paths.

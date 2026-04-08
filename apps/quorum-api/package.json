@@ -7,6 +7,6 @@
     "test": "sh -c 'cd ../../quorum && bash ./scripts/test_backend.sh'",
     "build": "sh -c 'cd ../../quorum && ./.venv/bin/python -m compileall -q orchestrator gateway.py'",
     "lint": "sh -c 'cd ../../quorum && ./.venv/bin/python -m ruff check gateway.py orchestrator/api.py orchestrator/brief_v2_adapter.py orchestrator/discovery_store.py orchestrator/founder_bootstrap.py orchestrator/handoff_bridge.py orchestrator/shared_contracts.py'",
-    "typecheck": "sh -c 'cd ../../quorum && PYTHONPATH=..:. ./.venv/bin/python -m pytest -q tests/test_bootstrap_imports.py::test_orchestrator_api_routes_import_without_langgraph_stack tests/test_handoff_seam_integration.py tests/test_founder_bootstrap_route.py tests/test_founder_approval_workflow.py'"
+    "verify:fast": "sh -c 'cd ../../quorum && PYTHONPATH=..:. ./.venv/bin/python -m pytest -q tests/test_bootstrap_imports.py::test_orchestrator_api_routes_import_without_langgraph_stack tests/test_handoff_seam_integration.py tests/test_founder_bootstrap_route.py tests/test_founder_approval_workflow.py'"
   }
 }

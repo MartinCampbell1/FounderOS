@@ -45,6 +45,9 @@
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
+    "verify:fast": {
+      "dependsOn": ["^verify:fast"]
+    },
     "test": {
       "dependsOn": ["^test"]
     },

@@ -1,6 +1,6 @@
 {
   "name": "founderos-unified-shell",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "npm@10.9.4",
   "workspaces": [
@@ -15,6 +15,7 @@
     "serve:stack": "node ./scripts/run-stack.mjs serve",
     "test:release-contract": "node --test ./scripts/release-contract.test.mjs",
     "typecheck": "turbo typecheck",
+    "verify:fast": "turbo verify:fast",
     "test": "npm run test:release-contract && turbo test",
     "test:live-parity:stack": "node ./scripts/run-stack.mjs parity",
     "test:live-review-actions:stack": "node ./scripts/run-stack.mjs review-actions",

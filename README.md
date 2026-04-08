@@ -73,10 +73,13 @@ Run the release-candidate checks from the candidate commit:
 ```bash
 bash scripts/bootstrap_founderos_local.sh
 npm run build
-npm run typecheck
+npm run verify:fast
 npm run test
-python -m pytest founderos_contracts/tests -q
+python3 -m pytest founderos_contracts/tests -q
 ```
+
+`npm run verify:fast` is the fast release-seam suite. `npm run typecheck` remains the
+TypeScript-only workspace check.
 
 The mandatory CI gate for the exact candidate commit lives in
 `.github/workflows/release-acceptance.yml`.
@@ -102,7 +105,7 @@ FounderOS is release-ready only when all of the following are true for the same 
 
 1. Recursive submodule checkout succeeds.
 2. Bootstrap succeeds without partial-failure state.
-3. `npm run build`, `npm run typecheck`, and `npm run test` all pass.
+3. `npm run build`, `npm run verify:fast`, and `npm run test` all pass.
 4. The public docs surface above exists at the advertised paths.
 5. `Release Acceptance` is green on the exact shipping commit.
 

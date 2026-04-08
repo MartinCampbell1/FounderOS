@@ -10,6 +10,7 @@
 - Kept release-contract coverage focused on public docs drift and clean-clone runtime checks.
 - Updated the GitHub Actions release gate away from deprecated Node 20 action runtimes.
 
-## v0.1.0
+## v1.0.0
 
-- Reserved for the first reproducible public FounderOS release.
+- First reproducible public FounderOS release candidate after closing the bootstrap,
+  founder-approval, and release-surface audit regressions.

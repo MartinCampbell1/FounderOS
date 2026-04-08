@@ -9,6 +9,7 @@
     "start": "sh -c 'next start --hostname ${FOUNDEROS_WEB_HOST:-127.0.0.1} --port ${FOUNDEROS_WEB_PORT:-3737}'",
     "lint": "eslint app components lib scripts next.config.mjs postcss.config.mjs eslint.config.mjs",
     "typecheck": "tsc --noEmit",
+    "verify:fast": "tsc --noEmit",
     "test": "node ./scripts/smoke-shell-contract.mjs",
     "test:live-parity": "node ./scripts/check-live-parity.mjs",
     "test:live-review-actions": "node ./scripts/check-live-review-actions.mjs",

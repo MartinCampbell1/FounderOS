@@ -21,9 +21,9 @@ Compatibility alias: [CHECKLIST.md](../CHECKLIST.md)
 ## Verification
 
 - run `npm run build`
-- run `npm run typecheck`
+- run `npm run verify:fast`
 - run `npm run test`
-- run `python -m pytest founderos_contracts/tests -q`
+- run `python3 -m pytest founderos_contracts/tests -q`
 - confirm `.github/workflows/release-acceptance.yml` is green for the candidate commit
 
 ## Public Release Surface
@@ -37,5 +37,8 @@ Compatibility alias: [CHECKLIST.md](../CHECKLIST.md)
 ## Publish
 
 - update release notes in `CHANGELOG.md`
+- record the shipping commit SHA in the release handoff
+- record the exact green `Release Acceptance` run URL for that commit
+- record the changed submodule SHAs in the release handoff
 - create an annotated git tag after CI is green
 - publish the GitHub Release from the tagged commit
