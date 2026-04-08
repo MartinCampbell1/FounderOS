@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -78,6 +78,17 @@ function runStack(tempRoot) {
   });
 }
 
+const publicReleaseSurface = [
+  "README.md",
+  "CHANGELOG.md",
+  "CHECKLIST.md",
+  "docs/truth-matrix.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "docs/release-checklist.md",
+  "docs/founderos-truth-matrix.md",
+];
+
 test("bootstrap fails clearly when quorum runtime root is missing", () => {
   const tempRoot = createTempRoot();
   try {
@@ -130,4 +141,34 @@ test("stack launcher fails clearly when autopilot runtime root is missing", () =
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
+});
+
+test("public release surface exists at canonical and compatibility paths", () => {
+  for (const relativePath of publicReleaseSurface) {
+    assert.equal(
+      existsSync(join(repoRoot, relativePath)),
+      true,
+      `expected public release file to exist: ${relativePath}`
+    );
+  }
+});
+
+test("README names the canonical public release docs", () => {
+  const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
+
+  for (const relativePath of ["CHANGELOG.md", "CHECKLIST.md", "docs/truth-matrix.md", "CONTRIBUTING.md", "SECURITY.md"]) {
+    assert.equal(
+      readme.includes(relativePath),
+      true,
+      `expected README.md to reference ${relativePath}`
+    );
+  }
+});
+
+test("legacy public-doc aliases point at canonical paths", () => {
+  const legacyChecklist = readFileSync(join(repoRoot, "docs", "release-checklist.md"), "utf8");
+  const legacyTruthMatrix = readFileSync(join(repoRoot, "docs", "founderos-truth-matrix.md"), "utf8");
+
+  assert.equal(legacyChecklist.includes("../CHECKLIST.md"), true);
+  assert.equal(legacyTruthMatrix.includes("./truth-matrix.md"), true);
 });
