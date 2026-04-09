@@ -347,6 +347,7 @@ try {
       source_session_id: "demo-session",
       brief_kind: "shared_execution_brief",
       brief: {
+        brief_id: "brief-smoke-demo",
         title: "Demo brief",
         summary: "Smoke test handoff",
       },
