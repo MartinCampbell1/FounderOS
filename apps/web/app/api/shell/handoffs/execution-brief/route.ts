@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const handoffs = listExecutionBriefHandoffs();
+    const handoffs = await listExecutionBriefHandoffs();
     return NextResponse.json({ status: "ok", handoffs });
   } catch (error) {
     return NextResponse.json(
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const handoff = createExecutionBriefHandoff({
+    const handoff = await createExecutionBriefHandoff({
       source_plane: sourcePlane,
       source_session_id: payload.source_session_id ?? null,
       brief_kind: briefKind,

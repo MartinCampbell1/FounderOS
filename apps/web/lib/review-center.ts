@@ -80,9 +80,11 @@ function buildStats(args: {
   discoveryRecords: ShellDiscoveryReviewRecord[];
   executionRecords: ShellExecutionAttentionRecord[];
 }) {
-  const discoveryStats = buildDiscoveryReviewStatsFromRecords(args.discoveryRecords);
+  const discoveryStats = buildDiscoveryReviewStatsFromRecords(
+    args.discoveryRecords,
+  );
   const executionStats = buildExecutionReviewRollupFromAttentionRecords(
-    args.executionRecords
+    args.executionRecords,
   );
 
   return {
@@ -119,7 +121,7 @@ export function emptyShellReviewCenterSnapshot(): ShellReviewCenterSnapshot {
 }
 
 export function normalizeReviewCenterLane(
-  value?: string | null
+  value?: string | null,
 ): ShellReviewCenterLane {
   const normalized = (value || "").trim().toLowerCase();
   return REVIEW_CENTER_LANES.has(normalized as ShellReviewCenterLane)
@@ -128,13 +130,13 @@ export function normalizeReviewCenterLane(
 }
 
 export function readReviewCenterLaneFromQueryRecord(
-  params?: QueryRecord | null
+  params?: QueryRecord | null,
 ) {
   return normalizeReviewCenterLane(firstParam(params?.lane));
 }
 
 export function reviewCenterLaneToDiscoveryFilter(
-  lane: ShellReviewCenterLane
+  lane: ShellReviewCenterLane,
 ): DiscoveryReviewFilter {
   if (lane === "authoring") return "authoring";
   if (lane === "trace") return "trace";
@@ -145,7 +147,7 @@ export function reviewCenterLaneToDiscoveryFilter(
 }
 
 export function reviewCenterLaneToExecutionFilter(
-  lane: ShellReviewCenterLane
+  lane: ShellReviewCenterLane,
 ): ExecutionReviewFilter {
   if (lane === "issues" || lane === "approvals" || lane === "runtimes") {
     return lane;
@@ -158,20 +160,21 @@ export function reviewCenterLaneToExecutionFilter(
 
 export function matchesReviewCenterDiscoveryLane(
   record: ShellDiscoveryReviewRecord,
-  lane: ShellReviewCenterLane
+  lane: ShellReviewCenterLane,
 ) {
   if (lane === "all" || lane === "discovery") return true;
   if (lane === "authoring") return record.kind === "authoring";
   if (lane === "trace") return record.kind === "trace-review";
   if (lane === "handoff") return record.kind === "handoff-ready";
-  if (lane === "followthrough") return record.kind === "execution-followthrough";
+  if (lane === "followthrough")
+    return record.kind === "execution-followthrough";
   if (lane === "linked") return Boolean(record.chain);
   return false;
 }
 
 export function matchesReviewCenterExecutionLane(
   record: ShellExecutionAttentionRecord,
-  lane: ShellReviewCenterLane
+  lane: ShellReviewCenterLane,
 ) {
   if (lane === "all" || lane === "execution") return true;
   if (lane === "issues") {
@@ -200,21 +203,28 @@ export function matchesReviewCenterExecutionLane(
 
 type ReviewCenterSnapshotOptions = {
   upstreamTimeoutMs?: number;
+  limit?: number;
 };
 
 export async function buildShellReviewCenterSnapshot(
-  options?: ReviewCenterSnapshotOptions
+  options?: ReviewCenterSnapshotOptions,
 ): Promise<ShellReviewCenterSnapshot> {
+  const limit =
+    typeof options?.limit === "number"
+      ? Math.max(1, Math.min(Math.trunc(options.limit), 100))
+      : 100;
   const [discovery, execution] = await Promise.all([
     buildDiscoveryReviewSnapshot({
       upstreamTimeoutMs: options?.upstreamTimeoutMs,
+      limit,
     }),
     buildExecutionReviewSnapshot({
       upstreamTimeoutMs: options?.upstreamTimeoutMs,
+      limit,
     }),
   ]);
   const errors = [discovery.error, execution.error].filter(
-    (value): value is string => Boolean(value)
+    (value): value is string => Boolean(value),
   );
 
   return {

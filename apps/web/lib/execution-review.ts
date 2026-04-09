@@ -94,13 +94,18 @@ export function emptyShellExecutionReviewSnapshot(): ShellExecutionReviewSnapsho
 
 type ExecutionReviewSnapshotOptions = {
   upstreamTimeoutMs?: number;
+  limit?: number;
 };
 
 export async function buildExecutionReviewSnapshot(
-  options?: ExecutionReviewSnapshotOptions
+  options?: ExecutionReviewSnapshotOptions,
 ): Promise<ShellExecutionReviewSnapshot> {
+  const limit =
+    typeof options?.limit === "number"
+      ? Math.max(1, Math.min(Math.trunc(options.limit), 100))
+      : 100;
   const snapshot = await loadShellChainGraphSnapshotData({
-    discoveryIdeaLimit: 100,
+    discoveryIdeaLimit: limit,
     includeArchivedProjects: true,
     upstreamTimeoutMs: options?.upstreamTimeoutMs,
   });
@@ -114,7 +119,7 @@ export async function buildExecutionReviewSnapshot(
     runtimes: snapshot.runtimes,
     chains: snapshot.chains,
     routeScope: null,
-  });
+  }).slice(0, limit);
 
   return {
     generatedAt: new Date().toISOString(),

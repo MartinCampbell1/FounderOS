@@ -45,7 +45,7 @@ export function buildPortfolioRecords(
   intakeSessions: AutopilotIntakeSessionSummary[],
   issues: AutopilotExecutionIssueRecord[] = [],
   approvals: AutopilotExecutionApprovalRecord[] = [],
-  runtimes: AutopilotToolPermissionRuntimeRecord[] = []
+  runtimes: AutopilotToolPermissionRuntimeRecord[] = [],
 ): PortfolioRecord[] {
   return buildShellChainGraph(
     dossiers,
@@ -53,7 +53,7 @@ export function buildPortfolioRecords(
     intakeSessions,
     issues,
     approvals,
-    runtimes
+    runtimes,
   );
 }
 
@@ -61,19 +61,27 @@ export function buildPortfolioGraphStats(records: PortfolioRecord[]) {
   return buildShellChainGraphStats(records);
 }
 
-export async function buildPortfolioSnapshot(): Promise<ShellPortfolioSnapshot> {
+export async function buildPortfolioSnapshot(options?: {
+  limit?: number;
+}): Promise<ShellPortfolioSnapshot> {
+  const limit =
+    typeof options?.limit === "number"
+      ? Math.max(1, Math.min(Math.trunc(options.limit), 100))
+      : 100;
   const [snapshot, reviewCenter] = await Promise.all([
     loadShellChainGraphSnapshotData({
-      discoveryIdeaLimit: 100,
+      discoveryIdeaLimit: limit,
       includeArchivedProjects: true,
     }),
-    buildShellReviewCenterSnapshot().catch(() => emptyShellReviewCenterSnapshot()),
+    buildShellReviewCenterSnapshot({ limit }).catch(() =>
+      emptyShellReviewCenterSnapshot(),
+    ),
   ]);
   const errors = [...snapshot.errors, ...reviewCenter.errors];
 
   return {
     generatedAt: new Date().toISOString(),
-    records: snapshot.chains,
+    records: snapshot.chains.slice(0, limit),
     reviewCenter,
     error: errors.length > 0 ? errors.join(" ") : null,
     loadState:

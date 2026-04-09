@@ -6,6 +6,7 @@ import { getUpstreamBaseUrl as resolveUpstreamBaseUrl } from "@founderos/config"
 import { NextResponse } from "next/server";
 
 import type { UpstreamId } from "@/lib/gateway-contract";
+import { recordShellUpstreamMetric } from "@/lib/observability";
 
 const REQUEST_HEADER_ALLOWLIST = new Set([
   "accept",
@@ -204,6 +205,7 @@ export async function fetchUpstreamHealth(
     const latencyMs = Date.now() - startedAt;
 
     if (!response.ok) {
+      recordShellUpstreamMetric(upstream, "health", "degraded", latencyMs);
       return {
         status: "degraded",
         label: upstream,
@@ -213,6 +215,7 @@ export async function fetchUpstreamHealth(
       };
     }
 
+    recordShellUpstreamMetric(upstream, "health", "ok", latencyMs);
     return {
       status: "ok",
       label: upstream,
@@ -220,6 +223,12 @@ export async function fetchUpstreamHealth(
       latencyMs,
     };
   } catch (error) {
+    recordShellUpstreamMetric(
+      upstream,
+      "health",
+      "offline",
+      Date.now() - startedAt,
+    );
     return {
       status: "offline",
       label: upstream,
@@ -324,6 +333,11 @@ export async function proxyToUpstream(
     });
 
     if (!upstreamResponse.ok) {
+      recordShellUpstreamMetric(
+        upstream,
+        pathSegments.join("/"),
+        `http_${upstreamResponse.status}`,
+      );
       return NextResponse.json(
         {
           status: "error",
@@ -339,11 +353,13 @@ export async function proxyToUpstream(
       );
     }
 
+    recordShellUpstreamMetric(upstream, pathSegments.join("/"), "ok");
     return new Response(upstreamResponse.body, {
       status: upstreamResponse.status,
       headers: copyResponseHeaders(upstreamResponse.headers, correlationId),
     });
   } catch (error) {
+    recordShellUpstreamMetric(upstream, pathSegments.join("/"), "error");
     console.error("shell proxy failure", {
       correlationId,
       upstream,

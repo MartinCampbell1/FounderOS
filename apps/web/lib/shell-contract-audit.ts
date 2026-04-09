@@ -79,7 +79,7 @@ export async function buildShellContractAuditSnapshot(
     operatorControls?.preferences ?? DEFAULT_SHELL_PREFERENCES,
     operatorControls?.source ?? "default",
   );
-  const handoffStore = inspectExecutionBriefHandoffStore();
+  const handoffStore = await inspectExecutionBriefHandoffStore();
 
   const liveRoutes: ShellContractAuditLiveRouteRecord[] = [
     buildLiveRouteRecord({

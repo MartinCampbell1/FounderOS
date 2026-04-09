@@ -40,8 +40,7 @@ export interface ShellExecutionIntakeSnapshot {
   intakeSessionLoadState: "idle" | "ready" | "error";
 }
 
-export interface ShellExecutionHandoffSnapshot
-  extends ShellExecutionIntakeSnapshot {
+export interface ShellExecutionHandoffSnapshot extends ShellExecutionIntakeSnapshot {
   handoff: ExecutionBriefHandoff | null;
   handoffError: string | null;
   handoffLoadState: "ready" | "error";
@@ -104,23 +103,24 @@ export async function buildExecutionWorkspaceSnapshot(
   projectId: string | null,
   options?: {
     includeArchived?: boolean;
-  }
+  },
 ): Promise<ShellExecutionWorkspaceSnapshot> {
   const includeArchived = options?.includeArchived ?? false;
-  const [projectsResult, launchPresetsResult, projectResult] = await Promise.allSettled([
-    requestUpstreamJson<{ projects: AutopilotProjectSummary[] }>(
-      "autopilot",
-      "projects/",
-      buildUpstreamQuery({ include_archived: includeArchived })
-    ),
-    loadAutopilotLaunchPresets(),
-    projectId
-      ? requestUpstreamJson<AutopilotProjectDetail>(
-          "autopilot",
-          `projects/${encodeURIComponent(projectId)}`
-        )
-      : Promise.resolve(null),
-  ]);
+  const [projectsResult, launchPresetsResult, projectResult] =
+    await Promise.allSettled([
+      requestUpstreamJson<{ projects: AutopilotProjectSummary[] }>(
+        "autopilot",
+        "projects/",
+        buildUpstreamQuery({ include_archived: includeArchived }),
+      ),
+      loadAutopilotLaunchPresets(),
+      projectId
+        ? requestUpstreamJson<AutopilotProjectDetail>(
+            "autopilot",
+            `projects/${encodeURIComponent(projectId)}`,
+          )
+        : Promise.resolve(null),
+    ]);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -131,16 +131,22 @@ export async function buildExecutionWorkspaceSnapshot(
     projectsError:
       projectsResult.status === "fulfilled"
         ? null
-        : formatUpstreamErrorMessage("Autopilot projects", projectsResult.reason),
-    projectsLoadState: projectsResult.status === "fulfilled" ? "ready" : "error",
+        : formatUpstreamErrorMessage(
+            "Autopilot projects",
+            projectsResult.reason,
+          ),
+    projectsLoadState:
+      projectsResult.status === "fulfilled" ? "ready" : "error",
     launchPresets:
-      launchPresetsResult.status === "fulfilled" ? launchPresetsResult.value : [],
+      launchPresetsResult.status === "fulfilled"
+        ? launchPresetsResult.value
+        : [],
     launchPresetsError:
       launchPresetsResult.status === "fulfilled"
         ? null
         : formatUpstreamErrorMessage(
             "Autopilot launch presets",
-            launchPresetsResult.reason
+            launchPresetsResult.reason,
           ),
     launchPresetsLoadState:
       launchPresetsResult.status === "fulfilled" ? "ready" : "error",
@@ -152,38 +158,43 @@ export async function buildExecutionWorkspaceSnapshot(
       projectResult.status === "fulfilled"
         ? null
         : formatUpstreamErrorMessage("Autopilot project", projectResult.reason),
-    projectLoadState:
-      !projectId ? "idle" : projectResult.status === "fulfilled" ? "ready" : "error",
+    projectLoadState: !projectId
+      ? "idle"
+      : projectResult.status === "fulfilled"
+        ? "ready"
+        : "error",
   };
 }
 
 export async function buildExecutionIntakeSnapshot(
-  sessionId: string | null
+  sessionId: string | null,
 ): Promise<ShellExecutionIntakeSnapshot> {
   const [launchPresetsResult, intakeSessionsResult, intakeSessionResult] =
     await Promise.allSettled([
-    loadAutopilotLaunchPresets(),
-    requestUpstreamJson<{
-      sessions: AutopilotIntakeSessionSummary[];
-    }>("autopilot", "intake/sessions"),
-    sessionId
-      ? requestUpstreamJson<AutopilotIntakeSessionDetail>(
-          "autopilot",
-          `intake/sessions/${encodeURIComponent(sessionId)}`
-        )
-      : Promise.resolve(null),
-  ]);
+      loadAutopilotLaunchPresets(),
+      requestUpstreamJson<{
+        sessions: AutopilotIntakeSessionSummary[];
+      }>("autopilot", "intake/sessions"),
+      sessionId
+        ? requestUpstreamJson<AutopilotIntakeSessionDetail>(
+            "autopilot",
+            `intake/sessions/${encodeURIComponent(sessionId)}`,
+          )
+        : Promise.resolve(null),
+    ]);
 
   return {
     generatedAt: new Date().toISOString(),
     launchPresets:
-      launchPresetsResult.status === "fulfilled" ? launchPresetsResult.value : [],
+      launchPresetsResult.status === "fulfilled"
+        ? launchPresetsResult.value
+        : [],
     launchPresetsError:
       launchPresetsResult.status === "fulfilled"
         ? null
         : formatUpstreamErrorMessage(
             "Autopilot launch presets",
-            launchPresetsResult.reason
+            launchPresetsResult.reason,
           ),
     launchPresetsLoadState:
       launchPresetsResult.status === "fulfilled" ? "ready" : "error",
@@ -196,33 +207,40 @@ export async function buildExecutionIntakeSnapshot(
         ? null
         : formatUpstreamErrorMessage(
             "Autopilot intake sessions",
-            intakeSessionsResult.reason
+            intakeSessionsResult.reason,
           ),
     intakeSessionsLoadState:
       intakeSessionsResult.status === "fulfilled" ? "ready" : "error",
     intakeSession:
-      intakeSessionResult.status === "fulfilled" ? intakeSessionResult.value : null,
+      intakeSessionResult.status === "fulfilled"
+        ? intakeSessionResult.value
+        : null,
     intakeSessionError:
       intakeSessionResult.status === "fulfilled"
         ? null
         : formatUpstreamErrorMessage(
             "Autopilot intake session",
-            intakeSessionResult.reason
+            intakeSessionResult.reason,
           ),
-    intakeSessionLoadState:
-      !sessionId ? "idle" : intakeSessionResult.status === "fulfilled" ? "ready" : "error",
+    intakeSessionLoadState: !sessionId
+      ? "idle"
+      : intakeSessionResult.status === "fulfilled"
+        ? "ready"
+        : "error",
   };
 }
 
 export async function buildExecutionHandoffSnapshot(
-  handoffId: string
+  handoffId: string,
 ): Promise<ShellExecutionHandoffSnapshot> {
   const [launchPresetsResult, handoffResult] = await Promise.allSettled([
     loadAutopilotLaunchPresets(),
-    Promise.resolve().then(() => {
-      const handoff = getExecutionBriefHandoff(handoffId);
+    Promise.resolve().then(async () => {
+      const handoff = await getExecutionBriefHandoff(handoffId);
       if (!handoff) {
-        throw new Error(`Execution brief handoff ${handoffId} not found or expired.`);
+        throw new Error(
+          `Execution brief handoff ${handoffId} not found or expired.`,
+        );
       }
       return handoff as ExecutionBriefHandoff;
     }),
@@ -231,13 +249,15 @@ export async function buildExecutionHandoffSnapshot(
   return {
     generatedAt: new Date().toISOString(),
     launchPresets:
-      launchPresetsResult.status === "fulfilled" ? launchPresetsResult.value : [],
+      launchPresetsResult.status === "fulfilled"
+        ? launchPresetsResult.value
+        : [],
     launchPresetsError:
       launchPresetsResult.status === "fulfilled"
         ? null
         : formatUpstreamErrorMessage(
             "Autopilot launch presets",
-            launchPresetsResult.reason
+            launchPresetsResult.reason,
           ),
     launchPresetsLoadState:
       launchPresetsResult.status === "fulfilled" ? "ready" : "error",
@@ -253,7 +273,7 @@ export async function buildExecutionHandoffSnapshot(
         ? null
         : formatShellErrorMessage(
             "Cross-plane handoff is unavailable.",
-            handoffResult.reason
+            handoffResult.reason,
           ),
     handoffLoadState: handoffResult.status === "fulfilled" ? "ready" : "error",
   };

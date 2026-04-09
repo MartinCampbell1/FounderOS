@@ -42,15 +42,21 @@ export function emptyDiscoveryInboxFeed(): QuorumDiscoveryInboxFeed {
   };
 }
 
-export async function buildInboxSnapshot(): Promise<ShellInboxSnapshot> {
+export async function buildInboxSnapshot(options?: {
+  limit?: number;
+}): Promise<ShellInboxSnapshot> {
+  const limit =
+    typeof options?.limit === "number"
+      ? Math.max(1, Math.min(Math.trunc(options.limit), 100))
+      : 50;
   const [discoveryResult, chainDataResult] = await Promise.allSettled([
     requestUpstreamJson<QuorumDiscoveryInboxFeed>(
       "quorum",
       "orchestrate/discovery/inbox",
-      buildUpstreamQuery({ limit: 50, status: "open" })
+      buildUpstreamQuery({ limit, status: "open" }),
     ),
     loadShellChainGraphSnapshotData({
-      discoveryIdeaLimit: 100,
+      discoveryIdeaLimit: limit,
       includeArchivedProjects: true,
     }),
   ]);
@@ -61,7 +67,7 @@ export async function buildInboxSnapshot(): Promise<ShellInboxSnapshot> {
     discoveryResult.status === "fulfilled"
       ? discoveryResult.value
       : (errors.push(
-          formatUpstreamErrorMessage("Discovery inbox", discoveryResult.reason)
+          formatUpstreamErrorMessage("Discovery inbox", discoveryResult.reason),
         ),
         emptyDiscoveryInboxFeed());
   const chainData =
@@ -79,7 +85,7 @@ export async function buildInboxSnapshot(): Promise<ShellInboxSnapshot> {
           errors: [
             formatUpstreamErrorMessage(
               "Chain graph snapshot",
-              chainDataResult.reason
+              chainDataResult.reason,
             ),
           ],
           loadState: "error" as const,
@@ -89,12 +95,12 @@ export async function buildInboxSnapshot(): Promise<ShellInboxSnapshot> {
   return {
     generatedAt: new Date().toISOString(),
     discoveryFeed,
-    projects: chainData.projects,
-    intakeSessions: chainData.intakeSessions,
-    approvals: chainData.approvals,
-    issues: chainData.issues,
-    runtimes: chainData.runtimes,
-    chains: chainData.chains,
+    projects: chainData.projects.slice(0, limit),
+    intakeSessions: chainData.intakeSessions.slice(0, limit),
+    approvals: chainData.approvals.slice(0, limit),
+    issues: chainData.issues.slice(0, limit),
+    runtimes: chainData.runtimes.slice(0, limit),
+    chains: chainData.chains.slice(0, limit),
     errors,
     loadState:
       discoveryResult.status === "rejected" && chainData.loadState === "error"

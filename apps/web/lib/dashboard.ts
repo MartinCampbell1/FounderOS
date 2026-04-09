@@ -61,11 +61,16 @@ function sortSessions(items: QuorumSessionSummary[]) {
 
 type DashboardSnapshotOptions = {
   upstreamTimeoutMs?: number;
+  limit?: number;
 };
 
 export async function buildDashboardSnapshot(
-  options?: DashboardSnapshotOptions
+  options?: DashboardSnapshotOptions,
 ): Promise<ShellDashboardSnapshot> {
+  const limit =
+    typeof options?.limit === "number"
+      ? Math.max(1, Math.min(Math.trunc(options.limit), 100))
+      : 24;
   const [
     healthResult,
     sessionsResult,
@@ -78,16 +83,16 @@ export async function buildDashboardSnapshot(
       "quorum",
       "orchestrate/sessions",
       undefined,
-      { timeoutMs: options?.upstreamTimeoutMs }
+      { timeoutMs: options?.upstreamTimeoutMs },
     ),
     requestUpstreamJson<QuorumDiscoveryInboxFeed>(
       "quorum",
       "orchestrate/discovery/inbox",
-      buildUpstreamQuery({ limit: 12, status: "open" }),
-      { timeoutMs: options?.upstreamTimeoutMs }
+      buildUpstreamQuery({ limit, status: "open" }),
+      { timeoutMs: options?.upstreamTimeoutMs },
     ),
     loadShellChainGraphSnapshotData({
-      discoveryIdeaLimit: 24,
+      discoveryIdeaLimit: limit,
       includeArchivedProjects: false,
       upstreamTimeoutMs: options?.upstreamTimeoutMs,
     }),
@@ -101,18 +106,26 @@ export async function buildDashboardSnapshot(
   const health =
     healthResult.status === "fulfilled"
       ? healthResult.value
-      : (errors.push(formatUpstreamErrorMessage("Health", healthResult.reason)), null);
+      : (errors.push(formatUpstreamErrorMessage("Health", healthResult.reason)),
+        null);
   const sessions =
     sessionsResult.status === "fulfilled"
       ? sortSessions(sessionsResult.value)
       : (errors.push(
-          formatUpstreamErrorMessage("Discovery sessions", sessionsResult.reason)
-        ), []);
+          formatUpstreamErrorMessage(
+            "Discovery sessions",
+            sessionsResult.reason,
+          ),
+        ),
+        []);
   const discoveryFeed =
     discoveryFeedResult.status === "fulfilled"
       ? discoveryFeedResult.value
       : (errors.push(
-          formatUpstreamErrorMessage("Discovery inbox", discoveryFeedResult.reason)
+          formatUpstreamErrorMessage(
+            "Discovery inbox",
+            discoveryFeedResult.reason,
+          ),
         ),
         emptyDiscoveryInboxFeed());
   const chainData =
@@ -130,7 +143,7 @@ export async function buildDashboardSnapshot(
           errors: [
             formatUpstreamErrorMessage(
               "Chain graph snapshot",
-              chainDataResult.reason
+              chainDataResult.reason,
             ),
           ],
           loadState: "error" as const,
@@ -140,7 +153,10 @@ export async function buildDashboardSnapshot(
     reviewCenterResult.status === "fulfilled"
       ? reviewCenterResult.value
       : (errors.push(
-          formatUpstreamErrorMessage("Review center snapshot", reviewCenterResult.reason)
+          formatUpstreamErrorMessage(
+            "Review center snapshot",
+            reviewCenterResult.reason,
+          ),
         ),
         emptyShellReviewCenterSnapshot());
   errors.push(...reviewCenter.errors);
@@ -148,15 +164,15 @@ export async function buildDashboardSnapshot(
   return {
     generatedAt: new Date().toISOString(),
     health,
-    sessions,
+    sessions: sessions.slice(0, limit),
     ideas: chainData.ideas,
     discoveryFeed,
-    projects: chainData.projects,
-    intakeSessions: chainData.intakeSessions,
-    issues: chainData.issues,
-    approvals: chainData.approvals,
-    runtimes: chainData.runtimes,
-    chains: chainData.chains,
+    projects: chainData.projects.slice(0, limit),
+    intakeSessions: chainData.intakeSessions.slice(0, limit),
+    issues: chainData.issues.slice(0, limit),
+    approvals: chainData.approvals.slice(0, limit),
+    runtimes: chainData.runtimes.slice(0, limit),
+    chains: chainData.chains.slice(0, limit),
     reviewCenter,
     errors,
     loadState:

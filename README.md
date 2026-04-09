@@ -44,6 +44,8 @@ single-repo production deploy unit.
   admin-only surfaces in production.
 - the local execution-brief handoff filesystem store is a development bridge, not a durable
   shared production datastore.
+- production deployments should set `FOUNDEROS_EXECUTION_HANDOFF_DATABASE_URL` and use the
+  shipped Postgres-backed handoff adapter.
 
 ## Toolchains
 
@@ -93,6 +95,8 @@ This builds:
 - `Dockerfile` for the unified shell
 - `Dockerfile.quorum` for the pinned Quorum runtime
 - `Dockerfile.autopilot` for the pinned Autopilot runtime
+
+The compose stack also provisions a Postgres service for the shell handoff bridge.
 
 The compose stack is the canonical containerized release artifact for this root repository.
 

@@ -16,7 +16,7 @@ export async function GET(
   let handoff = null;
 
   try {
-    handoff = getExecutionBriefHandoff(handoffId);
+    handoff = await getExecutionBriefHandoff(handoffId);
   } catch (error) {
     return NextResponse.json(
       {

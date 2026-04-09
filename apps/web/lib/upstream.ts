@@ -1,5 +1,6 @@
 import { getUpstreamBaseUrl } from "@/lib/gateway";
 import type { UpstreamId } from "@/lib/gateway-contract";
+import { recordShellUpstreamMetric } from "@/lib/observability";
 
 export function buildUpstreamQuery(
   entries: Record<string, string | number | boolean | null | undefined>,
@@ -61,6 +62,7 @@ export async function requestUpstreamJson<T>(
 
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const startedAt = Date.now();
     try {
       const response = await fetch(target, {
         cache: "no-store",
@@ -68,13 +70,31 @@ export async function requestUpstreamJson<T>(
       });
 
       if (!response.ok) {
-        throw new Error(await parseUpstreamErrorDetail(response));
+        const detail = await parseUpstreamErrorDetail(response);
+        recordShellUpstreamMetric(
+          upstream,
+          path,
+          `http_${response.status}`,
+          Date.now() - startedAt,
+        );
+        throw new Error(detail);
       }
 
+      recordShellUpstreamMetric(upstream, path, "ok", Date.now() - startedAt);
       return (await response.json()) as T;
     } catch (error) {
       lastError =
         error instanceof Error ? error : new Error("Upstream request failed.");
+      if (
+        !(error instanceof Error && error.message.startsWith("Request failed:"))
+      ) {
+        recordShellUpstreamMetric(
+          upstream,
+          path,
+          "error",
+          Date.now() - startedAt,
+        );
+      }
       if (attempt === 1) {
         break;
       }

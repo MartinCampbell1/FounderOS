@@ -5,7 +5,7 @@ export async function buildExecutionHandoffsSnapshot(): Promise<ShellExecutionHa
   try {
     return {
       generatedAt: new Date().toISOString(),
-      handoffs: listExecutionBriefHandoffs(),
+      handoffs: await listExecutionBriefHandoffs(),
       handoffsError: null,
       handoffsLoadState: "ready",
     };

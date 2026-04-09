@@ -41,6 +41,7 @@ export function classifyShellApiPath(pathname: string): ShellRouteClass {
 
   if (
     pathname === "/api/shell/contract" ||
+    pathname === "/api/shell/metrics" ||
     pathname.startsWith("/api/shell/handoffs/") ||
     pathname.startsWith("/api/shell/discovery/actions/") ||
     pathname.startsWith("/api/shell/execution/actions/")
