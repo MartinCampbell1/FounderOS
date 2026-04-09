@@ -11,7 +11,9 @@ import {
 } from "@/lib/shell-preferences-contract";
 import {
   isSameOriginMutation,
+  isShellAdminTokenAuthorized,
   isShellBodyTooLarge,
+  readShellAdminTokenFromRequest,
 } from "@/lib/shell-security";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +39,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!isSameOriginMutation(request)) {
+  const shellAdminToken = readShellAdminTokenFromRequest(request);
+  const allowAdminAutomation = isShellAdminTokenAuthorized(shellAdminToken);
+
+  if (!isSameOriginMutation(request) && !allowAdminAutomation) {
     return NextResponse.json(
       { error: "Cross-site shell preference updates are not allowed." },
       { status: 403 },

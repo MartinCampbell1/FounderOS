@@ -104,6 +104,10 @@ function tokenFromStandardRequest(request: Request) {
   return "";
 }
 
+export function readShellAdminTokenFromRequest(request: Request) {
+  return tokenFromStandardRequest(request);
+}
+
 function checkRateLimitByKey(key: string, limit: number) {
   const store = rateLimitStore();
   const now = Date.now();
