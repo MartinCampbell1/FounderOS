@@ -15,7 +15,7 @@ const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,11 +25,10 @@ const port =
   process.env.FOUNDEROS_WEB_PORT ??
   String(3960 + Math.floor(Math.random() * 100));
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
-const SUITE_TARGET_KEYS = [
-  "discovery-pass",
-  "critical-pass",
-  "decision-pass",
-];
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-review-memory-admin-token"
+).trim();
+const SUITE_TARGET_KEYS = ["discovery-pass", "critical-pass", "decision-pass"];
 
 const EXPECTED_REVIEW_MEMORY = {
   global: {
@@ -141,7 +140,7 @@ function reviewPassSemantics(pass) {
   }
 
   throw new Error(
-    `Missing review semantics for lane=${pass.lane} preset=${pass.preset ?? "none"}.`
+    `Missing review semantics for lane=${pass.lane} preset=${pass.preset ?? "none"}.`,
   );
 }
 
@@ -156,7 +155,7 @@ function escapeRegex(value) {
 function extractHrefByLabel(html, label, pathPrefix) {
   const pattern = new RegExp(
     `href="([^"]+)"[^>]*>[\\s\\S]{0,240}?${escapeRegex(label)}`,
-    "g"
+    "g",
   );
 
   for (const match of html.matchAll(pattern)) {
@@ -172,7 +171,7 @@ function extractHrefByLabel(html, label, pathPrefix) {
 function assertExactHref(actualHref, expectedHref, label) {
   assert(
     actualHref === expectedHref,
-    `${label} must equal ${expectedHref}, received ${actualHref}.`
+    `${label} must equal ${expectedHref}, received ${actualHref}.`,
   );
 }
 
@@ -180,7 +179,7 @@ function parseSuiteTargets(rawValue) {
   const trimmed = (rawValue || "").trim();
   if (!trimmed) {
     throw new Error(
-      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for live review memory checks."
+      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for live review memory checks.",
     );
   }
 
@@ -191,14 +190,17 @@ function parseSuiteTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_SUITE_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
   const normalized = {};
   for (const preset of SUITE_TARGET_KEYS) {
     const target = parsed?.[preset];
-    assert(target && typeof target === "object", `Missing suite target for ${preset}.`);
+    assert(
+      target && typeof target === "object",
+      `Missing suite target for ${preset}.`,
+    );
     normalized[preset] = {
       preset,
       role: firstString(target.role),
@@ -233,23 +235,34 @@ async function waitForServer(url, timeoutMs = 15000) {
 
 async function fetchHtml(path, cookieHeader) {
   const response = await fetch(`${baseUrl}${path}`, {
-    headers: cookieHeader
-      ? {
-          cookie: cookieHeader,
-        }
-      : undefined,
+    headers: {
+      ...(cookieHeader ? { cookie: cookieHeader } : {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+    },
   });
   const html = await response.text();
-  assert(response.status === 200, `Expected 200 for ${path}, received ${response.status}.`);
+  assert(
+    response.status === 200,
+    `Expected 200 for ${path}, received ${response.status}.`,
+  );
   return html;
 }
 
 async function fetchJson(path, init = {}, cookieHeader) {
+  const method = String(init?.method || "GET").toUpperCase();
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       ...(cookieHeader ? { cookie: cookieHeader } : {}),
       ...(init.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
+        : {}),
     },
   });
   const payload = await response.json();
@@ -261,16 +274,23 @@ async function updateOperatorPreferences(preferencesPatch) {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      Origin: baseUrl,
     },
     body: JSON.stringify(preferencesPatch),
   });
   const payload = await response.json();
   assert(
     response.status === 200,
-    `Updating operator preferences failed with ${response.status}.`
+    `Updating operator preferences failed with ${response.status}.`,
   );
   const setCookie = response.headers.get("set-cookie") || "";
-  assert(setCookie.length > 0, "Operator preferences update did not return a cookie.");
+  assert(
+    setCookie.length > 0,
+    "Operator preferences update did not return a cookie.",
+  );
   return {
     snapshot: payload,
     cookieHeader: setCookie.split(";")[0],
@@ -278,59 +298,75 @@ async function updateOperatorPreferences(preferencesPatch) {
 }
 
 function assertReviewMemory(snapshot) {
-  assert(snapshot.source === "cookie", "Operator preferences source must be cookie.");
+  assert(
+    snapshot.source === "cookie",
+    "Operator preferences source must be cookie.",
+  );
   for (const bucket of Object.keys(EXPECTED_REVIEW_MEMORY)) {
     const expected = EXPECTED_REVIEW_MEMORY[bucket];
     const actual = snapshot.preferences?.reviewMemory?.[bucket];
     assert(actual, `Missing review memory bucket ${bucket}.`);
     assert(
       actual.lane === expected.lane,
-      `Review memory bucket ${bucket} must store lane=${expected.lane}.`
+      `Review memory bucket ${bucket} must store lane=${expected.lane}.`,
     );
     assert(
       actual.preset === expected.preset,
-      `Review memory bucket ${bucket} must store preset=${expected.preset}.`
+      `Review memory bucket ${bucket} must store preset=${expected.preset}.`,
     );
   }
 }
 
-function assertReviewPresetPage(html, expectedLabel, expectedSavedDefault, clearPresetHref) {
+function assertReviewPresetPage(
+  html,
+  expectedLabel,
+  expectedSavedDefault,
+  clearPresetHref,
+) {
   assertIncludes(html, "Preset playbooks", `${expectedLabel} preset panel`);
   assertIncludes(html, "Active preset:", `${expectedLabel} active preset`);
   assertIncludes(html, expectedLabel, `${expectedLabel} preset label`);
   assertIncludes(html, "Saved default:", `${expectedLabel} saved default`);
-  assertIncludes(html, expectedSavedDefault, `${expectedLabel} remembered pass`);
-  assertIncludes(html, "Current pass remembered", `${expectedLabel} remembered marker`);
+  assertIncludes(
+    html,
+    expectedSavedDefault,
+    `${expectedLabel} remembered pass`,
+  );
+  assertIncludes(
+    html,
+    "Current pass remembered",
+    `${expectedLabel} remembered marker`,
+  );
   assertExactHref(
     extractHrefByLabel(html, "Clear preset", "/review"),
     clearPresetHref,
-    `${expectedLabel} clear preset`
+    `${expectedLabel} clear preset`,
   );
 }
 
-function assertReviewLinksMatchRememberedPass({
-  html,
-  scope,
-  labelPrefix,
-}) {
-  const reviewCenterHref = extractHrefByLabel(html, "Open review center", "/review");
+function assertReviewLinksMatchRememberedPass({ html, scope, labelPrefix }) {
+  const reviewCenterHref = extractHrefByLabel(
+    html,
+    "Open review center",
+    "/review",
+  );
   const pass = parseReviewHref(reviewCenterHref);
   const semantics = reviewPassSemantics(pass);
 
   assertExactHref(
     reviewCenterHref,
     buildReviewHref(scope, pass.lane === "all" ? null : pass.lane, pass.preset),
-    `${labelPrefix} review center link`
+    `${labelPrefix} review center link`,
   );
   assertExactHref(
     extractHrefByLabel(html, "Open discovery review", "/discovery/review"),
     buildDiscoveryReviewHref(scope, semantics.discoveryFilter),
-    `${labelPrefix} discovery review link`
+    `${labelPrefix} discovery review link`,
   );
   assertExactHref(
     extractHrefByLabel(html, "Open execution review", "/execution/review"),
     buildExecutionReviewHref(scope, semantics.executionFilter),
-    `${labelPrefix} execution review link`
+    `${labelPrefix} execution review link`,
   );
 
   return { pass, semantics };
@@ -346,6 +382,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -375,7 +412,7 @@ try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
   const suiteTargets = parseSuiteTargets(
-    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || "",
   );
   const linkedScope = suiteTargets["discovery-pass"].routeScope;
   const intakeLinkedScope = suiteTargets["decision-pass"].routeScope;
@@ -390,11 +427,11 @@ try {
     {
       method: "GET",
     },
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assert(
     operatorPreferences.response.status === 200,
-    "Reading operator preferences with the cookie-backed snapshot must succeed."
+    "Reading operator preferences with the cookie-backed snapshot must succeed.",
   );
   assertReviewMemory(operatorPreferences.json);
 
@@ -406,7 +443,10 @@ try {
   });
 
   const scopedInboxHref = buildScopedHref("/inbox", linkedScope);
-  const scopedInboxHtml = await fetchHtml(scopedInboxHref, writeResult.cookieHeader);
+  const scopedInboxHtml = await fetchHtml(
+    scopedInboxHref,
+    writeResult.cookieHeader,
+  );
   const scopedReviewLinks = assertReviewLinksMatchRememberedPass({
     html: scopedInboxHtml,
     scope: linkedScope,
@@ -416,7 +456,7 @@ try {
   const intakeLinkedInboxHref = buildScopedHref("/inbox", intakeLinkedScope);
   const intakeLinkedInboxHtml = await fetchHtml(
     intakeLinkedInboxHref,
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   const intakeLinkedReviewLinks = assertReviewLinksMatchRememberedPass({
     html: intakeLinkedInboxHtml,
@@ -429,82 +469,89 @@ try {
     globalReviewHtml,
     globalReviewLinks.semantics.presetLabel,
     globalReviewLinks.semantics.savedDefaultLabel,
-    buildReviewHref(null, globalReviewLinks.semantics.clearPresetLane, null)
+    buildReviewHref(null, globalReviewLinks.semantics.clearPresetLane, null),
   );
 
   const scopedReviewHref = buildScopedHref("/review", linkedScope);
-  const scopedReviewHtml = await fetchHtml(scopedReviewHref, writeResult.cookieHeader);
+  const scopedReviewHtml = await fetchHtml(
+    scopedReviewHref,
+    writeResult.cookieHeader,
+  );
   assertReviewPresetPage(
     scopedReviewHtml,
     scopedReviewLinks.semantics.presetLabel,
     scopedReviewLinks.semantics.savedDefaultLabel,
-    buildReviewHref(linkedScope, scopedReviewLinks.semantics.clearPresetLane, null)
+    buildReviewHref(
+      linkedScope,
+      scopedReviewLinks.semantics.clearPresetLane,
+      null,
+    ),
   );
 
   const scopedDiscoveryReviewHtml = await fetchHtml(
     buildScopedHref("/discovery/review", linkedScope),
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assertIncludes(
     scopedDiscoveryReviewHtml,
     "Saved default:",
-    "Scoped discovery review saved default"
+    "Scoped discovery review saved default",
   );
   assertIncludes(
     scopedDiscoveryReviewHtml,
     scopedReviewLinks.semantics.savedDefaultLabel,
-    "Scoped discovery review remembered pass"
+    "Scoped discovery review remembered pass",
   );
   assertIncludes(
     scopedDiscoveryReviewHtml,
     "Current filter maps to",
-    "Scoped discovery review current filter text"
+    "Scoped discovery review current filter text",
   );
   assertIncludes(
     scopedDiscoveryReviewHtml,
     scopedReviewLinks.semantics.discoveryCurrentFilterLabel,
-    "Scoped discovery review derived current filter"
+    "Scoped discovery review derived current filter",
   );
   assertIncludes(
     scopedDiscoveryReviewHtml,
     scopedReviewLinks.semantics.discoveryRememberedText,
-    "Scoped discovery review remember action"
+    "Scoped discovery review remember action",
   );
 
   const scopedExecutionReviewHtml = await fetchHtml(
     buildScopedHref("/execution/review", linkedScope),
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assertIncludes(
     scopedExecutionReviewHtml,
     "Saved default:",
-    "Scoped execution review saved default"
+    "Scoped execution review saved default",
   );
   assertIncludes(
     scopedExecutionReviewHtml,
     scopedReviewLinks.semantics.savedDefaultLabel,
-    "Scoped execution review remembered pass"
+    "Scoped execution review remembered pass",
   );
   assertIncludes(
     scopedExecutionReviewHtml,
     "Current filter maps to",
-    "Scoped execution review current filter text"
+    "Scoped execution review current filter text",
   );
   assertIncludes(
     scopedExecutionReviewHtml,
     scopedReviewLinks.semantics.executionCurrentFilterLabel,
-    "Scoped execution review derived current filter"
+    "Scoped execution review derived current filter",
   );
   assertIncludes(
     scopedExecutionReviewHtml,
     scopedReviewLinks.semantics.executionRememberedText,
-    "Scoped execution review remembered marker"
+    "Scoped execution review remembered marker",
   );
 
   const intakeLinkedReviewHref = buildScopedHref("/review", intakeLinkedScope);
   const intakeLinkedReviewHtml = await fetchHtml(
     intakeLinkedReviewHref,
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assertReviewPresetPage(
     intakeLinkedReviewHtml,
@@ -513,68 +560,68 @@ try {
     buildReviewHref(
       intakeLinkedScope,
       intakeLinkedReviewLinks.semantics.clearPresetLane,
-      null
-    )
+      null,
+    ),
   );
 
   const intakeLinkedDiscoveryReviewHtml = await fetchHtml(
     buildScopedHref("/discovery/review", intakeLinkedScope),
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assertIncludes(
     intakeLinkedDiscoveryReviewHtml,
     "Saved default:",
-    "Intake-linked discovery review saved default"
+    "Intake-linked discovery review saved default",
   );
   assertIncludes(
     intakeLinkedDiscoveryReviewHtml,
     intakeLinkedReviewLinks.semantics.savedDefaultLabel,
-    "Intake-linked discovery review remembered pass"
+    "Intake-linked discovery review remembered pass",
   );
   assertIncludes(
     intakeLinkedDiscoveryReviewHtml,
     "Current filter maps to",
-    "Intake-linked discovery review current filter text"
+    "Intake-linked discovery review current filter text",
   );
   assertIncludes(
     intakeLinkedDiscoveryReviewHtml,
     intakeLinkedReviewLinks.semantics.discoveryCurrentFilterLabel,
-    "Intake-linked discovery review derived current filter"
+    "Intake-linked discovery review derived current filter",
   );
   assertIncludes(
     intakeLinkedDiscoveryReviewHtml,
     intakeLinkedReviewLinks.semantics.discoveryRememberedText,
-    "Intake-linked discovery review remember action"
+    "Intake-linked discovery review remember action",
   );
 
   const intakeLinkedExecutionReviewHtml = await fetchHtml(
     buildScopedHref("/execution/review", intakeLinkedScope),
-    writeResult.cookieHeader
+    writeResult.cookieHeader,
   );
   assertIncludes(
     intakeLinkedExecutionReviewHtml,
     "Saved default:",
-    "Intake-linked execution review saved default"
+    "Intake-linked execution review saved default",
   );
   assertIncludes(
     intakeLinkedExecutionReviewHtml,
     intakeLinkedReviewLinks.semantics.savedDefaultLabel,
-    "Intake-linked execution review remembered pass"
+    "Intake-linked execution review remembered pass",
   );
   assertIncludes(
     intakeLinkedExecutionReviewHtml,
     "Current filter maps to",
-    "Intake-linked execution review current filter text"
+    "Intake-linked execution review current filter text",
   );
   assertIncludes(
     intakeLinkedExecutionReviewHtml,
     intakeLinkedReviewLinks.semantics.executionCurrentFilterLabel,
-    "Intake-linked execution review derived current filter"
+    "Intake-linked execution review derived current filter",
   );
   assertIncludes(
     intakeLinkedExecutionReviewHtml,
     intakeLinkedReviewLinks.semantics.executionRememberedText,
-    "Intake-linked execution review remembered marker"
+    "Intake-linked execution review remembered marker",
   );
 
   console.log(
@@ -591,18 +638,24 @@ try {
         unscopedReview: "/review",
         scopedReview: scopedReviewHref,
         intakeLinkedReview: intakeLinkedReviewHref,
-        scopedDiscoveryReview: buildScopedHref("/discovery/review", linkedScope),
+        scopedDiscoveryReview: buildScopedHref(
+          "/discovery/review",
+          linkedScope,
+        ),
         intakeLinkedDiscoveryReview: buildScopedHref(
           "/discovery/review",
-          intakeLinkedScope
+          intakeLinkedScope,
         ),
-        scopedExecutionReview: buildScopedHref("/execution/review", linkedScope),
+        scopedExecutionReview: buildScopedHref(
+          "/execution/review",
+          linkedScope,
+        ),
         intakeLinkedExecutionReview: buildScopedHref(
           "/execution/review",
-          intakeLinkedScope
+          intakeLinkedScope,
         ),
       },
-    })
+    }),
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

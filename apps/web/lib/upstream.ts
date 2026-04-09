@@ -2,7 +2,7 @@ import { getUpstreamBaseUrl } from "@/lib/gateway";
 import type { UpstreamId } from "@/lib/gateway-contract";
 
 export function buildUpstreamQuery(
-  entries: Record<string, string | number | boolean | null | undefined>
+  entries: Record<string, string | number | boolean | null | undefined>,
 ) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(entries)) {
@@ -17,7 +17,7 @@ export function buildUpstreamQuery(
 function buildUpstreamUrl(
   upstream: UpstreamId,
   path: string,
-  searchParams?: URLSearchParams
+  searchParams?: URLSearchParams,
 ) {
   const baseUrl = getUpstreamBaseUrl(upstream);
   const baseHref = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -38,17 +38,14 @@ async function parseUpstreamErrorDetail(response: Response) {
 
   try {
     const payload = JSON.parse(raw) as { detail?: string; message?: string };
-    if (payload.detail) {
-      return payload.detail;
-    }
-    if (payload.message) {
-      return payload.message;
+    if (payload.detail || payload.message) {
+      return fallback;
     }
   } catch {
     // Keep raw text fallback.
   }
 
-  return raw;
+  return fallback;
 }
 
 export async function requestUpstreamJson<T>(
@@ -57,21 +54,39 @@ export async function requestUpstreamJson<T>(
   searchParams?: URLSearchParams,
   options?: {
     timeoutMs?: number;
-  }
+  },
 ): Promise<T> {
   const timeoutMs = options?.timeoutMs ?? 3000;
-  const response = await fetch(buildUpstreamUrl(upstream, path, searchParams), {
-    cache: "no-store",
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const target = buildUpstreamUrl(upstream, path, searchParams);
 
-  if (!response.ok) {
-    throw new Error(await parseUpstreamErrorDetail(response));
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(target, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseUpstreamErrorDetail(response));
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("Upstream request failed.");
+      if (attempt === 1) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+    }
   }
 
-  return (await response.json()) as T;
+  throw lastError ?? new Error("Upstream request failed.");
 }
 
 export function formatUpstreamErrorMessage(prefix: string, error: unknown) {
-  return error instanceof Error ? `${prefix}: ${error.message}` : `${prefix}: request failed.`;
+  return error instanceof Error
+    ? `${prefix}: upstream unavailable.`
+    : `${prefix}: request failed.`;
 }

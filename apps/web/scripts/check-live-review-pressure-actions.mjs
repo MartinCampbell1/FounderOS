@@ -15,7 +15,7 @@ const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,11 +25,10 @@ const port =
   process.env.FOUNDEROS_WEB_PORT ??
   String(3940 + Math.floor(Math.random() * 100));
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
-const SUITE_TARGET_KEYS = [
-  "discovery-pass",
-  "critical-pass",
-  "decision-pass",
-];
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-review-pressure-admin-token"
+).trim();
+const SUITE_TARGET_KEYS = ["discovery-pass", "critical-pass", "decision-pass"];
 
 function assert(condition, message) {
   if (!condition) {
@@ -110,12 +109,18 @@ function summarizeSurfaceCounts(payloads) {
       "execution",
       "records",
     ]),
-    executionReviewCount: getCollectionLength(payloads.executionReview, "records"),
+    executionReviewCount: getCollectionLength(
+      payloads.executionReview,
+      "records",
+    ),
     inboxIssueCount: getCollectionLength(payloads.inbox, "issues"),
     inboxApprovalCount: getCollectionLength(payloads.inbox, "approvals"),
     inboxRuntimeCount: getCollectionLength(payloads.inbox, "runtimes"),
     dashboardIssueCount: getCollectionLength(payloads.dashboard, "issues"),
-    dashboardApprovalCount: getCollectionLength(payloads.dashboard, "approvals"),
+    dashboardApprovalCount: getCollectionLength(
+      payloads.dashboard,
+      "approvals",
+    ),
     dashboardRuntimeCount: getCollectionLength(payloads.dashboard, "runtimes"),
   };
 }
@@ -124,7 +129,7 @@ function parseSuiteTargets(rawValue) {
   const trimmed = (rawValue || "").trim();
   if (!trimmed) {
     throw new Error(
-      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for review-pressure live checks."
+      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for review-pressure live checks.",
     );
   }
 
@@ -135,14 +140,17 @@ function parseSuiteTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_SUITE_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
   const normalized = {};
   for (const preset of SUITE_TARGET_KEYS) {
     const target = parsed?.[preset];
-    assert(target && typeof target === "object", `Missing suite target for ${preset}.`);
+    assert(
+      target && typeof target === "object",
+      `Missing suite target for ${preset}.`,
+    );
     normalized[preset] = {
       preset,
       role: firstString(target.role),
@@ -152,7 +160,9 @@ function parseSuiteTargets(rawValue) {
         intakeSessionId: firstString(target.routeScope?.intakeSessionId),
       },
       parityTargets: {
-        discoverySessionId: firstString(target.parityTargets?.discoverySessionId),
+        discoverySessionId: firstString(
+          target.parityTargets?.discoverySessionId,
+        ),
         discoveryIdeaId: firstString(target.parityTargets?.discoveryIdeaId),
       },
       actionTargets: target.actionTargets ?? {},
@@ -173,7 +183,7 @@ function matchesChainScope(chain, scope) {
 
   const chainProjectId = firstString(chain?.project?.id || chain?.projectId);
   const chainIntakeSessionId = firstString(
-    chain?.intakeSession?.id || chain?.intakeSessionId
+    chain?.intakeSession?.id || chain?.intakeSessionId,
   );
 
   if (scope.projectId && chainProjectId !== scope.projectId) {
@@ -191,7 +201,8 @@ function matchesDiscoveryLane(record, lane) {
   if (lane === "authoring") return record.kind === "authoring";
   if (lane === "trace") return record.kind === "trace-review";
   if (lane === "handoff") return record.kind === "handoff-ready";
-  if (lane === "followthrough") return record.kind === "execution-followthrough";
+  if (lane === "followthrough")
+    return record.kind === "execution-followthrough";
   if (lane === "linked") return Boolean(record.chain);
   return false;
 }
@@ -229,7 +240,19 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const method = String(init?.method || "GET").toUpperCase();
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
+        : {}),
+    },
+  });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
     ? await response.json()
@@ -246,15 +269,15 @@ async function loadDossierSnapshot(ideaId) {
     `/api/shell/discovery/ideas${buildQuery({
       ideaId,
       limit: 50,
-    })}`
+    })}`,
   );
   assert(
     payload.response.status === 200,
-    `Failed to load discovery dossier for ${ideaId}.`
+    `Failed to load discovery dossier for ${ideaId}.`,
   );
   assert(
     payload.json?.dossier?.idea?.idea_id === ideaId,
-    `Shell discovery dossier snapshot did not resolve ${ideaId}.`
+    `Shell discovery dossier snapshot did not resolve ${ideaId}.`,
   );
   return payload;
 }
@@ -295,7 +318,7 @@ function discoveryDecisionMetadata(record, stepLabel) {
 async function postDiscoveryConfirm(record, stepLabel) {
   const response = await fetchJson(
     `/api/shell/discovery/actions/orchestrate/discovery/ideas/${encodeURIComponent(
-      record.dossier.idea.idea_id
+      record.dossier.idea.idea_id,
     )}/decisions`,
     {
       method: "POST",
@@ -308,12 +331,12 @@ async function postDiscoveryConfirm(record, stepLabel) {
         actor: "founder",
         metadata: discoveryDecisionMetadata(record, stepLabel),
       }),
-    }
+    },
   );
 
   assert(
     response.response.status === 200,
-    `Discovery review confirm failed for ${record.dossier.idea.idea_id} with ${response.response.status}.`
+    `Discovery review confirm failed for ${record.dossier.idea.idea_id} with ${response.response.status}.`,
   );
 
   return response.json;
@@ -322,7 +345,7 @@ async function postDiscoveryConfirm(record, stepLabel) {
 async function postExecutionIssueResolve(record, stepLabel) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/issues/${encodeURIComponent(
-      record.issue.id
+      record.issue.id,
     )}/resolve`,
     {
       method: "POST",
@@ -333,7 +356,7 @@ async function postExecutionIssueResolve(record, stepLabel) {
         actor: "founderos-shell",
         note: `Live review pressure check (${stepLabel}) resolved this execution issue.`,
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -342,11 +365,11 @@ async function postExecutionIssueResolve(record, stepLabel) {
 
   assert(
     response.response.status === 200,
-    `Execution issue resolve failed for ${record.issue.id} with ${response.response.status}.`
+    `Execution issue resolve failed for ${record.issue.id} with ${response.response.status}.`,
   );
   assert(
     response.json.issue?.status === "resolved",
-    `Execution issue ${record.issue.id} did not resolve.`
+    `Execution issue ${record.issue.id} did not resolve.`,
   );
 
   return { skipped: false };
@@ -355,7 +378,7 @@ async function postExecutionIssueResolve(record, stepLabel) {
 async function postExecutionApprovalApprove(record, stepLabel) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/approvals/${encodeURIComponent(
-      record.approval.id
+      record.approval.id,
     )}/approve`,
     {
       method: "POST",
@@ -366,7 +389,7 @@ async function postExecutionApprovalApprove(record, stepLabel) {
         actor: "founderos-shell",
         note: `Live review pressure check (${stepLabel}) approved this execution approval.`,
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -375,11 +398,11 @@ async function postExecutionApprovalApprove(record, stepLabel) {
 
   assert(
     response.response.status === 200,
-    `Execution approval approve failed for ${record.approval.id} with ${response.response.status}.`
+    `Execution approval approve failed for ${record.approval.id} with ${response.response.status}.`,
   );
   assert(
     response.json.approval?.status === "approved",
-    `Execution approval ${record.approval.id} did not transition to approved.`
+    `Execution approval ${record.approval.id} did not transition to approved.`,
   );
 
   return { skipped: false };
@@ -388,7 +411,7 @@ async function postExecutionApprovalApprove(record, stepLabel) {
 async function postExecutionRuntimeAllow(record, stepLabel) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/tool-permission-runtimes/${encodeURIComponent(
-      record.runtime.id
+      record.runtime.id,
     )}/allow`,
     {
       method: "POST",
@@ -400,7 +423,7 @@ async function postExecutionRuntimeAllow(record, stepLabel) {
         note: `Live review pressure check (${stepLabel}) allowed this tool permission runtime.`,
         source: "user",
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -409,11 +432,11 @@ async function postExecutionRuntimeAllow(record, stepLabel) {
 
   assert(
     response.response.status === 200,
-    `Execution runtime allow failed for ${record.runtime.id} with ${response.response.status}.`
+    `Execution runtime allow failed for ${record.runtime.id} with ${response.response.status}.`,
   );
   assert(
     response.json.runtime?.status === "resolved",
-    `Execution runtime ${record.runtime.id} did not resolve.`
+    `Execution runtime ${record.runtime.id} did not resolve.`,
   );
 
   return { skipped: false };
@@ -428,14 +451,26 @@ async function loadGlobalSurfaces() {
     portfolio: await fetchJson("/api/shell/portfolio"),
   };
 
-  assert(payloads.reviewCenter.response.status === 200, "Failed to read review center.");
+  assert(
+    payloads.reviewCenter.response.status === 200,
+    "Failed to read review center.",
+  );
   assert(
     payloads.executionReview.response.status === 200,
-    "Failed to read execution review surface."
+    "Failed to read execution review surface.",
   );
-  assert(payloads.inbox.response.status === 200, "Failed to read inbox surface.");
-  assert(payloads.dashboard.response.status === 200, "Failed to read dashboard surface.");
-  assert(payloads.portfolio.response.status === 200, "Failed to read portfolio surface.");
+  assert(
+    payloads.inbox.response.status === 200,
+    "Failed to read inbox surface.",
+  );
+  assert(
+    payloads.dashboard.response.status === 200,
+    "Failed to read dashboard surface.",
+  );
+  assert(
+    payloads.portfolio.response.status === 200,
+    "Failed to read portfolio surface.",
+  );
 
   return payloads;
 }
@@ -447,49 +482,52 @@ async function loadExecutionFeeds(projectId) {
       kind: "issues",
       project_id: projectId,
       status: "open",
-    })}`
+    })}`,
   );
   const issuesAll = await fetchJson(
     `/api/shell/execution/attention${buildQuery({
       kind: "issues",
       project_id: projectId,
-    })}`
+    })}`,
   );
   const approvalsPending = await fetchJson(
     `/api/shell/execution/attention${buildQuery({
       kind: "approvals",
       project_id: projectId,
       status: "pending",
-    })}`
+    })}`,
   );
   const approvalsAll = await fetchJson(
     `/api/shell/execution/attention${buildQuery({
       kind: "approvals",
       project_id: projectId,
-    })}`
+    })}`,
   );
   const runtimesPending = await fetchJson(
     `/api/shell/execution/attention${buildQuery({
       kind: "runtimes",
       project_id: projectId,
       status: "pending",
-    })}`
+    })}`,
   );
   const runtimesAll = await fetchJson(
     `/api/shell/execution/attention${buildQuery({
       kind: "runtimes",
       project_id: projectId,
-    })}`
+    })}`,
   );
 
-  assert(issuesOpen.response.status === 200, `Failed to read issues for ${projectId}.`);
+  assert(
+    issuesOpen.response.status === 200,
+    `Failed to read issues for ${projectId}.`,
+  );
   assert(
     approvalsPending.response.status === 200,
-    `Failed to read approvals for ${projectId}.`
+    `Failed to read approvals for ${projectId}.`,
   );
   assert(
     runtimesPending.response.status === 200,
-    `Failed to read runtimes for ${projectId}.`
+    `Failed to read runtimes for ${projectId}.`,
   );
 
   return {
@@ -503,25 +541,29 @@ async function loadExecutionFeeds(projectId) {
 }
 
 function selectDashboardLinkedDiscoveryLane(snapshot, target) {
-  return (snapshot.dashboard.json.reviewCenter?.discovery?.records || []).filter(
+  return (
+    snapshot.dashboard.json.reviewCenter?.discovery?.records || []
+  ).filter(
     (record) =>
       Boolean(record.chain) &&
       matchesChainScope(record.chain, target.routeScope) &&
-      matchesDiscoveryLane(record, "linked")
+      matchesDiscoveryLane(record, "linked"),
   );
 }
 
 function selectPortfolioCriticalHotspotIssues(snapshot, target) {
   const chain = findPortfolioRecord(
     snapshot.portfolio.json.records,
-    target.routeScope.projectId
+    target.routeScope.projectId,
   );
   assert(
     chain,
-    `Portfolio hotspot chain did not resolve project ${target.routeScope.projectId}.`
+    `Portfolio hotspot chain did not resolve project ${target.routeScope.projectId}.`,
   );
 
-  const records = (snapshot.portfolio.json.reviewCenter?.execution?.records || [])
+  const records = (
+    snapshot.portfolio.json.reviewCenter?.execution?.records || []
+  )
     .filter((record) => matchesExecutionHotspotRecord(record, chain))
     .filter((record) => record.type === "issue");
 
@@ -534,16 +576,16 @@ function selectPortfolioCriticalHotspotIssues(snapshot, target) {
 function selectPortfolioDecisionHotspot(snapshot, target) {
   const chain = findPortfolioRecord(
     snapshot.portfolio.json.records,
-    target.routeScope.projectId
+    target.routeScope.projectId,
   );
   assert(
     chain,
-    `Portfolio hotspot chain did not resolve project ${target.routeScope.projectId}.`
+    `Portfolio hotspot chain did not resolve project ${target.routeScope.projectId}.`,
   );
 
-  const records = (snapshot.portfolio.json.reviewCenter?.execution?.records || []).filter(
-    (record) => matchesExecutionHotspotRecord(record, chain)
-  );
+  const records = (
+    snapshot.portfolio.json.reviewCenter?.execution?.records || []
+  ).filter((record) => matchesExecutionHotspotRecord(record, chain));
 
   return {
     chain,
@@ -562,6 +604,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -591,7 +634,7 @@ try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
   const suiteTargets = parseSuiteTargets(
-    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || "",
   );
 
   const before = await loadGlobalSurfaces();
@@ -600,42 +643,43 @@ try {
 
   const dashboardDiscoveryRecords = selectDashboardLinkedDiscoveryLane(
     before,
-    suiteTargets["discovery-pass"]
+    suiteTargets["discovery-pass"],
   );
   const portfolioCritical = selectPortfolioCriticalHotspotIssues(
     before,
-    suiteTargets["critical-pass"]
+    suiteTargets["critical-pass"],
   );
   const portfolioDecision = selectPortfolioDecisionHotspot(
     before,
-    suiteTargets["decision-pass"]
+    suiteTargets["decision-pass"],
   );
 
   assert(
     dashboardDiscoveryRecords.length > 0,
-    "Dashboard linked lane did not expose any discovery records."
+    "Dashboard linked lane did not expose any discovery records.",
   );
   assert(
     portfolioCritical.records.length > 0,
-    "Portfolio critical hotspot did not expose any issue records."
+    "Portfolio critical hotspot did not expose any issue records.",
   );
   assert(
     portfolioDecision.approvals.length > 0,
-    "Portfolio decision hotspot did not expose any approval records."
+    "Portfolio decision hotspot did not expose any approval records.",
   );
   assert(
     portfolioDecision.runtimes.length > 0,
-    "Portfolio decision hotspot did not expose any runtime records."
+    "Portfolio decision hotspot did not expose any runtime records.",
   );
 
   const deterministicCriticalIssueId = firstString(
-    suiteTargets["critical-pass"].actionTargets?.execution?.issue?.issueId
+    suiteTargets["critical-pass"].actionTargets?.execution?.issue?.issueId,
   );
   const deterministicDecisionApprovalId = firstString(
-    suiteTargets["decision-pass"].actionTargets?.execution?.approval?.approvalId
+    suiteTargets["decision-pass"].actionTargets?.execution?.approval
+      ?.approvalId,
   );
   const deterministicDecisionRuntimeId = firstString(
-    suiteTargets["decision-pass"].actionTargets?.execution?.runtime?.runtimeId
+    suiteTargets["decision-pass"].actionTargets?.execution?.runtime?.runtimeId,
   );
 
   if (deterministicCriticalIssueId) {
@@ -644,10 +688,10 @@ try {
         findById(
           portfolioCritical.records.map((record) => record.issue),
           "id",
-          deterministicCriticalIssueId
-        )
+          deterministicCriticalIssueId,
+        ),
       ),
-      `Portfolio hotspot issue selection does not include deterministic issue ${deterministicCriticalIssueId}.`
+      `Portfolio hotspot issue selection does not include deterministic issue ${deterministicCriticalIssueId}.`,
     );
   }
   if (deterministicDecisionApprovalId) {
@@ -656,10 +700,10 @@ try {
         findById(
           portfolioDecision.approvals.map((record) => record.approval),
           "id",
-          deterministicDecisionApprovalId
-        )
+          deterministicDecisionApprovalId,
+        ),
       ),
-      `Portfolio hotspot approval selection does not include deterministic approval ${deterministicDecisionApprovalId}.`
+      `Portfolio hotspot approval selection does not include deterministic approval ${deterministicDecisionApprovalId}.`,
     );
   }
   if (deterministicDecisionRuntimeId) {
@@ -668,10 +712,10 @@ try {
         findById(
           portfolioDecision.runtimes.map((record) => record.runtime),
           "id",
-          deterministicDecisionRuntimeId
-        )
+          deterministicDecisionRuntimeId,
+        ),
       ),
-      `Portfolio hotspot runtime selection does not include deterministic runtime ${deterministicDecisionRuntimeId}.`
+      `Portfolio hotspot runtime selection does not include deterministic runtime ${deterministicDecisionRuntimeId}.`,
     );
   }
 
@@ -693,7 +737,7 @@ try {
   for (const record of portfolioCritical.records) {
     const result = await postExecutionIssueResolve(
       record,
-      "portfolio-critical-hotspot"
+      "portfolio-critical-hotspot",
     );
     if (!result.skipped) {
       processedIssueIds.push(record.issue.id);
@@ -704,7 +748,7 @@ try {
   for (const record of portfolioDecision.approvals) {
     const result = await postExecutionApprovalApprove(
       record,
-      "portfolio-decision-hotspot"
+      "portfolio-decision-hotspot",
     );
     if (!result.skipped) {
       processedApprovalIds.push(record.approval.id);
@@ -715,7 +759,7 @@ try {
   for (const record of portfolioDecision.runtimes) {
     const result = await postExecutionRuntimeAllow(
       record,
-      "portfolio-decision-hotspot"
+      "portfolio-decision-hotspot",
     );
     if (!result.skipped) {
       processedRuntimeIds.push(record.runtime.id);
@@ -726,16 +770,19 @@ try {
   const afterCriticalFeeds = await loadExecutionFeeds(criticalProjectId);
   const afterDecisionFeeds = await loadExecutionFeeds(decisionProjectId);
 
-  for (const [ideaId, beforeDossierPayload] of discoveryRecordsByIdeaId.entries()) {
+  for (const [
+    ideaId,
+    beforeDossierPayload,
+  ] of discoveryRecordsByIdeaId.entries()) {
     const beforeDecisionIds = new Set(
       (beforeDossierPayload.json.dossier?.decisions || []).map(
-        (decision) => decision.decision_id
-      )
+        (decision) => decision.decision_id,
+      ),
     );
     const afterDossierPayload = await loadDossierSnapshot(ideaId);
     const afterDossier = afterDossierPayload.json.dossier;
     const relatedRecords = dashboardDiscoveryRecords.filter(
-      (record) => record.dossier.idea.idea_id === ideaId
+      (record) => record.dossier.idea.idea_id === ideaId,
     );
 
     for (const record of relatedRecords) {
@@ -744,64 +791,82 @@ try {
           (decision) =>
             !beforeDecisionIds.has(decision.decision_id) &&
             decision.decision_type === discoveryDecisionType(record.kind) &&
-            String(decision.metadata?.source || "") === "live-review-pressure-actions" &&
-            String(decision.metadata?.step || "") === "dashboard-linked-lane"
+            String(decision.metadata?.source || "") ===
+              "live-review-pressure-actions" &&
+            String(decision.metadata?.step || "") === "dashboard-linked-lane",
         ) ?? null;
 
       assert(
         createdDecision,
-        `Dashboard review-pressure lane did not append a new ${discoveryDecisionType(record.kind)} decision for ${ideaId}.`
+        `Dashboard review-pressure lane did not append a new ${discoveryDecisionType(record.kind)} decision for ${ideaId}.`,
       );
     }
   }
 
   const beforeCriticalPortfolioRecord = findPortfolioRecord(
     before.portfolio.json.records,
-    criticalProjectId
+    criticalProjectId,
   );
   const afterCriticalPortfolioRecord = findPortfolioRecord(
     after.portfolio.json.records,
-    criticalProjectId
+    criticalProjectId,
   );
   const beforeDecisionPortfolioRecord = findPortfolioRecord(
     before.portfolio.json.records,
-    decisionProjectId
+    decisionProjectId,
   );
   const afterDecisionPortfolioRecord = findPortfolioRecord(
     after.portfolio.json.records,
-    decisionProjectId
+    decisionProjectId,
   );
   const processedRuntimeIdSet = new Set(processedRuntimeIds);
 
   for (const record of portfolioCritical.records) {
     assert(
-      !findById(afterCriticalFeeds.issuesOpen.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the raw open issue feed after portfolio hotspot triage.`
+      !findById(
+        afterCriticalFeeds.issuesOpen.json.issues || [],
+        "id",
+        record.issue.id,
+      ),
+      `Execution issue ${record.issue.id} still appears in the raw open issue feed after portfolio hotspot triage.`,
     );
     assert(
-      findById(afterCriticalFeeds.issuesAll.json.issues || [], "id", record.issue.id)
-        ?.status === "resolved",
-      `Execution issue ${record.issue.id} is missing from the all-issues feed with resolved status after portfolio hotspot triage.`
+      findById(
+        afterCriticalFeeds.issuesAll.json.issues || [],
+        "id",
+        record.issue.id,
+      )?.status === "resolved",
+      `Execution issue ${record.issue.id} is missing from the all-issues feed with resolved status after portfolio hotspot triage.`,
     );
     assert(
       !findById(after.inbox.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`
+      `Execution issue ${record.issue.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`,
     );
     assert(
       !findById(after.dashboard.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`
+      `Execution issue ${record.issue.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} still appears in the unified review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} still appears in the unified review snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} still appears in the execution review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} still appears in the execution review snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findById(afterCriticalPortfolioRecord?.attention?.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`
+      !findById(
+        afterCriticalPortfolioRecord?.attention?.issues || [],
+        "id",
+        record.issue.id,
+      ),
+      `Execution issue ${record.issue.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`,
     );
   }
 
@@ -810,38 +875,47 @@ try {
       !findById(
         afterDecisionFeeds.approvalsPending.json.approvals || [],
         "id",
-        record.approval.id
+        record.approval.id,
       ),
-      `Execution approval ${record.approval.id} still appears in the raw pending approval feed after portfolio hotspot triage.`
+      `Execution approval ${record.approval.id} still appears in the raw pending approval feed after portfolio hotspot triage.`,
     );
     assert(
-      findById(afterDecisionFeeds.approvalsAll.json.approvals || [], "id", record.approval.id)
-        ?.status === "approved",
-      `Execution approval ${record.approval.id} is missing from the all-approvals feed with approved status after portfolio hotspot triage.`
+      findById(
+        afterDecisionFeeds.approvalsAll.json.approvals || [],
+        "id",
+        record.approval.id,
+      )?.status === "approved",
+      `Execution approval ${record.approval.id} is missing from the all-approvals feed with approved status after portfolio hotspot triage.`,
     );
     assert(
       !findById(after.inbox.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`
+      `Execution approval ${record.approval.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`,
     );
     assert(
       !findById(after.dashboard.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`
+      `Execution approval ${record.approval.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} still appears in the unified review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} still appears in the unified review snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} still appears in the execution review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} still appears in the execution review snapshot after portfolio hotspot triage.`,
     );
     assert(
       !findById(
         afterDecisionPortfolioRecord?.attention?.approvals || [],
         "id",
-        record.approval.id
+        record.approval.id,
       ),
-      `Execution approval ${record.approval.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`
+      `Execution approval ${record.approval.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`,
     );
   }
 
@@ -850,18 +924,18 @@ try {
       !findById(
         afterDecisionFeeds.runtimesPending.json.runtimes || [],
         "id",
-        record.runtime.id
+        record.runtime.id,
       ),
-      `Execution runtime ${record.runtime.id} still appears in the raw pending runtime feed after portfolio hotspot triage.`
+      `Execution runtime ${record.runtime.id} still appears in the raw pending runtime feed after portfolio hotspot triage.`,
     );
     const resolvedRuntime = findById(
       afterDecisionFeeds.runtimesAll.json.runtimes || [],
       "id",
-      record.runtime.id
+      record.runtime.id,
     );
     assert(
       resolvedRuntime?.status === "resolved",
-      `Execution runtime ${record.runtime.id} is missing from the all-runtimes feed with resolved status after portfolio hotspot triage.`
+      `Execution runtime ${record.runtime.id} is missing from the all-runtimes feed with resolved status after portfolio hotspot triage.`,
     );
     if (processedRuntimeIdSet.has(record.runtime.id)) {
       assert(
@@ -869,34 +943,40 @@ try {
           resolvedRuntime?.resolved_behavior ||
             resolvedRuntime?.metadata?.pending?.resolved_behavior ||
             resolvedRuntime?.outcome ||
-            ""
+            "",
         ) === "allow",
-        `Execution runtime ${record.runtime.id} is not marked as allowed after portfolio hotspot triage.`
+        `Execution runtime ${record.runtime.id} is not marked as allowed after portfolio hotspot triage.`,
       );
     }
     assert(
       !findById(after.inbox.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`
+      `Execution runtime ${record.runtime.id} still appears in the shell inbox snapshot after portfolio hotspot triage.`,
     );
     assert(
       !findById(after.dashboard.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`
+      `Execution runtime ${record.runtime.id} still appears in the shell dashboard snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} still appears in the unified review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} still appears in the unified review snapshot after portfolio hotspot triage.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} still appears in the execution review snapshot after portfolio hotspot triage.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} still appears in the execution review snapshot after portfolio hotspot triage.`,
     );
     assert(
       !findById(
         afterDecisionPortfolioRecord?.attention?.runtimes || [],
         "id",
-        record.runtime.id
+        record.runtime.id,
       ),
-      `Execution runtime ${record.runtime.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`
+      `Execution runtime ${record.runtime.id} still appears in the portfolio attention rollup after portfolio hotspot triage.`,
     );
   }
 
@@ -905,7 +985,7 @@ try {
       (afterCriticalPortfolioRecord.attention?.total ?? 0) <=
         (beforeCriticalPortfolioRecord.attention?.total ?? 0) -
           processedIssueIds.length,
-      "Critical chain portfolio attention total did not drop after hotspot issue triage."
+      "Critical chain portfolio attention total did not drop after hotspot issue triage.",
     );
   }
 
@@ -914,7 +994,7 @@ try {
       (afterDecisionPortfolioRecord.attention?.total ?? 0) <=
         (beforeDecisionPortfolioRecord.attention?.total ?? 0) -
           (processedApprovalIds.length + processedRuntimeIds.length),
-      "Decision chain portfolio attention total did not drop after hotspot decision triage."
+      "Decision chain portfolio attention total did not drop after hotspot decision triage.",
     );
   }
 
@@ -927,14 +1007,18 @@ try {
           role: suiteTargets["discovery-pass"].role,
           scenario: suiteTargets["discovery-pass"].scenario,
           routeScope: suiteTargets["discovery-pass"].routeScope,
-          selectedDiscoveryKeys: dashboardDiscoveryRecords.map((record) => record.key),
+          selectedDiscoveryKeys: dashboardDiscoveryRecords.map(
+            (record) => record.key,
+          ),
         },
         portfolioCriticalHotspot: {
           role: suiteTargets["critical-pass"].role,
           scenario: suiteTargets["critical-pass"].scenario,
           routeScope: suiteTargets["critical-pass"].routeScope,
           chainKey: firstString(portfolioCritical.chain?.key),
-          selectedIssueIds: portfolioCritical.records.map((record) => record.issue.id),
+          selectedIssueIds: portfolioCritical.records.map(
+            (record) => record.issue.id,
+          ),
         },
         portfolioDecisionHotspot: {
           role: suiteTargets["decision-pass"].role,
@@ -942,10 +1026,10 @@ try {
           routeScope: suiteTargets["decision-pass"].routeScope,
           chainKey: firstString(portfolioDecision.chain?.key),
           selectedApprovalIds: portfolioDecision.approvals.map(
-            (record) => record.approval.id
+            (record) => record.approval.id,
           ),
           selectedRuntimeIds: portfolioDecision.runtimes.map(
-            (record) => record.runtime.id
+            (record) => record.runtime.id,
           ),
         },
       },
@@ -957,7 +1041,7 @@ try {
       },
       surfacesBefore: summarizeSurfaceCounts(before),
       surfacesAfter: summarizeSurfaceCounts(after),
-    })
+    }),
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

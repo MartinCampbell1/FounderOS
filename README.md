@@ -33,12 +33,26 @@ git submodule update --init --recursive
 Both bootstrap and stack startup fail non-zero when required runtime roots or entrypoints are
 missing.
 
+## Production Boundaries
+
+This repository is the release coordinator for the FounderOS stack, not a standalone
+single-repo production deploy unit.
+
+- `autopilot` and `quorum` remain pinned runtime inputs via git submodules.
+- production release verification must always cover the root repo and both pinned submodules together.
+- high-risk shell diagnostics and mutation routes under `/api/shell/*` should be treated as
+  admin-only surfaces in production.
+- the local execution-brief handoff filesystem store is a development bridge, not a durable
+  shared production datastore.
+
 ## Toolchains
 
 - Node.js `>=20`
 - npm `>=10`
 - Python `3.13` for `quorum`
 - Python `3.13+` for `autopilot` unless the submodule README says otherwise
+
+Use `.env.example` as the baseline env contract for local and pre-prod setup.
 
 ## Bootstrap
 
@@ -90,6 +104,7 @@ Canonical public release docs:
 
 - [Truth matrix](docs/founderos-truth-matrix.md)
 - [Release checklist](docs/release-checklist.md)
+- [Release debug playbook](docs/release-debug-playbook.md)
 - [Change log](CHANGELOG.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)

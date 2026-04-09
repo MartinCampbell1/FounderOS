@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export interface ExecutionBriefHandoffRecord {
@@ -24,36 +23,55 @@ export interface ExecutionBriefHandoffStoreAudit {
 }
 
 const HANDOFF_TTL_MS = 1000 * 60 * 30;
+const MAX_HANDOFFS = 200;
 const HANDOFF_STORE_PATH =
   process.env.FOUNDEROS_EXECUTION_HANDOFF_STORE_PATH ||
-  join(tmpdir(), "founderos-shell", "execution-brief-handoffs.json");
+  join(process.cwd(), ".founderos-shell", "execution-brief-handoffs.json");
+
+function assertHandoffStoreConfigured() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Execution brief handoff store is disabled in production until a durable shared datastore replaces the filesystem bridge.",
+    );
+  }
+}
 
 function readHandoffStore() {
+  assertHandoffStoreConfigured();
   try {
     const payload = JSON.parse(
-      readFileSync(/* turbopackIgnore: true */ HANDOFF_STORE_PATH, "utf8")
+      readFileSync(/* turbopackIgnore: true */ HANDOFF_STORE_PATH, "utf8"),
     ) as { handoffs?: ExecutionBriefHandoffRecord[] };
     const entries = Array.isArray(payload.handoffs) ? payload.handoffs : [];
     return new Map(entries.map((record) => [record.id, record]));
-  } catch {
-    return new Map<string, ExecutionBriefHandoffRecord>();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return new Map<string, ExecutionBriefHandoffRecord>();
+    }
+    throw error;
   }
 }
 
 function writeHandoffStore(store: Map<string, ExecutionBriefHandoffRecord>) {
+  assertHandoffStoreConfigured();
   mkdirSync(dirname(/* turbopackIgnore: true */ HANDOFF_STORE_PATH), {
     recursive: true,
   });
+  const tempPath = `${HANDOFF_STORE_PATH}.${process.pid}.${randomUUID()}.tmp`;
   writeFileSync(
-    /* turbopackIgnore: true */ HANDOFF_STORE_PATH,
+    /* turbopackIgnore: true */ tempPath,
     JSON.stringify({ handoffs: [...store.values()] }, null, 2),
-    "utf8"
+    "utf8",
+  );
+  renameSync(
+    /* turbopackIgnore: true */ tempPath,
+    /* turbopackIgnore: true */ HANDOFF_STORE_PATH,
   );
 }
 
 function cleanupExpiredHandoffs(
   handoffStore: Map<string, ExecutionBriefHandoffRecord>,
-  now = Date.now()
+  now = Date.now(),
 ) {
   for (const [id, record] of handoffStore.entries()) {
     const expiresAt = Date.parse(record.expires_at);
@@ -61,6 +79,13 @@ function cleanupExpiredHandoffs(
       continue;
     }
     handoffStore.delete(id);
+  }
+
+  const records = [...handoffStore.values()].sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  );
+  for (const record of records.slice(MAX_HANDOFFS)) {
+    handoffStore.delete(record.id);
   }
 }
 
@@ -96,7 +121,7 @@ export function createExecutionBriefHandoff(input: {
 }
 
 export function getExecutionBriefHandoff(
-  handoffId: string
+  handoffId: string,
 ): ExecutionBriefHandoffRecord | null {
   const handoffStore = readHandoffStore();
   cleanupExpiredHandoffs(handoffStore);
@@ -107,8 +132,9 @@ export function getExecutionBriefHandoff(
 export function listExecutionBriefHandoffs(): ExecutionBriefHandoffRecord[] {
   const handoffStore = readHandoffStore();
   cleanupExpiredHandoffs(handoffStore);
+  writeHandoffStore(handoffStore);
   return [...handoffStore.values()].sort(
-    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
   );
 }
 

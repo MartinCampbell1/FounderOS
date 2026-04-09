@@ -9,6 +9,10 @@ import {
   serializeShellPreferencesCookie,
   SHELL_PREFERENCES_COOKIE_NAME,
 } from "@/lib/shell-preferences-contract";
+import {
+  isSameOriginMutation,
+  isShellBodyTooLarge,
+} from "@/lib/shell-security";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +21,7 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 async function readCurrentPreferences() {
   const cookieStore = await cookies();
   return parseShellPreferencesCookie(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
+    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value,
   );
 }
 
@@ -28,20 +32,31 @@ function isPreferencePatch(value: unknown): value is Partial<ShellPreferences> {
 export async function GET() {
   const { source, preferences } = await readCurrentPreferences();
   return NextResponse.json(
-    buildShellOperatorPreferencesSnapshot(preferences, source)
+    buildShellOperatorPreferencesSnapshot(preferences, source),
   );
 }
 
 export async function PUT(request: Request) {
+  if (!isSameOriginMutation(request)) {
+    return NextResponse.json(
+      { error: "Cross-site shell preference updates are not allowed." },
+      { status: 403 },
+    );
+  }
+
+  if (isShellBodyTooLarge(request)) {
+    return NextResponse.json(
+      { error: "Shell preference payload is too large." },
+      { status: 413 },
+    );
+  }
+
   let payload: unknown;
 
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const current = await readCurrentPreferences();
@@ -55,7 +70,7 @@ export async function PUT(request: Request) {
     requestUrl.protocol === "https:";
 
   const response = NextResponse.json(
-    buildShellOperatorPreferencesSnapshot(nextPreferences, "cookie")
+    buildShellOperatorPreferencesSnapshot(nextPreferences, "cookie"),
   );
 
   response.cookies.set(
@@ -63,11 +78,11 @@ export async function PUT(request: Request) {
     serializeShellPreferencesCookie(nextPreferences),
     {
       path: "/",
-      sameSite: "lax",
+      sameSite: "strict",
       httpOnly: false,
       secure: isSecureRequest,
       maxAge: COOKIE_MAX_AGE_SECONDS,
-    }
+    },
   );
 
   return response;

@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { buildShellRuntimeSnapshot } from "@/lib/runtime";
+import {
+  buildShellRuntimeSnapshot,
+  sanitizeShellRuntimeSnapshot,
+} from "@/lib/runtime";
 import {
   resolveShellOperatorPreferencesSnapshot,
   SHELL_PREFERENCES_COOKIE_NAME,
@@ -12,8 +15,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const cookieStore = await cookies();
   const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
+    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value,
   );
   const snapshot = await buildShellRuntimeSnapshot(operatorControls);
-  return NextResponse.json(snapshot);
+  const publicSnapshot = sanitizeShellRuntimeSnapshot(snapshot);
+  return NextResponse.json(publicSnapshot, {
+    status: publicSnapshot.loadState === "error" ? 503 : 200,
+  });
 }

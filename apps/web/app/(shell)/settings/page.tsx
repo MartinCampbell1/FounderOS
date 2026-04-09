@@ -1,4 +1,5 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { notFound } from "next/navigation";
 
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
 import { buildShellParityAuditSnapshot } from "@/lib/shell-parity-audit";
@@ -11,6 +12,10 @@ import {
 } from "@/lib/route-scope";
 import { buildShellContractAuditSnapshot } from "@/lib/shell-contract-audit";
 import { buildShellRuntimeSnapshot } from "@/lib/runtime";
+import {
+  isShellAdminTokenAuthorized,
+  requiresShellAdminAccess,
+} from "@/lib/shell-security";
 import {
   resolveShellOperatorPreferencesSnapshot,
   SHELL_PREFERENCES_COOKIE_NAME,
@@ -29,8 +34,21 @@ export default async function SettingsPage({
   const routeScope = readShellRouteScopeFromQueryRecord(params);
   const parityTargets = readShellSettingsParityTargetsFromQueryRecord(params);
   const cookieStore = await cookies();
+  const headerStore = await headers();
+  const authorization = headerStore.get("authorization") || "";
+  const headerToken = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : headerStore.get("x-founderos-shell-admin-token") || "";
+  const cookieToken =
+    cookieStore.get("founderos-shell-admin-token")?.value || "";
+  if (
+    requiresShellAdminAccess() &&
+    !isShellAdminTokenAuthorized(headerToken || cookieToken)
+  ) {
+    notFound();
+  }
   const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
+    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value,
   );
   const [
     initialRuntimeSnapshot,
@@ -42,9 +60,11 @@ export default async function SettingsPage({
     buildShellParityTargetsSnapshot(),
   ]);
   const effectiveRouteScope = normalizeShellRouteScope({
-    projectId: routeScope.projectId || initialParityTargetSnapshot.routeScope.projectId,
+    projectId:
+      routeScope.projectId || initialParityTargetSnapshot.routeScope.projectId,
     intakeSessionId:
-      routeScope.intakeSessionId || initialParityTargetSnapshot.routeScope.intakeSessionId,
+      routeScope.intakeSessionId ||
+      initialParityTargetSnapshot.routeScope.intakeSessionId,
   });
   const effectiveParityTargets = normalizeShellSettingsParityTargets({
     discoverySessionId:

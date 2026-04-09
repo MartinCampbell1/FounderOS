@@ -15,7 +15,7 @@ const externalBaseUrl = (process.env.FOUNDEROS_PARITY_BASE_URL || "")
 const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,6 +25,9 @@ const port =
   String(3860 + Math.floor(Math.random() * 100));
 const host = process.env.FOUNDEROS_WEB_HOST ?? "127.0.0.1";
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-parity-admin-token"
+).trim();
 const allowBlocked =
   process.env.FOUNDEROS_PARITY_ALLOW_BLOCKED === "1" ||
   process.env.FOUNDEROS_PARITY_ALLOW_BLOCKED === "true";
@@ -39,11 +42,11 @@ const requireDiverseScenarios =
   process.env.FOUNDEROS_PARITY_REQUIRE_DIVERSE_SCENARIOS === "true";
 const requestedMinCompleteChainCount = Number.parseInt(
   process.env.FOUNDEROS_PARITY_MIN_COMPLETE_CHAIN_COUNT || "0",
-  10
+  10,
 );
 const requestedMinScenarioVariantCount = Number.parseInt(
   process.env.FOUNDEROS_PARITY_MIN_SCENARIO_VARIANT_COUNT || "2",
-  10
+  10,
 );
 const minCompleteChainCount =
   Number.isInteger(requestedMinCompleteChainCount) &&
@@ -58,7 +61,9 @@ const minScenarioVariantCount =
 
 const explicitParityScope = {
   project_id: (process.env.FOUNDEROS_PARITY_PROJECT_ID || "").trim(),
-  intake_session_id: (process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || "").trim(),
+  intake_session_id: (
+    process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || ""
+  ).trim(),
   session_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_SESSION_ID || "").trim(),
   idea_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_IDEA_ID || "").trim(),
 };
@@ -101,15 +106,19 @@ function findAudit(audits, label) {
 }
 
 function findParityRecord(audits, label, key) {
-  return findAudit(audits, label)?.json?.records?.find((record) => record.key === key) ?? null;
+  return (
+    findAudit(audits, label)?.json?.records?.find(
+      (record) => record.key === key,
+    ) ?? null
+  );
 }
 
 function hasCompleteParityScope(scope) {
   return Boolean(
     scope.project_id &&
-      scope.intake_session_id &&
-      scope.session_id &&
-      scope.idea_id
+    scope.intake_session_id &&
+    scope.session_id &&
+    scope.idea_id,
   );
 }
 
@@ -132,7 +141,15 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+    },
+  });
   const json = await response.json();
   return { response, json };
 }
@@ -150,20 +167,24 @@ function collectStatus(records, status, auditLabel) {
 }
 
 function validateParityAudit(payload, label, requiresDrilldowns) {
-  assert(payload.response.status === 200, `${label} parity route must return 200.`);
+  assert(
+    payload.response.status === 200,
+    `${label} parity route must return 200.`,
+  );
   assert(
     Array.isArray(payload.json.records) && payload.json.records.length > 0,
-    `${label} parity route must include parity records.`
+    `${label} parity route must include parity records.`,
   );
   assert(
     payload.json.summary && payload.json.drilldownSummary,
-    `${label} parity route must include summary counts.`
+    `${label} parity route must include summary counts.`,
   );
 
   if (requiresDrilldowns) {
     assert(
-      Array.isArray(payload.json.drilldowns) && payload.json.drilldowns.length > 0,
-      `${label} parity route must include detail drilldowns.`
+      Array.isArray(payload.json.drilldowns) &&
+        payload.json.drilldowns.length > 0,
+      `${label} parity route must include detail drilldowns.`,
     );
   }
 }
@@ -188,6 +209,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -216,51 +238,58 @@ const teardown = async () => {
 try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
-  const parityTargetsSnapshot = await fetchJson(contract.liveRoutes.parityTargets);
-  assert(
-    parityTargetsSnapshot.response.status === 200,
-    "Shell parity target route must return 200."
+  const parityTargetsSnapshot = await fetchJson(
+    contract.liveRoutes.parityTargets,
   );
   assert(
-    parityTargetsSnapshot.json.routeScope && parityTargetsSnapshot.json.parityTargets,
-    "Shell parity target route must include route scope and parity targets."
+    parityTargetsSnapshot.response.status === 200,
+    "Shell parity target route must return 200.",
+  );
+  assert(
+    parityTargetsSnapshot.json.routeScope &&
+      parityTargetsSnapshot.json.parityTargets,
+    "Shell parity target route must include route scope and parity targets.",
   );
   assert(
     Array.isArray(parityTargetsSnapshot.json.records),
-    "Shell parity target route must include parity target records."
+    "Shell parity target route must include parity target records.",
   );
   assert(
     parityTargetsSnapshot.json.coverage &&
       typeof parityTargetsSnapshot.json.coverage.candidateCount === "number" &&
-      typeof parityTargetsSnapshot.json.coverage.completeLinkedChainCount === "number",
-    "Shell parity target route must include target resolution coverage diagnostics."
+      typeof parityTargetsSnapshot.json.coverage.completeLinkedChainCount ===
+        "number",
+    "Shell parity target route must include target resolution coverage diagnostics.",
   );
 
-  const discoveredParityScope = buildDiscoveredParityScope(parityTargetsSnapshot.json);
+  const discoveredParityScope = buildDiscoveredParityScope(
+    parityTargetsSnapshot.json,
+  );
   const targetCoverage = parityTargetsSnapshot.json.coverage;
   const resolvedParityScope = mergeParityScope(
     explicitParityScope,
-    discoveredParityScope
+    discoveredParityScope,
   );
   const parityPath = buildParityPath(resolvedParityScope);
   const resolvedCompleteChain = hasCompleteParityScope(resolvedParityScope);
 
   if (requireCompleteChain && !resolvedCompleteChain) {
     throw new Error(
-      `Live parity requires a complete linked chain target, but only resolved project=${resolvedParityScope.project_id || "n/a"}, intake=${resolvedParityScope.intake_session_id || "n/a"}, session=${resolvedParityScope.session_id || "n/a"}, idea=${resolvedParityScope.idea_id || "n/a"} with ${targetCoverage.completeLinkedChainCount}/${targetCoverage.linkedChainCandidateCount} complete chain candidates.`
+      `Live parity requires a complete linked chain target, but only resolved project=${resolvedParityScope.project_id || "n/a"}, intake=${resolvedParityScope.intake_session_id || "n/a"}, session=${resolvedParityScope.session_id || "n/a"}, idea=${resolvedParityScope.idea_id || "n/a"} with ${targetCoverage.completeLinkedChainCount}/${targetCoverage.linkedChainCandidateCount} complete chain candidates.`,
     );
   }
 
   const requiredCompleteChainCount = Math.max(
     minCompleteChainCount,
-    requireCompleteChain ? 1 : 0
+    requireCompleteChain ? 1 : 0,
   );
   if (
     requiredCompleteChainCount > 0 &&
-    Number(targetCoverage.completeLinkedChainCount || 0) < requiredCompleteChainCount
+    Number(targetCoverage.completeLinkedChainCount || 0) <
+      requiredCompleteChainCount
   ) {
     throw new Error(
-      `Live parity requires at least ${requiredCompleteChainCount} complete linked chains, but only found ${targetCoverage.completeLinkedChainCount}/${targetCoverage.linkedChainCandidateCount} complete chain candidates.`
+      `Live parity requires at least ${requiredCompleteChainCount} complete linked chains, but only found ${targetCoverage.completeLinkedChainCount}/${targetCoverage.linkedChainCandidateCount} complete chain candidates.`,
     );
   }
 
@@ -306,7 +335,7 @@ try {
     for (const expectation of diversityExpectations) {
       assert(
         Number(targetCoverage[expectation.key] || 0) >= expectation.min,
-        `Live parity requires ${expectation.label} >= ${expectation.min}, received ${targetCoverage[expectation.key] || 0}.`
+        `Live parity requires ${expectation.label} >= ${expectation.min}, received ${targetCoverage[expectation.key] || 0}.`,
       );
     }
   }
@@ -333,22 +362,22 @@ try {
   }
 
   const driftRecords = audits.flatMap((audit) =>
-    collectStatus(audit.json.records, "drift", audit.label)
+    collectStatus(audit.json.records, "drift", audit.label),
   );
   const driftDrilldowns = audits.flatMap((audit) =>
-    collectStatus(audit.json.drilldowns ?? [], "drift", audit.label)
+    collectStatus(audit.json.drilldowns ?? [], "drift", audit.label),
   );
   const blockedRecords = audits.flatMap((audit) =>
-    collectStatus(audit.json.records, "blocked", audit.label)
+    collectStatus(audit.json.records, "blocked", audit.label),
   );
   const blockedDrilldowns = audits.flatMap((audit) =>
-    collectStatus(audit.json.drilldowns ?? [], "blocked", audit.label)
+    collectStatus(audit.json.drilldowns ?? [], "blocked", audit.label),
   );
   const errorRecords = audits.flatMap((audit) =>
-    collectStatus(audit.json.records, "error", audit.label)
+    collectStatus(audit.json.records, "error", audit.label),
   );
   const errorDrilldowns = audits.flatMap((audit) =>
-    collectStatus(audit.json.drilldowns ?? [], "error", audit.label)
+    collectStatus(audit.json.drilldowns ?? [], "error", audit.label),
   );
 
   const totalDrift = driftRecords.length + driftDrilldowns.length;
@@ -382,19 +411,19 @@ try {
 
   if (totalError > 0) {
     throw new Error(
-      `Live parity check hit ${totalError} shell parity error record(s).`
+      `Live parity check hit ${totalError} shell parity error record(s).`,
     );
   }
 
   if (totalDrift > 0) {
     throw new Error(
-      `Live parity check found ${totalDrift} shell parity drift record(s).`
+      `Live parity check found ${totalDrift} shell parity drift record(s).`,
     );
   }
 
   if (totalBlocked > 0 && !allowBlocked) {
     throw new Error(
-      `Live parity check is blocked by ${totalBlocked} unavailable upstream record(s). Re-run with FOUNDEROS_PARITY_ALLOW_BLOCKED=1 to inspect blocked output without failing.`
+      `Live parity check is blocked by ${totalBlocked} unavailable upstream record(s). Re-run with FOUNDEROS_PARITY_ALLOW_BLOCKED=1 to inspect blocked output without failing.`,
     );
   }
 
@@ -404,39 +433,113 @@ try {
       ? Math.max(Number(targetCoverage.operatorAttentionChainCount || 0), 1)
       : minGlobalCount;
     const expectations = [
-      { label: "global", key: "portfolioChains", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "global", key: "executionIssues", minShellCount: minExecutionAttentionCount, minUpstreamCount: minExecutionAttentionCount },
-      { label: "global", key: "executionApprovals", minShellCount: minExecutionAttentionCount, minUpstreamCount: minExecutionAttentionCount },
-      { label: "global", key: "executionRuntimes", minShellCount: minExecutionAttentionCount, minUpstreamCount: minExecutionAttentionCount },
-      { label: "global", key: "discoveryAuthoringQueue", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "global", key: "discoveryReviewQueue", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "global", key: "discoveryTracesSurface", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "global", key: "discoveryReplaySurface", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "global", key: "discoveryBoardSimulationsSurface", minShellCount: minGlobalCount, minUpstreamCount: minGlobalCount },
-      { label: "scoped", key: "executionReviewQueue", minShellCount: 3, minUpstreamCount: 3 },
-      { label: "scoped", key: "reviewCenterExecution", minShellCount: 3, minUpstreamCount: 3 },
-      { label: "scoped", key: "reviewCenterDiscovery", minShellCount: 1, minUpstreamCount: 1 },
-      { label: "scoped", key: "dashboardAttentionQueue", minShellCount: 3, minUpstreamCount: 3 },
-      { label: "scoped", key: "inboxAttentionQueue", minShellCount: 3, minUpstreamCount: 3 },
+      {
+        label: "global",
+        key: "portfolioChains",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "global",
+        key: "executionIssues",
+        minShellCount: minExecutionAttentionCount,
+        minUpstreamCount: minExecutionAttentionCount,
+      },
+      {
+        label: "global",
+        key: "executionApprovals",
+        minShellCount: minExecutionAttentionCount,
+        minUpstreamCount: minExecutionAttentionCount,
+      },
+      {
+        label: "global",
+        key: "executionRuntimes",
+        minShellCount: minExecutionAttentionCount,
+        minUpstreamCount: minExecutionAttentionCount,
+      },
+      {
+        label: "global",
+        key: "discoveryAuthoringQueue",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "global",
+        key: "discoveryReviewQueue",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "global",
+        key: "discoveryTracesSurface",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "global",
+        key: "discoveryReplaySurface",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "global",
+        key: "discoveryBoardSimulationsSurface",
+        minShellCount: minGlobalCount,
+        minUpstreamCount: minGlobalCount,
+      },
+      {
+        label: "scoped",
+        key: "executionReviewQueue",
+        minShellCount: 3,
+        minUpstreamCount: 3,
+      },
+      {
+        label: "scoped",
+        key: "reviewCenterExecution",
+        minShellCount: 3,
+        minUpstreamCount: 3,
+      },
+      {
+        label: "scoped",
+        key: "reviewCenterDiscovery",
+        minShellCount: 1,
+        minUpstreamCount: 1,
+      },
+      {
+        label: "scoped",
+        key: "dashboardAttentionQueue",
+        minShellCount: 3,
+        minUpstreamCount: 3,
+      },
+      {
+        label: "scoped",
+        key: "inboxAttentionQueue",
+        minShellCount: 3,
+        minUpstreamCount: 3,
+      },
     ];
 
     for (const expectation of expectations) {
-      const record = findParityRecord(audits, expectation.label, expectation.key);
+      const record = findParityRecord(
+        audits,
+        expectation.label,
+        expectation.key,
+      );
       assert(
         record,
-        `Live parity requires operator-rich record ${expectation.label}:${expectation.key}.`
+        `Live parity requires operator-rich record ${expectation.label}:${expectation.key}.`,
       );
       assert(
         record.status === "ok",
-        `Live parity requires ${expectation.label}:${expectation.key} to be ok, received ${record.status}.`
+        `Live parity requires ${expectation.label}:${expectation.key} to be ok, received ${record.status}.`,
       );
       assert(
         Number(record.shellCount || 0) >= expectation.minShellCount,
-        `Live parity requires ${expectation.label}:${expectation.key} to expose at least ${expectation.minShellCount} shell record(s), received ${record.shellCount || 0}.`
+        `Live parity requires ${expectation.label}:${expectation.key} to expose at least ${expectation.minShellCount} shell record(s), received ${record.shellCount || 0}.`,
       );
       assert(
         Number(record.upstreamCount || 0) >= expectation.minUpstreamCount,
-        `Live parity requires ${expectation.label}:${expectation.key} to expose at least ${expectation.minUpstreamCount} upstream record(s), received ${record.upstreamCount || 0}.`
+        `Live parity requires ${expectation.label}:${expectation.key} to expose at least ${expectation.minUpstreamCount} upstream record(s), received ${record.upstreamCount || 0}.`,
       );
     }
   }
@@ -457,7 +560,9 @@ try {
       scope: resolvedParityScope,
       explicitScope: explicitParityScope,
       discoveredScope: discoveredParityScope,
-      targetQuality: resolvedCompleteChain ? "complete-linked-chain" : "partial-fallback",
+      targetQuality: resolvedCompleteChain
+        ? "complete-linked-chain"
+        : "partial-fallback",
       targetSnapshot: {
         generatedAt: parityTargetsSnapshot.json.generatedAt,
         loadState: parityTargetsSnapshot.json.loadState,
@@ -483,7 +588,7 @@ try {
         records: errorRecords,
         drilldowns: errorDrilldowns,
       },
-    })
+    }),
   );
 } catch (error) {
   console.error(
@@ -505,8 +610,8 @@ try {
         stderr: lastStderr,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
   process.exitCode = 1;
 } finally {

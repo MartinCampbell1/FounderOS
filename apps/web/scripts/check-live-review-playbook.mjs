@@ -15,7 +15,7 @@ const externalBaseUrl = (process.env.FOUNDEROS_PARITY_BASE_URL || "")
 const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -34,7 +34,7 @@ if (!VALID_PRESETS.has(preset)) {
   console.error(
     `Unsupported FOUNDEROS_REVIEW_PRESET "${preset}". Use one of: ${[
       ...VALID_PRESETS,
-    ].join(", ")}.`
+    ].join(", ")}.`,
   );
   process.exit(1);
 }
@@ -44,10 +44,15 @@ const port =
   String(3910 + Math.floor(Math.random() * 100));
 const host = process.env.FOUNDEROS_WEB_HOST ?? "127.0.0.1";
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-review-playbook-admin-token"
+).trim();
 
 const explicitScope = {
   project_id: (process.env.FOUNDEROS_PARITY_PROJECT_ID || "").trim(),
-  intake_session_id: (process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || "").trim(),
+  intake_session_id: (
+    process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || ""
+  ).trim(),
   session_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_SESSION_ID || "").trim(),
   idea_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_IDEA_ID || "").trim(),
 };
@@ -88,7 +93,7 @@ function parseActionTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_ACTION_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
@@ -105,7 +110,8 @@ function parseActionTargets(rawValue) {
       parsed?.execution && typeof parsed.execution === "object"
         ? {
             issue:
-              parsed.execution.issue && typeof parsed.execution.issue === "object"
+              parsed.execution.issue &&
+              typeof parsed.execution.issue === "object"
                 ? {
                     issueId: firstString(parsed.execution.issue.issueId),
                     projectId: firstString(parsed.execution.issue.projectId),
@@ -116,7 +122,9 @@ function parseActionTargets(rawValue) {
               parsed.execution.approval &&
               typeof parsed.execution.approval === "object"
                 ? {
-                    approvalId: firstString(parsed.execution.approval.approvalId),
+                    approvalId: firstString(
+                      parsed.execution.approval.approvalId,
+                    ),
                     projectId: firstString(parsed.execution.approval.projectId),
                     seedKey: firstString(parsed.execution.approval.seedKey),
                   }
@@ -163,7 +171,19 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const method = String(init?.method || "GET").toUpperCase();
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
+        : {}),
+    },
+  });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
     ? await response.json()
@@ -283,8 +303,7 @@ function buildPresetNeeds(activePreset) {
     issues: activePreset === "critical-pass" || activePreset === "chain-pass",
     approvals:
       activePreset === "decision-pass" || activePreset === "chain-pass",
-    runtimes:
-      activePreset === "decision-pass" || activePreset === "chain-pass",
+    runtimes: activePreset === "decision-pass" || activePreset === "chain-pass",
   };
 }
 
@@ -322,17 +341,14 @@ function matchesExecutionRecord(record, scope) {
     record?.source?.intakeSession?.id ||
       (record?.source?.sourceKind === "intake_session"
         ? record?.source?.sourceExternalId
-        : "")
+        : ""),
   );
   const discoveryIdeaId = firstString(record?.source?.discoveryIdeaId);
 
   if (scope.project_id && projectId === scope.project_id) {
     return true;
   }
-  if (
-    scope.intake_session_id &&
-    intakeSessionId === scope.intake_session_id
-  ) {
+  if (scope.intake_session_id && intakeSessionId === scope.intake_session_id) {
     return true;
   }
   if (scope.idea_id && discoveryIdeaId === scope.idea_id) {
@@ -344,7 +360,7 @@ function matchesExecutionRecord(record, scope) {
 function summarizeSurfaceCounts(payloads) {
   const portfolioRecord = findPortfolioRecord(
     payloads.portfolio?.json?.records,
-    payloads.projectId
+    payloads.projectId,
   );
 
   return {
@@ -356,8 +372,14 @@ function summarizeSurfaceCounts(payloads) {
       "execution",
       "records",
     ]),
-    discoveryReviewCount: getCollectionLength(payloads.discoveryReview, "records"),
-    executionReviewCount: getCollectionLength(payloads.executionReview, "records"),
+    discoveryReviewCount: getCollectionLength(
+      payloads.discoveryReview,
+      "records",
+    ),
+    executionReviewCount: getCollectionLength(
+      payloads.executionReview,
+      "records",
+    ),
     inboxDiscoveryOpenCount: getNestedCollectionLength(payloads.inbox, [
       "discoveryFeed",
       "items",
@@ -370,7 +392,10 @@ function summarizeSurfaceCounts(payloads) {
       "items",
     ]),
     dashboardIssueCount: getCollectionLength(payloads.dashboard, "issues"),
-    dashboardApprovalCount: getCollectionLength(payloads.dashboard, "approvals"),
+    dashboardApprovalCount: getCollectionLength(
+      payloads.dashboard,
+      "approvals",
+    ),
     dashboardRuntimeCount: getCollectionLength(payloads.dashboard, "runtimes"),
     portfolioAttentionTotal: portfolioRecord?.attention?.total ?? 0,
   };
@@ -391,7 +416,9 @@ async function resolveProjectId(scope, explicitTargets, needs) {
     return "";
   }
 
-  throw new Error("Could not resolve a project_id for execution review playbook.");
+  throw new Error(
+    "Could not resolve a project_id for execution review playbook.",
+  );
 }
 
 async function loadDossierSnapshot(ideaId) {
@@ -399,15 +426,15 @@ async function loadDossierSnapshot(ideaId) {
     `/api/shell/discovery/ideas${buildQuery({
       ideaId,
       limit: 50,
-    })}`
+    })}`,
   );
   assert(
     payload.response.status === 200,
-    `Failed to load discovery dossier for ${ideaId}.`
+    `Failed to load discovery dossier for ${ideaId}.`,
   );
   assert(
     payload.json?.dossier?.idea?.idea_id === ideaId,
-    `Shell discovery dossier snapshot did not resolve ${ideaId}.`
+    `Shell discovery dossier snapshot did not resolve ${ideaId}.`,
   );
   return payload;
 }
@@ -415,7 +442,7 @@ async function loadDossierSnapshot(ideaId) {
 async function postDiscoveryConfirm(record) {
   const response = await fetchJson(
     `/api/shell/discovery/actions/orchestrate/discovery/ideas/${encodeURIComponent(
-      record.dossier.idea.idea_id
+      record.dossier.idea.idea_id,
     )}/decisions`,
     {
       method: "POST",
@@ -428,12 +455,12 @@ async function postDiscoveryConfirm(record) {
         actor: "founder",
         metadata: discoveryDecisionMetadata(record),
       }),
-    }
+    },
   );
 
   assert(
     response.response.status === 200,
-    `Discovery review confirm failed for ${record.dossier.idea.idea_id} with ${response.response.status}.`
+    `Discovery review confirm failed for ${record.dossier.idea.idea_id} with ${response.response.status}.`,
   );
 
   return response.json;
@@ -442,7 +469,7 @@ async function postDiscoveryConfirm(record) {
 async function postExecutionIssueResolve(record) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/issues/${encodeURIComponent(
-      record.issue.id
+      record.issue.id,
     )}/resolve`,
     {
       method: "POST",
@@ -453,7 +480,7 @@ async function postExecutionIssueResolve(record) {
         actor: "founderos-shell",
         note: `Live review playbook (${preset}) resolved this execution issue.`,
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -462,11 +489,11 @@ async function postExecutionIssueResolve(record) {
 
   assert(
     response.response.status === 200,
-    `Execution issue resolve failed for ${record.issue.id} with ${response.response.status}.`
+    `Execution issue resolve failed for ${record.issue.id} with ${response.response.status}.`,
   );
   assert(
     response.json.issue?.status === "resolved",
-    `Execution issue ${record.issue.id} did not resolve.`
+    `Execution issue ${record.issue.id} did not resolve.`,
   );
 
   return { skipped: false };
@@ -475,7 +502,7 @@ async function postExecutionIssueResolve(record) {
 async function postExecutionApprovalApprove(record) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/approvals/${encodeURIComponent(
-      record.approval.id
+      record.approval.id,
     )}/approve`,
     {
       method: "POST",
@@ -486,7 +513,7 @@ async function postExecutionApprovalApprove(record) {
         actor: "founderos-shell",
         note: `Live review playbook (${preset}) approved this execution approval.`,
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -495,11 +522,11 @@ async function postExecutionApprovalApprove(record) {
 
   assert(
     response.response.status === 200,
-    `Execution approval approve failed for ${record.approval.id} with ${response.response.status}.`
+    `Execution approval approve failed for ${record.approval.id} with ${response.response.status}.`,
   );
   assert(
     response.json.approval?.status === "approved",
-    `Execution approval ${record.approval.id} did not transition to approved.`
+    `Execution approval ${record.approval.id} did not transition to approved.`,
   );
 
   return { skipped: false };
@@ -508,7 +535,7 @@ async function postExecutionApprovalApprove(record) {
 async function postExecutionRuntimeAllow(record) {
   const response = await fetchJson(
     `/api/shell/execution/actions/execution-plane/tool-permission-runtimes/${encodeURIComponent(
-      record.runtime.id
+      record.runtime.id,
     )}/allow`,
     {
       method: "POST",
@@ -520,7 +547,7 @@ async function postExecutionRuntimeAllow(record) {
         note: `Live review playbook (${preset}) allowed this tool permission runtime.`,
         source: "user",
       }),
-    }
+    },
   );
 
   if (response.response.status === 409) {
@@ -529,20 +556,20 @@ async function postExecutionRuntimeAllow(record) {
 
   assert(
     response.response.status === 200,
-    `Execution runtime allow failed for ${record.runtime.id} with ${response.response.status}.`
+    `Execution runtime allow failed for ${record.runtime.id} with ${response.response.status}.`,
   );
   assert(
     response.json.runtime?.status === "resolved",
-    `Execution runtime ${record.runtime.id} did not resolve.`
+    `Execution runtime ${record.runtime.id} did not resolve.`,
   );
   assert(
     String(
       response.json.runtime?.resolved_behavior ||
         response.json.runtime?.metadata?.pending?.resolved_behavior ||
         response.json.runtime?.outcome ||
-        ""
+        "",
     ) === "allow",
-    `Execution runtime ${record.runtime.id} did not settle with allow semantics.`
+    `Execution runtime ${record.runtime.id} did not settle with allow semantics.`,
   );
 
   return { skipped: false };
@@ -558,6 +585,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -586,26 +614,32 @@ const teardown = async () => {
 try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
-  const parityTargetsSnapshot = await fetchJson(contract.liveRoutes.parityTargets);
+  const parityTargetsSnapshot = await fetchJson(
+    contract.liveRoutes.parityTargets,
+  );
   assert(
     parityTargetsSnapshot.response.status === 200,
-    "Shell parity target route must return 200."
+    "Shell parity target route must return 200.",
   );
 
   const discoveredScope = buildDiscoveredScope(parityTargetsSnapshot.json);
   const resolvedScope = mergeScope(explicitScope, discoveredScope);
   const explicitTargets = parseActionTargets(
-    process.env.FOUNDEROS_REVIEW_ACTION_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_ACTION_TARGETS_JSON || "",
   );
   const needs = buildPresetNeeds(preset);
-  const projectId = await resolveProjectId(resolvedScope, explicitTargets, needs);
+  const projectId = await resolveProjectId(
+    resolvedScope,
+    explicitTargets,
+    needs,
+  );
   const discoveryIdeaId =
     explicitTargets.discovery?.ideaId || resolvedScope.idea_id || "";
 
   if (needs.discovery) {
     assert(
       discoveryIdeaId,
-      "Could not resolve a discovery idea target for the review playbook."
+      "Could not resolve a discovery idea target for the review playbook.",
     );
   }
 
@@ -622,7 +656,7 @@ try {
             kind: "issues",
             project_id: projectId,
             status: "open",
-          })}`
+          })}`,
         )
       : null,
     issuesAll: projectId
@@ -630,7 +664,7 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "issues",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
     approvalsPending: projectId
@@ -639,7 +673,7 @@ try {
             kind: "approvals",
             project_id: projectId,
             status: "pending",
-          })}`
+          })}`,
         )
       : null,
     approvalsAll: projectId
@@ -647,7 +681,7 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "approvals",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
     runtimesPending: projectId
@@ -656,7 +690,7 @@ try {
             kind: "runtimes",
             project_id: projectId,
             status: "pending",
-          })}`
+          })}`,
         )
       : null,
     runtimesAll: projectId
@@ -664,33 +698,45 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "runtimes",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
   };
 
-  assert(before.reviewCenter.response.status === 200, "Failed to read review center.");
+  assert(
+    before.reviewCenter.response.status === 200,
+    "Failed to read review center.",
+  );
   assert(
     before.discoveryReview.response.status === 200,
-    "Failed to read discovery review surface."
+    "Failed to read discovery review surface.",
   );
   assert(
     before.executionReview.response.status === 200,
-    "Failed to read execution review surface."
+    "Failed to read execution review surface.",
   );
   assert(before.inbox.response.status === 200, "Failed to read inbox surface.");
-  assert(before.dashboard.response.status === 200, "Failed to read dashboard surface.");
-  assert(before.portfolio.response.status === 200, "Failed to read portfolio surface.");
+  assert(
+    before.dashboard.response.status === 200,
+    "Failed to read dashboard surface.",
+  );
+  assert(
+    before.portfolio.response.status === 200,
+    "Failed to read portfolio surface.",
+  );
 
   if (before.issuesOpen) {
-    assert(before.issuesOpen.response.status === 200, "Failed to read execution issues.");
+    assert(
+      before.issuesOpen.response.status === 200,
+      "Failed to read execution issues.",
+    );
     assert(
       before.approvalsPending?.response.status === 200,
-      "Failed to read execution approvals."
+      "Failed to read execution approvals.",
     );
     assert(
       before.runtimesPending?.response.status === 200,
-      "Failed to read execution runtimes."
+      "Failed to read execution runtimes.",
     );
   }
 
@@ -702,92 +748,109 @@ try {
   const discoveryRecords = (before.discoveryReview.json.records || []).filter(
     (record) =>
       scopedDiscoveryScope.idea_id
-        ? firstString(record?.dossier?.idea?.idea_id) === scopedDiscoveryScope.idea_id
-        : matchesDiscoveryRecord(record, scopedDiscoveryScope)
+        ? firstString(record?.dossier?.idea?.idea_id) ===
+          scopedDiscoveryScope.idea_id
+        : matchesDiscoveryRecord(record, scopedDiscoveryScope),
   );
-  const executionRecords = (before.executionReview.json.records || []).filter((record) =>
-    matchesExecutionRecord(record, {
-      ...resolvedScope,
-      idea_id: discoveryIdeaId || resolvedScope.idea_id,
-      project_id: projectId || resolvedScope.project_id,
-    })
+  const executionRecords = (before.executionReview.json.records || []).filter(
+    (record) =>
+      matchesExecutionRecord(record, {
+        ...resolvedScope,
+        idea_id: discoveryIdeaId || resolvedScope.idea_id,
+        project_id: projectId || resolvedScope.project_id,
+      }),
   );
-  const issueRecords = executionRecords.filter((record) => record.type === "issue");
+  const issueRecords = executionRecords.filter(
+    (record) => record.type === "issue",
+  );
   const criticalIssueRecords = issueRecords.filter(
-    (record) => String(record.issue?.severity || "").toLowerCase() === "critical"
+    (record) =>
+      String(record.issue?.severity || "").toLowerCase() === "critical",
   );
   const approvalRecords = executionRecords.filter(
-    (record) => record.type === "approval"
+    (record) => record.type === "approval",
   );
   const runtimeRecords = executionRecords.filter(
-    (record) => record.type === "runtime"
+    (record) => record.type === "runtime",
   );
 
   if (needs.discovery) {
     assert(
       discoveryRecords.length > 0,
-      `No scoped discovery review records matched preset ${preset}.`
+      `No scoped discovery review records matched preset ${preset}.`,
     );
   }
   if (preset === "critical-pass") {
     assert(
       criticalIssueRecords.length > 0,
-      "No scoped critical execution issues matched the critical-pass preset."
+      "No scoped critical execution issues matched the critical-pass preset.",
     );
   } else if (needs.issues) {
     assert(
       issueRecords.length > 0,
-      `No scoped execution issues matched preset ${preset}.`
+      `No scoped execution issues matched preset ${preset}.`,
     );
   }
   if (needs.approvals) {
     assert(
       approvalRecords.length > 0,
-      `No scoped execution approvals matched preset ${preset}.`
+      `No scoped execution approvals matched preset ${preset}.`,
     );
   }
   if (needs.runtimes) {
     assert(
       runtimeRecords.length > 0,
-      `No scoped execution runtimes matched preset ${preset}.`
+      `No scoped execution runtimes matched preset ${preset}.`,
     );
   }
 
   if (explicitTargets.execution?.issue?.issueId && issueRecords.length > 0) {
     assert(
       Boolean(
-        findById(issueRecords.map((record) => record.issue), "id", explicitTargets.execution.issue.issueId)
+        findById(
+          issueRecords.map((record) => record.issue),
+          "id",
+          explicitTargets.execution.issue.issueId,
+        ),
       ),
-      `Scoped issue selection does not include deterministic issue ${explicitTargets.execution.issue.issueId}.`
+      `Scoped issue selection does not include deterministic issue ${explicitTargets.execution.issue.issueId}.`,
     );
   }
-  if (explicitTargets.execution?.approval?.approvalId && approvalRecords.length > 0) {
+  if (
+    explicitTargets.execution?.approval?.approvalId &&
+    approvalRecords.length > 0
+  ) {
     assert(
       Boolean(
         findById(
           approvalRecords.map((record) => record.approval),
           "id",
-          explicitTargets.execution.approval.approvalId
-        )
+          explicitTargets.execution.approval.approvalId,
+        ),
       ),
-      `Scoped approval selection does not include deterministic approval ${explicitTargets.execution.approval.approvalId}.`
+      `Scoped approval selection does not include deterministic approval ${explicitTargets.execution.approval.approvalId}.`,
     );
   }
-  if (explicitTargets.execution?.runtime?.runtimeId && runtimeRecords.length > 0) {
+  if (
+    explicitTargets.execution?.runtime?.runtimeId &&
+    runtimeRecords.length > 0
+  ) {
     assert(
       Boolean(
         findById(
           runtimeRecords.map((record) => record.runtime),
           "id",
-          explicitTargets.execution.runtime.runtimeId
-        )
+          explicitTargets.execution.runtime.runtimeId,
+        ),
       ),
-      `Scoped runtime selection does not include deterministic runtime ${explicitTargets.execution.runtime.runtimeId}.`
+      `Scoped runtime selection does not include deterministic runtime ${explicitTargets.execution.runtime.runtimeId}.`,
     );
   }
 
   const selectedDiscoveryRecords =
-    preset === "discovery-pass" || preset === "chain-pass" ? discoveryRecords : [];
+    preset === "discovery-pass" || preset === "chain-pass"
+      ? discoveryRecords
+      : [];
   const selectedIssueRecords =
     preset === "chain-pass"
       ? issueRecords
@@ -795,7 +858,9 @@ try {
         ? criticalIssueRecords
         : [];
   const selectedApprovalRecords =
-    preset === "decision-pass" || preset === "chain-pass" ? approvalRecords : [];
+    preset === "decision-pass" || preset === "chain-pass"
+      ? approvalRecords
+      : [];
   const selectedRuntimeRecords =
     preset === "decision-pass" || preset === "chain-pass" ? runtimeRecords : [];
 
@@ -803,7 +868,7 @@ try {
   for (const record of selectedDiscoveryRecords) {
     beforeDossiers.set(
       record.dossier.idea.idea_id,
-      await loadDossierSnapshot(record.dossier.idea.idea_id)
+      await loadDossierSnapshot(record.dossier.idea.idea_id),
     );
   }
 
@@ -811,98 +876,133 @@ try {
     ? findPortfolioRecord(before.portfolio.json.records, projectId)
     : null;
 
-  if (projectId && (selectedIssueRecords.length > 0 || selectedApprovalRecords.length > 0 || selectedRuntimeRecords.length > 0)) {
+  if (
+    projectId &&
+    (selectedIssueRecords.length > 0 ||
+      selectedApprovalRecords.length > 0 ||
+      selectedRuntimeRecords.length > 0)
+  ) {
     assert(
       beforePortfolioRecord,
-      `Project ${projectId} is not present in the portfolio snapshot.`
+      `Project ${projectId} is not present in the portfolio snapshot.`,
     );
   }
 
   for (const record of selectedDiscoveryRecords) {
     assert(
       findByKey(before.reviewCenter.json.discovery?.records, record.key),
-      `Discovery review record ${record.key} is not present in the unified review snapshot before playbook execution.`
+      `Discovery review record ${record.key} is not present in the unified review snapshot before playbook execution.`,
     );
   }
   for (const record of selectedIssueRecords) {
     assert(
-      findByKey(before.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} is not present in the unified review snapshot before playbook execution.`
+      findByKey(
+        before.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} is not present in the unified review snapshot before playbook execution.`,
     );
     assert(
-      findByKey(before.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} is not present in the execution review snapshot before playbook execution.`
+      findByKey(
+        before.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} is not present in the execution review snapshot before playbook execution.`,
     );
   }
   for (const record of selectedApprovalRecords) {
     assert(
-      findByKey(before.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} is not present in the unified review snapshot before playbook execution.`
+      findByKey(
+        before.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} is not present in the unified review snapshot before playbook execution.`,
     );
     assert(
-      findByKey(before.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} is not present in the execution review snapshot before playbook execution.`
+      findByKey(
+        before.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} is not present in the execution review snapshot before playbook execution.`,
     );
   }
   for (const record of selectedRuntimeRecords) {
     assert(
-      findByKey(before.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} is not present in the unified review snapshot before playbook execution.`
+      findByKey(
+        before.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} is not present in the unified review snapshot before playbook execution.`,
     );
     assert(
-      findByKey(before.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} is not present in the execution review snapshot before playbook execution.`
+      findByKey(
+        before.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} is not present in the execution review snapshot before playbook execution.`,
     );
   }
 
   for (const record of selectedIssueRecords) {
     assert(
       findById(before.issuesOpen?.json?.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} is not present in the raw open issue feed before playbook execution.`
+      `Execution issue ${record.issue.id} is not present in the raw open issue feed before playbook execution.`,
     );
     assert(
       findById(before.inbox.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} is not present in the shell inbox snapshot before playbook execution.`
+      `Execution issue ${record.issue.id} is not present in the shell inbox snapshot before playbook execution.`,
     );
     assert(
       findById(before.dashboard.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} is not present in the shell dashboard snapshot before playbook execution.`
+      `Execution issue ${record.issue.id} is not present in the shell dashboard snapshot before playbook execution.`,
     );
   }
   for (const record of selectedApprovalRecords) {
     assert(
-      findById(before.approvalsPending?.json?.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} is not present in the raw pending approval feed before playbook execution.`
+      findById(
+        before.approvalsPending?.json?.approvals || [],
+        "id",
+        record.approval.id,
+      ),
+      `Execution approval ${record.approval.id} is not present in the raw pending approval feed before playbook execution.`,
     );
     assert(
       findById(before.inbox.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} is not present in the shell inbox snapshot before playbook execution.`
+      `Execution approval ${record.approval.id} is not present in the shell inbox snapshot before playbook execution.`,
     );
     assert(
       findById(before.dashboard.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} is not present in the shell dashboard snapshot before playbook execution.`
+      `Execution approval ${record.approval.id} is not present in the shell dashboard snapshot before playbook execution.`,
     );
   }
   for (const record of selectedRuntimeRecords) {
     assert(
-      findById(before.runtimesPending?.json?.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} is not present in the raw pending runtime feed before playbook execution.`
+      findById(
+        before.runtimesPending?.json?.runtimes || [],
+        "id",
+        record.runtime.id,
+      ),
+      `Execution runtime ${record.runtime.id} is not present in the raw pending runtime feed before playbook execution.`,
     );
     assert(
       findById(before.inbox.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} is not present in the shell inbox snapshot before playbook execution.`
+      `Execution runtime ${record.runtime.id} is not present in the shell inbox snapshot before playbook execution.`,
     );
     assert(
       findById(before.dashboard.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} is not present in the shell dashboard snapshot before playbook execution.`
+      `Execution runtime ${record.runtime.id} is not present in the shell dashboard snapshot before playbook execution.`,
     );
   }
 
   if (beforePortfolioRecord) {
     for (const record of selectedIssueRecords) {
       assert(
-        findById(beforePortfolioRecord.attention?.issues || [], "id", record.issue.id),
-        `Execution issue ${record.issue.id} is not present in the portfolio attention rollup before playbook execution.`
+        findById(
+          beforePortfolioRecord.attention?.issues || [],
+          "id",
+          record.issue.id,
+        ),
+        `Execution issue ${record.issue.id} is not present in the portfolio attention rollup before playbook execution.`,
       );
     }
     for (const record of selectedApprovalRecords) {
@@ -910,9 +1010,9 @@ try {
         findById(
           beforePortfolioRecord.attention?.approvals || [],
           "id",
-          record.approval.id
+          record.approval.id,
         ),
-        `Execution approval ${record.approval.id} is not present in the portfolio attention rollup before playbook execution.`
+        `Execution approval ${record.approval.id} is not present in the portfolio attention rollup before playbook execution.`,
       );
     }
     for (const record of selectedRuntimeRecords) {
@@ -920,9 +1020,9 @@ try {
         findById(
           beforePortfolioRecord.attention?.runtimes || [],
           "id",
-          record.runtime.id
+          record.runtime.id,
         ),
-        `Execution runtime ${record.runtime.id} is not present in the portfolio attention rollup before playbook execution.`
+        `Execution runtime ${record.runtime.id} is not present in the portfolio attention rollup before playbook execution.`,
       );
     }
   }
@@ -971,7 +1071,7 @@ try {
             kind: "issues",
             project_id: projectId,
             status: "open",
-          })}`
+          })}`,
         )
       : null,
     issuesAll: projectId
@@ -979,7 +1079,7 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "issues",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
     approvalsPending: projectId
@@ -988,7 +1088,7 @@ try {
             kind: "approvals",
             project_id: projectId,
             status: "pending",
-          })}`
+          })}`,
         )
       : null,
     approvalsAll: projectId
@@ -996,7 +1096,7 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "approvals",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
     runtimesPending: projectId
@@ -1005,7 +1105,7 @@ try {
             kind: "runtimes",
             project_id: projectId,
             status: "pending",
-          })}`
+          })}`,
         )
       : null,
     runtimesAll: projectId
@@ -1013,7 +1113,7 @@ try {
           `/api/shell/execution/attention${buildQuery({
             kind: "runtimes",
             project_id: projectId,
-          })}`
+          })}`,
         )
       : null,
   };
@@ -1024,12 +1124,16 @@ try {
   const performedRuntimeIdSet = new Set(performedRuntimeIds);
 
   for (const record of selectedDiscoveryRecords) {
-    const beforeDossierPayload = beforeDossiers.get(record.dossier.idea.idea_id);
+    const beforeDossierPayload = beforeDossiers.get(
+      record.dossier.idea.idea_id,
+    );
     const beforeDossier = beforeDossierPayload.json.dossier;
-    const afterDossierPayload = await loadDossierSnapshot(record.dossier.idea.idea_id);
+    const afterDossierPayload = await loadDossierSnapshot(
+      record.dossier.idea.idea_id,
+    );
     const afterDossier = afterDossierPayload.json.dossier;
     const beforeDecisionIds = new Set(
-      (beforeDossier.decisions || []).map((decision) => decision.decision_id)
+      (beforeDossier.decisions || []).map((decision) => decision.decision_id),
     );
     const expectedDecisionType = discoveryDecisionType(record.kind);
     const createdDecision =
@@ -1038,84 +1142,107 @@ try {
           !beforeDecisionIds.has(decision.decision_id) &&
           decision.decision_type === expectedDecisionType &&
           String(decision.metadata?.route || "") === "discovery_review" &&
-          String(decision.metadata?.preset || "") === preset
+          String(decision.metadata?.preset || "") === preset,
       ) ?? null;
 
     assert(
       createdDecision,
-      `Discovery playbook did not append a new ${expectedDecisionType} decision for ${record.dossier.idea.idea_id}.`
+      `Discovery playbook did not append a new ${expectedDecisionType} decision for ${record.dossier.idea.idea_id}.`,
     );
   }
 
   for (const record of selectedIssueRecords) {
     assert(
       !findById(after.issuesOpen?.json?.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the raw open issue feed after the playbook.`
+      `Execution issue ${record.issue.id} still appears in the raw open issue feed after the playbook.`,
     );
     assert(
-      findById(after.issuesAll?.json?.issues || [], "id", record.issue.id)?.status ===
-        "resolved",
-      `Execution issue ${record.issue.id} is missing from the all-issues feed with resolved status after the playbook.`
+      findById(after.issuesAll?.json?.issues || [], "id", record.issue.id)
+        ?.status === "resolved",
+      `Execution issue ${record.issue.id} is missing from the all-issues feed with resolved status after the playbook.`,
     );
     assert(
       !findById(after.inbox.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the shell inbox snapshot after the playbook.`
+      `Execution issue ${record.issue.id} still appears in the shell inbox snapshot after the playbook.`,
     );
     assert(
       !findById(after.dashboard.json.issues || [], "id", record.issue.id),
-      `Execution issue ${record.issue.id} still appears in the shell dashboard snapshot after the playbook.`
+      `Execution issue ${record.issue.id} still appears in the shell dashboard snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} still appears in the unified review snapshot after the playbook.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} still appears in the unified review snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution issue ${record.issue.id} still appears in the execution review snapshot after the playbook.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution issue ${record.issue.id} still appears in the execution review snapshot after the playbook.`,
     );
   }
 
   for (const record of selectedApprovalRecords) {
     assert(
-      !findById(after.approvalsPending?.json?.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} still appears in the raw pending approvals feed after the playbook.`
+      !findById(
+        after.approvalsPending?.json?.approvals || [],
+        "id",
+        record.approval.id,
+      ),
+      `Execution approval ${record.approval.id} still appears in the raw pending approvals feed after the playbook.`,
     );
     assert(
-      findById(after.approvalsAll?.json?.approvals || [], "id", record.approval.id)
-        ?.status === "approved",
-      `Execution approval ${record.approval.id} is missing from the all-approvals feed with approved status after the playbook.`
+      findById(
+        after.approvalsAll?.json?.approvals || [],
+        "id",
+        record.approval.id,
+      )?.status === "approved",
+      `Execution approval ${record.approval.id} is missing from the all-approvals feed with approved status after the playbook.`,
     );
     assert(
       !findById(after.inbox.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} still appears in the shell inbox snapshot after the playbook.`
+      `Execution approval ${record.approval.id} still appears in the shell inbox snapshot after the playbook.`,
     );
     assert(
       !findById(after.dashboard.json.approvals || [], "id", record.approval.id),
-      `Execution approval ${record.approval.id} still appears in the shell dashboard snapshot after the playbook.`
+      `Execution approval ${record.approval.id} still appears in the shell dashboard snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} still appears in the unified review snapshot after the playbook.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} still appears in the unified review snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution approval ${record.approval.id} still appears in the execution review snapshot after the playbook.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution approval ${record.approval.id} still appears in the execution review snapshot after the playbook.`,
     );
   }
 
   for (const record of selectedRuntimeRecords) {
     assert(
-      !findById(after.runtimesPending?.json?.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} still appears in the raw pending runtime feed after the playbook.`
+      !findById(
+        after.runtimesPending?.json?.runtimes || [],
+        "id",
+        record.runtime.id,
+      ),
+      `Execution runtime ${record.runtime.id} still appears in the raw pending runtime feed after the playbook.`,
     );
     const resolvedRuntime = findById(
       after.runtimesAll?.json?.runtimes || [],
       "id",
-      record.runtime.id
+      record.runtime.id,
     );
     assert(
       resolvedRuntime?.status === "resolved",
-      `Execution runtime ${record.runtime.id} is missing from the all-runtimes feed with resolved status after the playbook.`
+      `Execution runtime ${record.runtime.id} is missing from the all-runtimes feed with resolved status after the playbook.`,
     );
     if (performedRuntimeIdSet.has(record.runtime.id)) {
       assert(
@@ -1123,34 +1250,44 @@ try {
           resolvedRuntime?.resolved_behavior ||
             resolvedRuntime?.metadata?.pending?.resolved_behavior ||
             resolvedRuntime?.outcome ||
-            ""
+            "",
         ) === "allow",
-        `Execution runtime ${record.runtime.id} is not marked as allowed in the stored runtime feed after the playbook.`
+        `Execution runtime ${record.runtime.id} is not marked as allowed in the stored runtime feed after the playbook.`,
       );
     }
     assert(
       !findById(after.inbox.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} still appears in the shell inbox snapshot after the playbook.`
+      `Execution runtime ${record.runtime.id} still appears in the shell inbox snapshot after the playbook.`,
     );
     assert(
       !findById(after.dashboard.json.runtimes || [], "id", record.runtime.id),
-      `Execution runtime ${record.runtime.id} still appears in the shell dashboard snapshot after the playbook.`
+      `Execution runtime ${record.runtime.id} still appears in the shell dashboard snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.reviewCenter.json.execution?.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} still appears in the unified review snapshot after the playbook.`
+      !findByKey(
+        after.reviewCenter.json.execution?.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} still appears in the unified review snapshot after the playbook.`,
     );
     assert(
-      !findByKey(after.executionReview.json.records, buildExecutionAttentionKey(record)),
-      `Execution runtime ${record.runtime.id} still appears in the execution review snapshot after the playbook.`
+      !findByKey(
+        after.executionReview.json.records,
+        buildExecutionAttentionKey(record),
+      ),
+      `Execution runtime ${record.runtime.id} still appears in the execution review snapshot after the playbook.`,
     );
   }
 
   if (afterPortfolioRecord) {
     for (const record of selectedIssueRecords) {
       assert(
-        !findById(afterPortfolioRecord.attention?.issues || [], "id", record.issue.id),
-        `Execution issue ${record.issue.id} still appears in the portfolio attention rollup after the playbook.`
+        !findById(
+          afterPortfolioRecord.attention?.issues || [],
+          "id",
+          record.issue.id,
+        ),
+        `Execution issue ${record.issue.id} still appears in the portfolio attention rollup after the playbook.`,
       );
     }
     for (const record of selectedApprovalRecords) {
@@ -1158,9 +1295,9 @@ try {
         !findById(
           afterPortfolioRecord.attention?.approvals || [],
           "id",
-          record.approval.id
+          record.approval.id,
         ),
-        `Execution approval ${record.approval.id} still appears in the portfolio attention rollup after the playbook.`
+        `Execution approval ${record.approval.id} still appears in the portfolio attention rollup after the playbook.`,
       );
     }
     for (const record of selectedRuntimeRecords) {
@@ -1168,9 +1305,9 @@ try {
         !findById(
           afterPortfolioRecord.attention?.runtimes || [],
           "id",
-          record.runtime.id
+          record.runtime.id,
         ),
-        `Execution runtime ${record.runtime.id} still appears in the portfolio attention rollup after the playbook.`
+        `Execution runtime ${record.runtime.id} still appears in the portfolio attention rollup after the playbook.`,
       );
     }
 
@@ -1181,8 +1318,9 @@ try {
     if (expectedAttentionDrop > 0) {
       assert(
         (afterPortfolioRecord.attention?.total ?? 0) <=
-          (beforePortfolioRecord?.attention?.total ?? 0) - expectedAttentionDrop,
-        "Portfolio chain attention total did not drop after the review playbook."
+          (beforePortfolioRecord?.attention?.total ?? 0) -
+            expectedAttentionDrop,
+        "Portfolio chain attention total did not drop after the review playbook.",
       );
     }
   }
@@ -1200,7 +1338,9 @@ try {
       selected: {
         discoveryKeys: selectedDiscoveryRecords.map((record) => record.key),
         issueIds: selectedIssueRecords.map((record) => record.issue.id),
-        approvalIds: selectedApprovalRecords.map((record) => record.approval.id),
+        approvalIds: selectedApprovalRecords.map(
+          (record) => record.approval.id,
+        ),
         runtimeIds: selectedRuntimeRecords.map((record) => record.runtime.id),
       },
       processed: {
@@ -1217,7 +1357,7 @@ try {
         ...after,
         projectId,
       }),
-    })
+    }),
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

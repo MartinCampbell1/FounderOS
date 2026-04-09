@@ -15,7 +15,7 @@ const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,11 +25,10 @@ const port =
   process.env.FOUNDEROS_WEB_PORT ??
   String(3950 + Math.floor(Math.random() * 100));
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
-const SUITE_TARGET_KEYS = [
-  "discovery-pass",
-  "critical-pass",
-  "decision-pass",
-];
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-review-entry-admin-token"
+).trim();
+const SUITE_TARGET_KEYS = ["discovery-pass", "critical-pass", "decision-pass"];
 const PRESET_DEFINITIONS = [
   {
     key: "discovery-pass",
@@ -85,11 +84,17 @@ function buildReviewHref(scope, lane, preset) {
 }
 
 function htmlContainsHref(html, href) {
-  return html.includes(`href="${href}"`) || html.includes(`href="${href.replace(/&/g, "&amp;")}"`);
+  return (
+    html.includes(`href="${href}"`) ||
+    html.includes(`href="${href.replace(/&/g, "&amp;")}"`)
+  );
 }
 
 function assertHref(html, href, label) {
-  assert(htmlContainsHref(html, href), `Missing ${label} href in SSR HTML: ${href}`);
+  assert(
+    htmlContainsHref(html, href),
+    `Missing ${label} href in SSR HTML: ${href}`,
+  );
 }
 
 function assertIncludes(html, value, label) {
@@ -103,7 +108,7 @@ function escapeRegex(value) {
 function extractHrefByLabel(html, label, pathPrefix) {
   const pattern = new RegExp(
     `href="([^"]+)"[^>]*>[\\s\\S]{0,240}?${escapeRegex(label)}`,
-    "g"
+    "g",
   );
 
   for (const match of html.matchAll(pattern)) {
@@ -118,14 +123,17 @@ function extractHrefByLabel(html, label, pathPrefix) {
 
 function assertScopeHref(href, pathname, scope, label) {
   const url = new URL(href, "http://founderos-shell.local");
-  assert(url.pathname === pathname, `${label} must target ${pathname}, received ${url.pathname}.`);
+  assert(
+    url.pathname === pathname,
+    `${label} must target ${pathname}, received ${url.pathname}.`,
+  );
   assert(
     url.searchParams.get("project_id") === scope.projectId,
-    `${label} must preserve project_id=${scope.projectId}.`
+    `${label} must preserve project_id=${scope.projectId}.`,
   );
   assert(
     url.searchParams.get("intake_session_id") === scope.intakeSessionId,
-    `${label} must preserve intake_session_id=${scope.intakeSessionId}.`
+    `${label} must preserve intake_session_id=${scope.intakeSessionId}.`,
   );
   return url;
 }
@@ -134,7 +142,7 @@ function parseSuiteTargets(rawValue) {
   const trimmed = (rawValue || "").trim();
   if (!trimmed) {
     throw new Error(
-      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for review-pressure entry-link checks."
+      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for review-pressure entry-link checks.",
     );
   }
 
@@ -145,14 +153,17 @@ function parseSuiteTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_SUITE_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
   const normalized = {};
   for (const preset of SUITE_TARGET_KEYS) {
     const target = parsed?.[preset];
-    assert(target && typeof target === "object", `Missing suite target for ${preset}.`);
+    assert(
+      target && typeof target === "object",
+      `Missing suite target for ${preset}.`,
+    );
     normalized[preset] = {
       preset,
       role: firstString(target.role),
@@ -162,7 +173,9 @@ function parseSuiteTargets(rawValue) {
         intakeSessionId: firstString(target.routeScope?.intakeSessionId),
       },
       parityTargets: {
-        discoverySessionId: firstString(target.parityTargets?.discoverySessionId),
+        discoverySessionId: firstString(
+          target.parityTargets?.discoverySessionId,
+        ),
         discoveryIdeaId: firstString(target.parityTargets?.discoveryIdeaId),
       },
     };
@@ -190,9 +203,16 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchHtml(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+  const response = await fetch(`${baseUrl}${path}`, {
+    headers: shellAdminToken
+      ? { "x-founderos-shell-admin-token": shellAdminToken }
+      : {},
+  });
   const html = await response.text();
-  assert(response.status === 200, `Expected 200 for ${path}, received ${response.status}.`);
+  assert(
+    response.status === 200,
+    `Expected 200 for ${path}, received ${response.status}.`,
+  );
   return html;
 }
 
@@ -201,21 +221,17 @@ function assertReviewPresetPage(html, scope, presetLabel, clearLane) {
   assertIncludes(html, "Active preset:", `${presetLabel} active preset`);
   assertIncludes(html, presetLabel, `${presetLabel} preset label`);
   assertIncludes(html, "Clear preset", `${presetLabel} clear preset action`);
-  const clearPresetHref = extractHrefByLabel(
-    html,
-    "Clear preset",
-    "/review"
-  );
+  const clearPresetHref = extractHrefByLabel(html, "Clear preset", "/review");
   const clearPresetUrl = assertScopeHref(
     clearPresetHref,
     "/review",
     scope,
-    `${presetLabel} clear preset`
+    `${presetLabel} clear preset`,
   );
   if (typeof clearLane === "string") {
     assert(
       clearPresetUrl.searchParams.get("lane") === clearLane,
-      `${presetLabel} clear preset must preserve lane=${clearLane}.`
+      `${presetLabel} clear preset must preserve lane=${clearLane}.`,
     );
   }
 }
@@ -230,7 +246,7 @@ function reviewPresetFromUrl(url, label) {
   const preset = PRESET_DEFINITIONS.find((option) => option.key === presetKey);
   assert(
     preset,
-    `${label} must carry a valid preset. Received ${presetKey || "<none>"}.`
+    `${label} must carry a valid preset. Received ${presetKey || "<none>"}.`,
   );
   return preset;
 }
@@ -245,6 +261,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -274,88 +291,99 @@ try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
   const suiteTargets = parseSuiteTargets(
-    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || "",
   );
   const discoveryTarget = suiteTargets["discovery-pass"];
   const criticalTarget = suiteTargets["critical-pass"];
   const decisionTarget = suiteTargets["decision-pass"];
 
-  const dashboardHref = buildScopedHref("/dashboard", discoveryTarget.routeScope);
+  const dashboardHref = buildScopedHref(
+    "/dashboard",
+    discoveryTarget.routeScope,
+  );
   const dashboardHtml = await fetchHtml(dashboardHref);
   assertIncludes(dashboardHtml, "Review pressure", "dashboard review pressure");
 
   const openReviewCenterHref = extractHrefByLabel(
     dashboardHtml,
     "Open review center",
-    "/review"
+    "/review",
   );
   const openDiscoveryReviewHref = extractHrefByLabel(
     dashboardHtml,
     "Open discovery review",
-    "/discovery/review"
+    "/discovery/review",
   );
   const openExecutionReviewHref = extractHrefByLabel(
     dashboardHtml,
     "Open execution review",
-    "/execution/review"
+    "/execution/review",
   );
 
   const openReviewCenterUrl = assertScopeHref(
     openReviewCenterHref,
     "/review",
     discoveryTarget.routeScope,
-    "dashboard open review center"
+    "dashboard open review center",
   );
   const openDiscoveryReviewUrl = assertScopeHref(
     openDiscoveryReviewHref,
     "/discovery/review",
     discoveryTarget.routeScope,
-    "dashboard open discovery review"
+    "dashboard open discovery review",
   );
   const openExecutionReviewUrl = assertScopeHref(
     openExecutionReviewHref,
     "/execution/review",
     discoveryTarget.routeScope,
-    "dashboard open execution review"
+    "dashboard open execution review",
   );
 
   for (const preset of PRESET_DEFINITIONS) {
     assertHref(
       dashboardHtml,
       buildReviewHref(discoveryTarget.routeScope, null, preset.key),
-      `dashboard ${preset.key} preset chip`
+      `dashboard ${preset.key} preset chip`,
     );
   }
 
   const rememberedReviewHtml = await fetchHtml(openReviewCenterHref);
   const rememberedPresetKey = PRESET_DEFINITIONS.find(
-    (preset) => preset.key === openReviewCenterUrl.searchParams.get("preset")
+    (preset) => preset.key === openReviewCenterUrl.searchParams.get("preset"),
   );
   assert(
     rememberedPresetKey,
-    `Dashboard open review center must carry a valid preset. Received ${openReviewCenterUrl.searchParams.get("preset") || "<none>"}.`
+    `Dashboard open review center must carry a valid preset. Received ${openReviewCenterUrl.searchParams.get("preset") || "<none>"}.`,
   );
   assertReviewPresetPage(
     rememberedReviewHtml,
     discoveryTarget.routeScope,
     rememberedPresetKey.label,
-    openReviewCenterUrl.searchParams.get("lane")
+    openReviewCenterUrl.searchParams.get("lane"),
   );
 
   const discoveryReviewHtml = await fetchHtml(openDiscoveryReviewHref);
   assertScopedReviewRoute(discoveryReviewHtml, "discovery review");
-  assertIncludes(discoveryReviewHtml, "Discovery review", "discovery review label");
+  assertIncludes(
+    discoveryReviewHtml,
+    "Discovery review",
+    "discovery review label",
+  );
   assert(
     Boolean(openDiscoveryReviewUrl.searchParams.get("filter")),
-    "Dashboard open discovery review must carry a route-owned discovery filter."
+    "Dashboard open discovery review must carry a route-owned discovery filter.",
   );
 
   const executionReviewHtml = await fetchHtml(openExecutionReviewHref);
   assertScopedReviewRoute(executionReviewHtml, "execution review");
-  assertIncludes(executionReviewHtml, "Execution review", "execution review label");
+  assertIncludes(
+    executionReviewHtml,
+    "Execution review",
+    "execution review label",
+  );
   assert(
     Boolean(openExecutionReviewUrl.searchParams.get("filter")),
-    "Dashboard open execution review must carry a route-owned execution filter."
+    "Dashboard open execution review must carry a route-owned execution filter.",
   );
 
   const presetPageChecks = [];
@@ -369,64 +397,78 @@ try {
     });
   }
 
-  const portfolioCriticalHref = buildScopedHref("/portfolio", criticalTarget.routeScope);
+  const portfolioCriticalHref = buildScopedHref(
+    "/portfolio",
+    criticalTarget.routeScope,
+  );
   const portfolioCriticalHtml = await fetchHtml(portfolioCriticalHref);
-  assertIncludes(portfolioCriticalHtml, "Review pressure", "portfolio critical review pressure");
+  assertIncludes(
+    portfolioCriticalHtml,
+    "Review pressure",
+    "portfolio critical review pressure",
+  );
   const criticalWholeChainHref = extractHrefByLabel(
     portfolioCriticalHtml,
     "Triage whole chain",
-    "/review"
+    "/review",
   );
   const criticalWholeChainUrl = assertScopeHref(
     criticalWholeChainHref,
     "/review",
     criticalTarget.routeScope,
-    "portfolio critical whole-chain triage"
+    "portfolio critical whole-chain triage",
   );
   const criticalWholeChainPreset = reviewPresetFromUrl(
     criticalWholeChainUrl,
-    "portfolio critical whole-chain triage"
+    "portfolio critical whole-chain triage",
   );
   assert(
     Boolean(criticalWholeChainUrl.searchParams.get("lane")),
-    "Portfolio critical whole-chain triage must carry a lane."
+    "Portfolio critical whole-chain triage must carry a lane.",
   );
   const criticalWholeChainHtml = await fetchHtml(criticalWholeChainHref);
   assertReviewPresetPage(
     criticalWholeChainHtml,
     criticalTarget.routeScope,
     criticalWholeChainPreset.label,
-    criticalWholeChainUrl.searchParams.get("lane")
+    criticalWholeChainUrl.searchParams.get("lane"),
   );
 
-  const portfolioDecisionHref = buildScopedHref("/portfolio", decisionTarget.routeScope);
+  const portfolioDecisionHref = buildScopedHref(
+    "/portfolio",
+    decisionTarget.routeScope,
+  );
   const portfolioDecisionHtml = await fetchHtml(portfolioDecisionHref);
-  assertIncludes(portfolioDecisionHtml, "Review pressure", "portfolio decision review pressure");
+  assertIncludes(
+    portfolioDecisionHtml,
+    "Review pressure",
+    "portfolio decision review pressure",
+  );
   const decisionWholeChainHref = extractHrefByLabel(
     portfolioDecisionHtml,
     "Triage whole chain",
-    "/review"
+    "/review",
   );
   const decisionWholeChainUrl = assertScopeHref(
     decisionWholeChainHref,
     "/review",
     decisionTarget.routeScope,
-    "portfolio decision whole-chain triage"
+    "portfolio decision whole-chain triage",
   );
   const decisionWholeChainPreset = reviewPresetFromUrl(
     decisionWholeChainUrl,
-    "portfolio decision whole-chain triage"
+    "portfolio decision whole-chain triage",
   );
   assert(
     Boolean(decisionWholeChainUrl.searchParams.get("lane")),
-    "Portfolio decision whole-chain triage must carry a lane."
+    "Portfolio decision whole-chain triage must carry a lane.",
   );
   const decisionWholeChainHtml = await fetchHtml(decisionWholeChainHref);
   assertReviewPresetPage(
     decisionWholeChainHtml,
     decisionTarget.routeScope,
     decisionWholeChainPreset.label,
-    decisionWholeChainUrl.searchParams.get("lane")
+    decisionWholeChainUrl.searchParams.get("lane"),
   );
 
   console.log(
@@ -438,7 +480,7 @@ try {
         openDiscoveryReviewHref,
         openExecutionReviewHref,
         presetHrefs: PRESET_DEFINITIONS.map((preset) =>
-          buildReviewHref(discoveryTarget.routeScope, null, preset.key)
+          buildReviewHref(discoveryTarget.routeScope, null, preset.key),
         ),
       },
       portfolio: {
@@ -450,7 +492,7 @@ try {
         decisionWholeChainPreset: decisionWholeChainPreset.key,
       },
       checkedPresetPages: presetPageChecks,
-    })
+    }),
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

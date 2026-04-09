@@ -15,7 +15,7 @@ const externalBaseUrl = (process.env.FOUNDEROS_PARITY_BASE_URL || "")
 const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,10 +25,15 @@ const port =
   String(3890 + Math.floor(Math.random() * 100));
 const host = process.env.FOUNDEROS_WEB_HOST ?? "127.0.0.1";
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-review-actions-admin-token"
+).trim();
 
 const explicitScope = {
   project_id: (process.env.FOUNDEROS_PARITY_PROJECT_ID || "").trim(),
-  intake_session_id: (process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || "").trim(),
+  intake_session_id: (
+    process.env.FOUNDEROS_PARITY_INTAKE_SESSION_ID || ""
+  ).trim(),
   session_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_SESSION_ID || "").trim(),
   idea_id: (process.env.FOUNDEROS_PARITY_DISCOVERY_IDEA_ID || "").trim(),
 };
@@ -74,7 +79,7 @@ function parseActionTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_ACTION_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
@@ -91,28 +96,48 @@ function parseActionTargets(rawValue) {
       parsed?.execution && typeof parsed.execution === "object"
         ? {
             issue:
-              parsed.execution.issue && typeof parsed.execution.issue === "object"
+              parsed.execution.issue &&
+              typeof parsed.execution.issue === "object"
                 ? {
-                    issueId: String(parsed.execution.issue.issueId || "").trim(),
-                    projectId: String(parsed.execution.issue.projectId || "").trim(),
-                    seedKey: String(parsed.execution.issue.seedKey || "").trim(),
+                    issueId: String(
+                      parsed.execution.issue.issueId || "",
+                    ).trim(),
+                    projectId: String(
+                      parsed.execution.issue.projectId || "",
+                    ).trim(),
+                    seedKey: String(
+                      parsed.execution.issue.seedKey || "",
+                    ).trim(),
                   }
                 : null,
             approval:
               parsed.execution.approval &&
               typeof parsed.execution.approval === "object"
                 ? {
-                    approvalId: String(parsed.execution.approval.approvalId || "").trim(),
-                    projectId: String(parsed.execution.approval.projectId || "").trim(),
-                    seedKey: String(parsed.execution.approval.seedKey || "").trim(),
+                    approvalId: String(
+                      parsed.execution.approval.approvalId || "",
+                    ).trim(),
+                    projectId: String(
+                      parsed.execution.approval.projectId || "",
+                    ).trim(),
+                    seedKey: String(
+                      parsed.execution.approval.seedKey || "",
+                    ).trim(),
                   }
                 : null,
             runtime:
-              parsed.execution.runtime && typeof parsed.execution.runtime === "object"
+              parsed.execution.runtime &&
+              typeof parsed.execution.runtime === "object"
                 ? {
-                    runtimeId: String(parsed.execution.runtime.runtimeId || "").trim(),
-                    projectId: String(parsed.execution.runtime.projectId || "").trim(),
-                    seedKey: String(parsed.execution.runtime.seedKey || "").trim(),
+                    runtimeId: String(
+                      parsed.execution.runtime.runtimeId || "",
+                    ).trim(),
+                    projectId: String(
+                      parsed.execution.runtime.projectId || "",
+                    ).trim(),
+                    seedKey: String(
+                      parsed.execution.runtime.seedKey || "",
+                    ).trim(),
                   }
                 : null,
           }
@@ -148,7 +173,19 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const method = String(init?.method || "GET").toUpperCase();
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
+        : {}),
+    },
+  });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
     ? await response.json()
@@ -249,26 +286,29 @@ async function resolveActionTargets(scope, explicitTargets) {
     !resolved.discovery.kind
   ) {
     const discoveryFeed = await fetchJson(
-      `/api/shell/discovery/inbox?limit=200&status=open`
+      `/api/shell/discovery/inbox?limit=200&status=open`,
     );
     assert(
       discoveryFeed.response.status === 200,
-      "Failed to load discovery inbox for live review actions."
+      "Failed to load discovery inbox for live review actions.",
     );
     assert(
       Array.isArray(discoveryFeed.json.items),
-      "Discovery inbox did not return items."
+      "Discovery inbox did not return items.",
     );
 
     const preferredItem = [...discoveryFeed.json.items]
-      .filter((item) => item.status === "open" && item.interrupt?.config?.allow_accept)
+      .filter(
+        (item) =>
+          item.status === "open" && item.interrupt?.config?.allow_accept,
+      )
       .sort((left, right) =>
-        byDiscoveryActionPreference(left, right, scope.idea_id)
+        byDiscoveryActionPreference(left, right, scope.idea_id),
       )[0];
 
     assert(
       preferredItem,
-      "Could not auto-discover one open discovery inbox item with accept semantics."
+      "Could not auto-discover one open discovery inbox item with accept semantics.",
     );
 
     resolved.discovery = {
@@ -289,7 +329,10 @@ async function resolveActionTargets(scope, explicitTargets) {
     executionTargets.runtime?.projectId ||
     scope.project_id;
 
-  assert(projectId, "Could not resolve a project_id for execution action targets.");
+  assert(
+    projectId,
+    "Could not resolve a project_id for execution action targets.",
+  );
 
   if (!executionTargets.issue?.issueId) {
     const issuesPayload = await fetchJson(
@@ -297,14 +340,17 @@ async function resolveActionTargets(scope, explicitTargets) {
         kind: "issues",
         project_id: projectId,
         status: "open",
-      })}`
+      })}`,
     );
     assert(
       issuesPayload.response.status === 200,
-      "Failed to load execution issues for live review actions."
+      "Failed to load execution issues for live review actions.",
     );
     const issue = issuesPayload.json.issues?.[0] ?? null;
-    assert(issue, `Could not auto-discover one open execution issue for ${projectId}.`);
+    assert(
+      issue,
+      `Could not auto-discover one open execution issue for ${projectId}.`,
+    );
     executionTargets.issue = {
       issueId: String(issue.id || "").trim(),
       projectId,
@@ -318,16 +364,16 @@ async function resolveActionTargets(scope, explicitTargets) {
         kind: "approvals",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     );
     assert(
       approvalsPayload.response.status === 200,
-      "Failed to load execution approvals for live review actions."
+      "Failed to load execution approvals for live review actions.",
     );
     const approval = approvalsPayload.json.approvals?.[0] ?? null;
     assert(
       approval,
-      `Could not auto-discover one pending execution approval for ${projectId}.`
+      `Could not auto-discover one pending execution approval for ${projectId}.`,
     );
     executionTargets.approval = {
       approvalId: String(approval.id || "").trim(),
@@ -342,16 +388,16 @@ async function resolveActionTargets(scope, explicitTargets) {
         kind: "runtimes",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     );
     assert(
       runtimesPayload.response.status === 200,
-      "Failed to load execution tool permission runtimes for live review actions."
+      "Failed to load execution tool permission runtimes for live review actions.",
     );
     const runtime = runtimesPayload.json.runtimes?.[0] ?? null;
     assert(
       runtime,
-      `Could not auto-discover one pending tool permission runtime for ${projectId}.`
+      `Could not auto-discover one pending tool permission runtime for ${projectId}.`,
     );
     executionTargets.runtime = {
       runtimeId: String(runtime.id || "").trim(),
@@ -371,16 +417,16 @@ function summarizeOpenCounts(payloads) {
     discoveryOpenCount: getCollectionLength(payloads.discoveryOpen, "items"),
     discoveryResolvedCount: getCollectionLength(
       payloads.discoveryResolved,
-      "items"
+      "items",
     ),
     executionOpenIssueCount: getCollectionLength(payloads.issuesOpen, "issues"),
     executionPendingApprovalCount: getCollectionLength(
       payloads.approvalsPending,
-      "approvals"
+      "approvals",
     ),
     executionPendingRuntimeCount: getCollectionLength(
       payloads.runtimesPending,
-      "runtimes"
+      "runtimes",
     ),
   };
 }
@@ -388,7 +434,7 @@ function summarizeOpenCounts(payloads) {
 function summarizeShellSurfaceCounts(payloads) {
   const portfolioRecord = findPortfolioRecord(
     payloads.portfolio?.json?.records,
-    payloads.projectId
+    payloads.projectId,
   );
 
   return {
@@ -396,7 +442,10 @@ function summarizeShellSurfaceCounts(payloads) {
       "execution",
       "records",
     ]),
-    executionReviewCount: getCollectionLength(payloads.executionReview, "records"),
+    executionReviewCount: getCollectionLength(
+      payloads.executionReview,
+      "records",
+    ),
     inboxDiscoveryOpenCount: getNestedCollectionLength(payloads.inbox, [
       "discoveryFeed",
       "items",
@@ -409,13 +458,15 @@ function summarizeShellSurfaceCounts(payloads) {
       "items",
     ]),
     dashboardIssueCount: getCollectionLength(payloads.dashboard, "issues"),
-    dashboardApprovalCount: getCollectionLength(payloads.dashboard, "approvals"),
+    dashboardApprovalCount: getCollectionLength(
+      payloads.dashboard,
+      "approvals",
+    ),
     dashboardRuntimeCount: getCollectionLength(payloads.dashboard, "runtimes"),
-    dashboardReviewExecutionCount: getNestedCollectionLength(payloads.dashboard, [
-      "reviewCenter",
-      "execution",
-      "records",
-    ]),
+    dashboardReviewExecutionCount: getNestedCollectionLength(
+      payloads.dashboard,
+      ["reviewCenter", "execution", "records"],
+    ),
     portfolioAttentionTotal: portfolioRecord?.attention?.total ?? 0,
   };
 }
@@ -430,6 +481,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -458,16 +510,18 @@ const teardown = async () => {
 try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
-  const parityTargetsSnapshot = await fetchJson(contract.liveRoutes.parityTargets);
+  const parityTargetsSnapshot = await fetchJson(
+    contract.liveRoutes.parityTargets,
+  );
   assert(
     parityTargetsSnapshot.response.status === 200,
-    "Shell parity target route must return 200."
+    "Shell parity target route must return 200.",
   );
 
   const discoveredScope = buildDiscoveredScope(parityTargetsSnapshot.json);
   const resolvedScope = mergeScope(explicitScope, discoveredScope);
   const explicitTargets = parseActionTargets(
-    process.env.FOUNDEROS_REVIEW_ACTION_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_ACTION_TARGETS_JSON || "",
   );
   const targets = await resolveActionTargets(resolvedScope, explicitTargets);
 
@@ -480,38 +534,46 @@ try {
   const executionAttentionKeys = buildExecutionAttentionKeys(targets);
 
   assert(targets.discovery.itemId, "Missing discovery action target item id.");
-  assert(targets.execution.issue?.issueId, "Missing execution issue target id.");
+  assert(
+    targets.execution.issue?.issueId,
+    "Missing execution issue target id.",
+  );
   assert(
     targets.execution.approval?.approvalId,
-    "Missing execution approval target id."
+    "Missing execution approval target id.",
   );
-  assert(targets.execution.runtime?.runtimeId, "Missing execution runtime target id.");
+  assert(
+    targets.execution.runtime?.runtimeId,
+    "Missing execution runtime target id.",
+  );
 
   const before = {
-    discoveryOpen: await fetchJson(`/api/shell/discovery/inbox?limit=200&status=open`),
+    discoveryOpen: await fetchJson(
+      `/api/shell/discovery/inbox?limit=200&status=open`,
+    ),
     discoveryResolved: await fetchJson(
-      `/api/shell/discovery/inbox?limit=200&status=resolved`
+      `/api/shell/discovery/inbox?limit=200&status=resolved`,
     ),
     issuesOpen: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "issues",
         project_id: projectId,
         status: "open",
-      })}`
+      })}`,
     ),
     approvalsPending: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "approvals",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     ),
     runtimesPending: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "runtimes",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     ),
     reviewCenter: await fetchJson("/api/shell/review"),
     executionReview: await fetchJson("/api/shell/execution/review"),
@@ -520,188 +582,215 @@ try {
     portfolio: await fetchJson("/api/shell/portfolio"),
   };
 
-  assert(before.discoveryOpen.response.status === 200, "Failed to read discovery inbox.");
-  assert(before.issuesOpen.response.status === 200, "Failed to read execution issues.");
+  assert(
+    before.discoveryOpen.response.status === 200,
+    "Failed to read discovery inbox.",
+  );
+  assert(
+    before.issuesOpen.response.status === 200,
+    "Failed to read execution issues.",
+  );
   assert(
     before.approvalsPending.response.status === 200,
-    "Failed to read execution approvals."
+    "Failed to read execution approvals.",
   );
   assert(
     before.runtimesPending.response.status === 200,
-    "Failed to read execution runtimes."
+    "Failed to read execution runtimes.",
   );
-  assert(before.reviewCenter.response.status === 200, "Failed to read review center.");
+  assert(
+    before.reviewCenter.response.status === 200,
+    "Failed to read review center.",
+  );
   assert(
     before.executionReview.response.status === 200,
-    "Failed to read execution review surface."
+    "Failed to read execution review surface.",
   );
   assert(before.inbox.response.status === 200, "Failed to read inbox surface.");
   assert(
     before.dashboard.response.status === 200,
-    "Failed to read dashboard surface."
+    "Failed to read dashboard surface.",
   );
   assert(
     before.portfolio.response.status === 200,
-    "Failed to read portfolio surface."
+    "Failed to read portfolio surface.",
   );
 
   const beforePortfolioRecord = findPortfolioRecord(
     before.portfolio.json.records,
-    projectId
+    projectId,
   );
   assert(
     beforePortfolioRecord,
-    `Project ${projectId} is not present in the portfolio snapshot.`
+    `Project ${projectId} is not present in the portfolio snapshot.`,
   );
 
   assert(
-    findById(before.discoveryOpen.json.items, "item_id", targets.discovery.itemId),
-    `Discovery action target ${targets.discovery.itemId} is not present in the open inbox feed.`
+    findById(
+      before.discoveryOpen.json.items,
+      "item_id",
+      targets.discovery.itemId,
+    ),
+    `Discovery action target ${targets.discovery.itemId} is not present in the open inbox feed.`,
   );
   assert(
-    findById(before.issuesOpen.json.issues, "id", targets.execution.issue.issueId),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the open issues feed.`
+    findById(
+      before.issuesOpen.json.issues,
+      "id",
+      targets.execution.issue.issueId,
+    ),
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the open issues feed.`,
   );
   assert(
     findById(
       before.approvalsPending.json.approvals,
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the pending approvals feed.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the pending approvals feed.`,
   );
   assert(
     findById(
       before.runtimesPending.json.runtimes,
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the pending runtimes feed.`
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the pending runtimes feed.`,
   );
   assert(
     findById(
       before.inbox.json.discoveryFeed?.items || [],
       "item_id",
-      targets.discovery.itemId
+      targets.discovery.itemId,
     ),
-    `Discovery action target ${targets.discovery.itemId} is not present in the shell inbox snapshot.`
+    `Discovery action target ${targets.discovery.itemId} is not present in the shell inbox snapshot.`,
   );
   assert(
     findById(
       before.dashboard.json.discoveryFeed?.items || [],
       "item_id",
-      targets.discovery.itemId
+      targets.discovery.itemId,
     ),
-    `Discovery action target ${targets.discovery.itemId} is not present in the shell dashboard snapshot.`
+    `Discovery action target ${targets.discovery.itemId} is not present in the shell dashboard snapshot.`,
   );
   assert(
-    findById(before.inbox.json.issues || [], "id", targets.execution.issue.issueId),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell inbox snapshot.`
+    findById(
+      before.inbox.json.issues || [],
+      "id",
+      targets.execution.issue.issueId,
+    ),
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell inbox snapshot.`,
   );
   assert(
     findById(
       before.inbox.json.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell inbox snapshot.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell inbox snapshot.`,
   );
   assert(
     findById(
       before.inbox.json.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell inbox snapshot.`
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell inbox snapshot.`,
   );
   assert(
     findById(
       before.dashboard.json.issues || [],
       "id",
-      targets.execution.issue.issueId
+      targets.execution.issue.issueId,
     ),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell dashboard snapshot.`
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell dashboard snapshot.`,
   );
   assert(
     findById(
       before.dashboard.json.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell dashboard snapshot.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell dashboard snapshot.`,
   );
   assert(
     findById(
       before.dashboard.json.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell dashboard snapshot.`
-  );
-  assert(
-    findByKey(before.reviewCenter.json.execution?.records, executionAttentionKeys.issue),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell review snapshot.`
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell dashboard snapshot.`,
   );
   assert(
     findByKey(
       before.reviewCenter.json.execution?.records,
-      executionAttentionKeys.approval
+      executionAttentionKeys.issue,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell review snapshot.`
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the shell review snapshot.`,
   );
   assert(
     findByKey(
       before.reviewCenter.json.execution?.records,
-      executionAttentionKeys.runtime
+      executionAttentionKeys.approval,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell review snapshot.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the shell review snapshot.`,
   );
   assert(
-    findByKey(before.executionReview.json.records, executionAttentionKeys.issue),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the execution review snapshot.`
+    findByKey(
+      before.reviewCenter.json.execution?.records,
+      executionAttentionKeys.runtime,
+    ),
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the shell review snapshot.`,
   );
   assert(
     findByKey(
       before.executionReview.json.records,
-      executionAttentionKeys.approval
+      executionAttentionKeys.issue,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the execution review snapshot.`
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the execution review snapshot.`,
   );
   assert(
     findByKey(
       before.executionReview.json.records,
-      executionAttentionKeys.runtime
+      executionAttentionKeys.approval,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the execution review snapshot.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the execution review snapshot.`,
+  );
+  assert(
+    findByKey(
+      before.executionReview.json.records,
+      executionAttentionKeys.runtime,
+    ),
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the execution review snapshot.`,
   );
   assert(
     findById(
       beforePortfolioRecord.attention?.issues || [],
       "id",
-      targets.execution.issue.issueId
+      targets.execution.issue.issueId,
     ),
-    `Execution issue target ${targets.execution.issue.issueId} is not present in the portfolio chain attention rollup.`
+    `Execution issue target ${targets.execution.issue.issueId} is not present in the portfolio chain attention rollup.`,
   );
   assert(
     findById(
       beforePortfolioRecord.attention?.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval target ${targets.execution.approval.approvalId} is not present in the portfolio chain attention rollup.`
+    `Execution approval target ${targets.execution.approval.approvalId} is not present in the portfolio chain attention rollup.`,
   );
   assert(
     findById(
       beforePortfolioRecord.attention?.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the portfolio chain attention rollup.`
+    `Execution runtime target ${targets.execution.runtime.runtimeId} is not present in the portfolio chain attention rollup.`,
   );
 
   const discoveryAction = await fetchJson(
     `/api/shell/discovery/actions/orchestrate/discovery/inbox/${encodeURIComponent(
-      targets.discovery.itemId
+      targets.discovery.itemId,
     )}/act`,
     {
       method: "POST",
@@ -713,24 +802,24 @@ try {
         actor: "founderos-shell",
         note: "Live review action harness accepted this deterministic discovery item.",
       }),
-    }
+    },
   );
   assert(
     discoveryAction.response.status === 200,
-    `Discovery accept action failed with ${discoveryAction.response.status}.`
+    `Discovery accept action failed with ${discoveryAction.response.status}.`,
   );
   assert(
     discoveryAction.json.status === "resolved",
-    `Discovery accept action did not resolve item ${targets.discovery.itemId}.`
+    `Discovery accept action did not resolve item ${targets.discovery.itemId}.`,
   );
   assert(
     discoveryAction.json.resolution?.action === "accept",
-    `Discovery accept action did not record resolution action "accept" for ${targets.discovery.itemId}.`
+    `Discovery accept action did not record resolution action "accept" for ${targets.discovery.itemId}.`,
   );
 
   const issueAction = await fetchJson(
     `/api/shell/execution/actions/execution-plane/issues/${encodeURIComponent(
-      targets.execution.issue.issueId
+      targets.execution.issue.issueId,
     )}/resolve`,
     {
       method: "POST",
@@ -741,20 +830,20 @@ try {
         actor: "founderos-shell",
         note: "Live review action harness resolved this deterministic execution issue.",
       }),
-    }
+    },
   );
   assert(
     issueAction.response.status === 200,
-    `Execution issue resolve failed with ${issueAction.response.status}.`
+    `Execution issue resolve failed with ${issueAction.response.status}.`,
   );
   assert(
     issueAction.json.issue?.status === "resolved",
-    `Execution issue ${targets.execution.issue.issueId} did not resolve.`
+    `Execution issue ${targets.execution.issue.issueId} did not resolve.`,
   );
 
   const approvalAction = await fetchJson(
     `/api/shell/execution/actions/execution-plane/approvals/${encodeURIComponent(
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     )}/approve`,
     {
       method: "POST",
@@ -765,20 +854,20 @@ try {
         actor: "founderos-shell",
         note: "Live review action harness approved this deterministic execution approval.",
       }),
-    }
+    },
   );
   assert(
     approvalAction.response.status === 200,
-    `Execution approval approve failed with ${approvalAction.response.status}.`
+    `Execution approval approve failed with ${approvalAction.response.status}.`,
   );
   assert(
     approvalAction.json.approval?.status === "approved",
-    `Execution approval ${targets.execution.approval.approvalId} did not transition to approved.`
+    `Execution approval ${targets.execution.approval.approvalId} did not transition to approved.`,
   );
 
   const runtimeAction = await fetchJson(
     `/api/shell/execution/actions/execution-plane/tool-permission-runtimes/${encodeURIComponent(
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     )}/allow`,
     {
       method: "POST",
@@ -790,69 +879,71 @@ try {
         note: "Live review action harness allowed this deterministic tool permission runtime.",
         source: "user",
       }),
-    }
+    },
   );
   assert(
     runtimeAction.response.status === 200,
-    `Execution runtime allow failed with ${runtimeAction.response.status}.`
+    `Execution runtime allow failed with ${runtimeAction.response.status}.`,
   );
   assert(
     runtimeAction.json.runtime?.status === "resolved",
-    `Execution runtime ${targets.execution.runtime.runtimeId} did not resolve.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} did not resolve.`,
   );
   assert(
     String(
       runtimeAction.json.runtime?.resolved_behavior ||
         runtimeAction.json.runtime?.metadata?.pending?.resolved_behavior ||
         runtimeAction.json.runtime?.outcome ||
-        ""
+        "",
     ) === "allow",
-    `Execution runtime ${targets.execution.runtime.runtimeId} did not settle with allow semantics.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} did not settle with allow semantics.`,
   );
 
   const after = {
-    discoveryOpen: await fetchJson(`/api/shell/discovery/inbox?limit=200&status=open`),
+    discoveryOpen: await fetchJson(
+      `/api/shell/discovery/inbox?limit=200&status=open`,
+    ),
     discoveryResolved: await fetchJson(
-      `/api/shell/discovery/inbox?limit=200&status=resolved`
+      `/api/shell/discovery/inbox?limit=200&status=resolved`,
     ),
     issuesOpen: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "issues",
         project_id: projectId,
         status: "open",
-      })}`
+      })}`,
     ),
     issuesAll: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "issues",
         project_id: projectId,
-      })}`
+      })}`,
     ),
     approvalsPending: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "approvals",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     ),
     approvalsAll: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "approvals",
         project_id: projectId,
-      })}`
+      })}`,
     ),
     runtimesPending: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "runtimes",
         project_id: projectId,
         status: "pending",
-      })}`
+      })}`,
     ),
     runtimesAll: await fetchJson(
       `/api/shell/execution/attention${buildQuery({
         kind: "runtimes",
         project_id: projectId,
-      })}`
+      })}`,
     ),
     reviewCenter: await fetchJson("/api/shell/review"),
     executionReview: await fetchJson("/api/shell/execution/review"),
@@ -863,195 +954,222 @@ try {
 
   const afterPortfolioRecord = findPortfolioRecord(
     after.portfolio.json.records,
-    projectId
+    projectId,
   );
   assert(
     afterPortfolioRecord,
-    `Project ${projectId} is missing from the portfolio snapshot after review actions.`
+    `Project ${projectId} is missing from the portfolio snapshot after review actions.`,
   );
 
   assert(
-    !findById(after.discoveryOpen.json.items, "item_id", targets.discovery.itemId),
-    `Discovery item ${targets.discovery.itemId} still appears in the open inbox feed after accept.`
+    !findById(
+      after.discoveryOpen.json.items,
+      "item_id",
+      targets.discovery.itemId,
+    ),
+    `Discovery item ${targets.discovery.itemId} still appears in the open inbox feed after accept.`,
   );
   const resolvedDiscoveryItem = findById(
     after.discoveryResolved.json.items,
     "item_id",
-    targets.discovery.itemId
+    targets.discovery.itemId,
   );
   assert(
     resolvedDiscoveryItem?.status === "resolved",
-    `Discovery item ${targets.discovery.itemId} is missing from the resolved inbox feed after accept.`
+    `Discovery item ${targets.discovery.itemId} is missing from the resolved inbox feed after accept.`,
   );
 
   assert(
-    !findById(after.issuesOpen.json.issues, "id", targets.execution.issue.issueId),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the open issues feed after resolve.`
+    !findById(
+      after.issuesOpen.json.issues,
+      "id",
+      targets.execution.issue.issueId,
+    ),
+    `Execution issue ${targets.execution.issue.issueId} still appears in the open issues feed after resolve.`,
   );
   assert(
     findById(after.issuesAll.json.issues, "id", targets.execution.issue.issueId)
       ?.status === "resolved",
-    `Execution issue ${targets.execution.issue.issueId} is missing from the all-issues feed with resolved status.`
+    `Execution issue ${targets.execution.issue.issueId} is missing from the all-issues feed with resolved status.`,
   );
 
   assert(
     !findById(
       after.approvalsPending.json.approvals,
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the pending approvals feed after approve.`
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the pending approvals feed after approve.`,
   );
   assert(
-    findById(after.approvalsAll.json.approvals, "id", targets.execution.approval.approvalId)
-      ?.status === "approved",
-    `Execution approval ${targets.execution.approval.approvalId} is missing from the all-approvals feed with approved status.`
+    findById(
+      after.approvalsAll.json.approvals,
+      "id",
+      targets.execution.approval.approvalId,
+    )?.status === "approved",
+    `Execution approval ${targets.execution.approval.approvalId} is missing from the all-approvals feed with approved status.`,
   );
 
   assert(
     !findById(
       after.runtimesPending.json.runtimes,
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the pending runtimes feed after allow.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the pending runtimes feed after allow.`,
   );
   const resolvedRuntime = findById(
     after.runtimesAll.json.runtimes,
     "id",
-    targets.execution.runtime.runtimeId
+    targets.execution.runtime.runtimeId,
   );
   assert(
     resolvedRuntime?.status === "resolved",
-    `Execution runtime ${targets.execution.runtime.runtimeId} is missing from the all-runtimes feed with resolved status.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} is missing from the all-runtimes feed with resolved status.`,
   );
   assert(
     String(
       resolvedRuntime?.resolved_behavior ||
         resolvedRuntime?.metadata?.pending?.resolved_behavior ||
         resolvedRuntime?.outcome ||
-        ""
+        "",
     ) === "allow",
-    `Execution runtime ${targets.execution.runtime.runtimeId} is not marked as allowed in the stored runtime feed.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} is not marked as allowed in the stored runtime feed.`,
   );
   assert(
     !findById(
       after.inbox.json.discoveryFeed?.items || [],
       "item_id",
-      targets.discovery.itemId
+      targets.discovery.itemId,
     ),
-    `Discovery item ${targets.discovery.itemId} still appears in the shell inbox snapshot after accept.`
+    `Discovery item ${targets.discovery.itemId} still appears in the shell inbox snapshot after accept.`,
   );
   assert(
     !findById(
       after.dashboard.json.discoveryFeed?.items || [],
       "item_id",
-      targets.discovery.itemId
+      targets.discovery.itemId,
     ),
-    `Discovery item ${targets.discovery.itemId} still appears in the shell dashboard snapshot after accept.`
+    `Discovery item ${targets.discovery.itemId} still appears in the shell dashboard snapshot after accept.`,
   );
   assert(
-    !findById(after.inbox.json.issues || [], "id", targets.execution.issue.issueId),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the shell inbox snapshot after resolve.`
+    !findById(
+      after.inbox.json.issues || [],
+      "id",
+      targets.execution.issue.issueId,
+    ),
+    `Execution issue ${targets.execution.issue.issueId} still appears in the shell inbox snapshot after resolve.`,
   );
   assert(
     !findById(
       after.inbox.json.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell inbox snapshot after approve.`
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell inbox snapshot after approve.`,
   );
   assert(
     !findById(
       after.inbox.json.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell inbox snapshot after allow.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell inbox snapshot after allow.`,
   );
   assert(
     !findById(
       after.dashboard.json.issues || [],
       "id",
-      targets.execution.issue.issueId
+      targets.execution.issue.issueId,
     ),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the shell dashboard snapshot after resolve.`
+    `Execution issue ${targets.execution.issue.issueId} still appears in the shell dashboard snapshot after resolve.`,
   );
   assert(
     !findById(
       after.dashboard.json.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell dashboard snapshot after approve.`
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell dashboard snapshot after approve.`,
   );
   assert(
     !findById(
       after.dashboard.json.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell dashboard snapshot after allow.`
-  );
-  assert(
-    !findByKey(after.reviewCenter.json.execution?.records, executionAttentionKeys.issue),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the shell review snapshot after resolve.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell dashboard snapshot after allow.`,
   );
   assert(
     !findByKey(
       after.reviewCenter.json.execution?.records,
-      executionAttentionKeys.approval
+      executionAttentionKeys.issue,
     ),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell review snapshot after approve.`
+    `Execution issue ${targets.execution.issue.issueId} still appears in the shell review snapshot after resolve.`,
   );
   assert(
     !findByKey(
       after.reviewCenter.json.execution?.records,
-      executionAttentionKeys.runtime
+      executionAttentionKeys.approval,
     ),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell review snapshot after allow.`
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the shell review snapshot after approve.`,
   );
   assert(
-    !findByKey(after.executionReview.json.records, executionAttentionKeys.issue),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the execution review snapshot after resolve.`
+    !findByKey(
+      after.reviewCenter.json.execution?.records,
+      executionAttentionKeys.runtime,
+    ),
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the shell review snapshot after allow.`,
   );
   assert(
-    !findByKey(after.executionReview.json.records, executionAttentionKeys.approval),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the execution review snapshot after approve.`
+    !findByKey(
+      after.executionReview.json.records,
+      executionAttentionKeys.issue,
+    ),
+    `Execution issue ${targets.execution.issue.issueId} still appears in the execution review snapshot after resolve.`,
   );
   assert(
-    !findByKey(after.executionReview.json.records, executionAttentionKeys.runtime),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the execution review snapshot after allow.`
+    !findByKey(
+      after.executionReview.json.records,
+      executionAttentionKeys.approval,
+    ),
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the execution review snapshot after approve.`,
+  );
+  assert(
+    !findByKey(
+      after.executionReview.json.records,
+      executionAttentionKeys.runtime,
+    ),
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the execution review snapshot after allow.`,
   );
   assert(
     !findById(
       afterPortfolioRecord.attention?.issues || [],
       "id",
-      targets.execution.issue.issueId
+      targets.execution.issue.issueId,
     ),
-    `Execution issue ${targets.execution.issue.issueId} still appears in the portfolio chain attention rollup after resolve.`
+    `Execution issue ${targets.execution.issue.issueId} still appears in the portfolio chain attention rollup after resolve.`,
   );
   assert(
     !findById(
       afterPortfolioRecord.attention?.approvals || [],
       "id",
-      targets.execution.approval.approvalId
+      targets.execution.approval.approvalId,
     ),
-    `Execution approval ${targets.execution.approval.approvalId} still appears in the portfolio chain attention rollup after approve.`
+    `Execution approval ${targets.execution.approval.approvalId} still appears in the portfolio chain attention rollup after approve.`,
   );
   assert(
     !findById(
       afterPortfolioRecord.attention?.runtimes || [],
       "id",
-      targets.execution.runtime.runtimeId
+      targets.execution.runtime.runtimeId,
     ),
-    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the portfolio chain attention rollup after allow.`
+    `Execution runtime ${targets.execution.runtime.runtimeId} still appears in the portfolio chain attention rollup after allow.`,
   );
   assert(
     (afterPortfolioRecord.attention?.total ?? 0) <=
       (beforePortfolioRecord.attention?.total ?? 0) - 3,
-    `Portfolio chain attention total did not drop after resolving review actions for ${projectId}.`
+    `Portfolio chain attention total did not drop after resolving review actions for ${projectId}.`,
   );
 
   console.log(
@@ -1094,7 +1212,7 @@ try {
             "",
         },
       },
-    })
+    }),
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

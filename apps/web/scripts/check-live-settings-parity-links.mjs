@@ -15,7 +15,7 @@ const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 
 if (!externalBaseUrl && !existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -25,11 +25,10 @@ const port =
   process.env.FOUNDEROS_WEB_PORT ??
   String(3970 + Math.floor(Math.random() * 100));
 const baseUrl = externalBaseUrl || `http://${host}:${port}`;
-const SUITE_TARGET_KEYS = [
-  "discovery-pass",
-  "critical-pass",
-  "decision-pass",
-];
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-settings-admin-token"
+).trim();
+const SUITE_TARGET_KEYS = ["discovery-pass", "critical-pass", "decision-pass"];
 
 function assert(condition, message) {
   if (!condition) {
@@ -86,7 +85,9 @@ function selectScopedSettingsHref(html, check) {
   const scoredMatches = matches.map((href) => {
     const url = new URL(href, "http://founderos-shell.local");
     const projectId = firstString(url.searchParams.get("project_id"));
-    const intakeSessionId = firstString(url.searchParams.get("intake_session_id"));
+    const intakeSessionId = firstString(
+      url.searchParams.get("intake_session_id"),
+    );
     const ideaId = firstString(url.searchParams.get("idea_id"));
     const sessionId = firstString(url.searchParams.get("session_id"));
     let score = 0;
@@ -139,7 +140,7 @@ function selectScopedSettingsHref(html, check) {
     .join(", ");
 
   throw new Error(
-    `Missing suitable ${check.label} scoped settings href in SSR HTML. Candidates: ${debugCandidates}`
+    `Missing suitable ${check.label} scoped settings href in SSR HTML. Candidates: ${debugCandidates}`,
   );
 }
 
@@ -147,7 +148,7 @@ function parseSuiteTargets(rawValue) {
   const trimmed = (rawValue || "").trim();
   if (!trimmed) {
     throw new Error(
-      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for settings parity link checks."
+      "FOUNDEROS_REVIEW_SUITE_TARGETS_JSON is required for settings parity link checks.",
     );
   }
 
@@ -158,14 +159,17 @@ function parseSuiteTargets(rawValue) {
     throw new Error(
       `FOUNDEROS_REVIEW_SUITE_TARGETS_JSON must contain valid JSON. ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 
   const normalized = {};
   for (const preset of SUITE_TARGET_KEYS) {
     const target = parsed?.[preset];
-    assert(target && typeof target === "object", `Missing suite target for ${preset}.`);
+    assert(
+      target && typeof target === "object",
+      `Missing suite target for ${preset}.`,
+    );
     normalized[preset] = {
       preset,
       role: firstString(target.role),
@@ -175,7 +179,9 @@ function parseSuiteTargets(rawValue) {
         intakeSessionId: firstString(target.routeScope?.intakeSessionId),
       },
       parityTargets: {
-        discoverySessionId: firstString(target.parityTargets?.discoverySessionId),
+        discoverySessionId: firstString(
+          target.parityTargets?.discoverySessionId,
+        ),
         discoveryIdeaId: firstString(target.parityTargets?.discoveryIdeaId),
       },
     };
@@ -203,45 +209,68 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchHtml(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+  const response = await fetch(`${baseUrl}${path}`, {
+    headers: shellAdminToken
+      ? { "x-founderos-shell-admin-token": shellAdminToken }
+      : {},
+  });
   const html = await response.text();
-  assert(response.status === 200, `Expected 200 for ${path}, received ${response.status}.`);
+  assert(
+    response.status === 200,
+    `Expected 200 for ${path}, received ${response.status}.`,
+  );
   return html;
 }
 
 function assertSettingsPage(html, check) {
   assertIncludes(html, "Route scope", `${check.label} settings route scope`);
-  assertIncludes(html, "Resolved parity targets", `${check.label} resolved parity targets`);
-  assertIncludes(html, "Scoped parity playbooks", `${check.label} parity playbooks`);
-  assertIncludes(html, "Browser contract audit", `${check.label} browser contract audit`);
-  assertIncludes(html, "Upstream parity audit", `${check.label} upstream parity audit`);
+  assertIncludes(
+    html,
+    "Resolved parity targets",
+    `${check.label} resolved parity targets`,
+  );
+  assertIncludes(
+    html,
+    "Scoped parity playbooks",
+    `${check.label} parity playbooks`,
+  );
+  assertIncludes(
+    html,
+    "Browser contract audit",
+    `${check.label} browser contract audit`,
+  );
+  assertIncludes(
+    html,
+    "Upstream parity audit",
+    `${check.label} upstream parity audit`,
+  );
   assertIncludes(
     html,
     "FOUNDEROS_PARITY_PROJECT_ID=",
-    `${check.label} scoped project env key`
+    `${check.label} scoped project env key`,
   );
   assertIncludes(
     html,
     "FOUNDEROS_PARITY_INTAKE_SESSION_ID=",
-    `${check.label} scoped intake env key`
+    `${check.label} scoped intake env key`,
   );
   assertIncludes(html, check.scope.projectId, `${check.label} project id`);
   assertIncludes(
     html,
     check.scope.intakeSessionId,
-    `${check.label} intake session id`
+    `${check.label} intake session id`,
   );
 
   if (check.parityTargets.discoveryIdeaId) {
     assertIncludes(
       html,
       "FOUNDEROS_PARITY_DISCOVERY_IDEA_ID=",
-      `${check.label} scoped idea env key`
+      `${check.label} scoped idea env key`,
     );
     assertIncludes(
       html,
       check.parityTargets.discoveryIdeaId,
-      `${check.label} discovery idea id`
+      `${check.label} discovery idea id`,
     );
   }
 
@@ -249,12 +278,12 @@ function assertSettingsPage(html, check) {
     assertIncludes(
       html,
       "FOUNDEROS_PARITY_DISCOVERY_SESSION_ID=",
-      `${check.label} scoped session env key`
+      `${check.label} scoped session env key`,
     );
     assertIncludes(
       html,
       check.parityTargets.discoverySessionId,
-      `${check.label} discovery session id`
+      `${check.label} discovery session id`,
     );
   }
 }
@@ -263,26 +292,26 @@ function assertScopedSettingsHref(href, check) {
   const url = new URL(href, "http://founderos-shell.local");
   assert(
     url.pathname === "/settings",
-    `${check.label} scoped settings must target /settings, received ${url.pathname}.`
+    `${check.label} scoped settings must target /settings, received ${url.pathname}.`,
   );
   assert(
     url.searchParams.get("project_id") === check.scope.projectId,
-    `${check.label} scoped settings must preserve project_id=${check.scope.projectId}.`
+    `${check.label} scoped settings must preserve project_id=${check.scope.projectId}.`,
   );
   assert(
     url.searchParams.get("intake_session_id") === check.scope.intakeSessionId,
-    `${check.label} scoped settings must preserve intake_session_id=${check.scope.intakeSessionId}.`
+    `${check.label} scoped settings must preserve intake_session_id=${check.scope.intakeSessionId}.`,
   );
   if (check.requireIdea) {
     assert(
       Boolean(url.searchParams.get("idea_id")),
-      `${check.label} scoped settings must carry idea_id.`
+      `${check.label} scoped settings must carry idea_id.`,
     );
   }
   if (check.requireSession) {
     assert(
       Boolean(url.searchParams.get("session_id")),
-      `${check.label} scoped settings must carry session_id.`
+      `${check.label} scoped settings must carry session_id.`,
     );
   }
   return {
@@ -308,6 +337,7 @@ const server = externalBaseUrl
         ...process.env,
         FOUNDEROS_WEB_HOST: host,
         FOUNDEROS_WEB_PORT: port,
+        FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -337,7 +367,7 @@ try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
   const suiteTargets = parseSuiteTargets(
-    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || ""
+    process.env.FOUNDEROS_REVIEW_SUITE_TARGETS_JSON || "",
   );
   const discoveryTarget = suiteTargets["discovery-pass"];
   const criticalTarget = suiteTargets["critical-pass"];
@@ -374,9 +404,11 @@ try {
     {
       key: "discovery-review",
       label: "discovery review",
-      sourceHref: buildScopedHref("/discovery/review", discoveryTarget.routeScope, [
-        ["filter", "handoff"],
-      ]),
+      sourceHref: buildScopedHref(
+        "/discovery/review",
+        discoveryTarget.routeScope,
+        [["filter", "handoff"]],
+      ),
       scope: discoveryTarget.routeScope,
       requireIdea: false,
       requireSession: false,
@@ -384,9 +416,11 @@ try {
     {
       key: "execution-review",
       label: "execution review",
-      sourceHref: buildScopedHref("/execution/review", criticalTarget.routeScope, [
-        ["filter", "linked"],
-      ]),
+      sourceHref: buildScopedHref(
+        "/execution/review",
+        criticalTarget.routeScope,
+        [["filter", "linked"]],
+      ),
       scope: criticalTarget.routeScope,
       requireIdea: true,
       requireSession: false,
@@ -396,7 +430,7 @@ try {
       label: "discovery authoring",
       sourceHref: buildScopedHref(
         `/discovery/ideas/${decisionTarget.parityTargets.discoveryIdeaId}/authoring`,
-        decisionTarget.routeScope
+        decisionTarget.routeScope,
       ),
       scope: decisionTarget.routeScope,
       requireIdea: true,
@@ -407,7 +441,7 @@ try {
       label: "discovery traces",
       sourceHref: buildScopedHref(
         `/discovery/traces/${criticalTarget.parityTargets.discoveryIdeaId}`,
-        criticalTarget.routeScope
+        criticalTarget.routeScope,
       ),
       scope: criticalTarget.routeScope,
       requireIdea: true,
@@ -418,7 +452,11 @@ try {
   const resolvedChecks = [];
   for (const check of checks) {
     const html = await fetchHtml(check.sourceHref);
-    assertIncludes(html, "Open scoped settings", `${check.label} scoped settings label`);
+    assertIncludes(
+      html,
+      "Open scoped settings",
+      `${check.label} scoped settings label`,
+    );
     const actualSettingsHref = selectScopedSettingsHref(html, check);
     resolvedChecks.push({
       ...check,
@@ -449,7 +487,7 @@ try {
         sourceHref: check.sourceHref,
         settingsHref: check.href,
       })),
-    })
+    }),
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

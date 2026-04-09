@@ -12,7 +12,7 @@ const contract = JSON.parse(readFileSync(contractPath, "utf8"));
 const buildIdPath = join(appRoot, ".next", "BUILD_ID");
 if (!existsSync(buildIdPath)) {
   console.error(
-    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first."
+    "Missing production build for @founderos/web. Run `npm run build --workspace @founderos/web` first.",
   );
   process.exit(1);
 }
@@ -22,6 +22,9 @@ const port =
   String(3770 + Math.floor(Math.random() * 100));
 const host = process.env.FOUNDEROS_WEB_HOST ?? "127.0.0.1";
 const baseUrl = `http://${host}:${port}`;
+const shellAdminToken = (
+  process.env.FOUNDEROS_SHELL_ADMIN_TOKEN || "shell-smoke-admin-token"
+).trim();
 const expectedParityRecordKeys = [
   "discoverySessions",
   "discoveryIdeas",
@@ -74,7 +77,15 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+    },
+  });
   const json = await response.json();
   return { response, json };
 }
@@ -127,6 +138,7 @@ const server = spawn("npm", ["run", "start"], {
     ...process.env,
     FOUNDEROS_WEB_HOST: host,
     FOUNDEROS_WEB_PORT: port,
+    FOUNDEROS_SHELL_ADMIN_TOKEN: shellAdminToken,
   },
   detached: process.platform !== "win32",
   stdio: ["ignore", "pipe", "pipe"],
@@ -170,67 +182,78 @@ try {
   await waitForServer(`${baseUrl}${contract.liveRoutes.runtime}`);
 
   const runtime = await fetchJson(contract.liveRoutes.runtime);
-  assert(runtime.response.status === 200, "Shell runtime route must return 200.");
-  assert(runtime.json.settings, "Shell runtime snapshot must include settings.");
+  assert(
+    runtime.response.status === 200,
+    "Shell runtime route must return 200.",
+  );
+  assert(
+    runtime.json.settings,
+    "Shell runtime snapshot must include settings.",
+  );
   assert(runtime.json.health, "Shell runtime snapshot must include health.");
-  assert(Array.isArray(runtime.json.errors), "Shell runtime snapshot must include errors.");
+  assert(
+    Array.isArray(runtime.json.errors),
+    "Shell runtime snapshot must include errors.",
+  );
 
   const parityTargets = await fetchJson(contract.liveRoutes.parityTargets);
   assert(
     parityTargets.response.status === 200,
-    "Shell parity targets route must return 200."
+    "Shell parity targets route must return 200.",
   );
   assert(
-    Array.isArray(parityTargets.json.records) && parityTargets.json.records.length === 4,
-    "Shell parity targets route must include the expected target records."
+    Array.isArray(parityTargets.json.records) &&
+      parityTargets.json.records.length === 4,
+    "Shell parity targets route must include the expected target records.",
   );
   assert(
     parityTargets.json.routeScope && parityTargets.json.parityTargets,
-    "Shell parity targets route must include route scope and parity targets."
+    "Shell parity targets route must include route scope and parity targets.",
   );
   assert(
     parityTargets.json.coverage &&
       typeof parityTargets.json.coverage.candidateCount === "number" &&
       typeof parityTargets.json.coverage.completeLinkedChainCount === "number",
-    "Shell parity targets route must include target resolution coverage diagnostics."
+    "Shell parity targets route must include target resolution coverage diagnostics.",
   );
 
   const contractAudit = await fetchJson(contract.liveRoutes.contractAudit);
   assert(
     contractAudit.response.status === 200,
-    "Shell contract audit route must return 200."
+    "Shell contract audit route must return 200.",
   );
   assert(
     contractAudit.json.summary,
-    "Shell contract audit route must include summary counts."
+    "Shell contract audit route must include summary counts.",
   );
   assert(
     contractAudit.json.liveRoutes?.length === 9,
-    "Shell contract audit route must include the expected live route checks."
+    "Shell contract audit route must include the expected live route checks.",
   );
   assert(
-    contractAudit.json.deprecatedRoutes?.length === contract.deprecatedRoutes.length,
-    "Shell contract audit route must include the expected deprecated route checks."
+    contractAudit.json.deprecatedRoutes?.length ===
+      contract.deprecatedRoutes.length,
+    "Shell contract audit route must include the expected deprecated route checks.",
   );
 
   const parityAudit = await fetchJson("/api/shell/parity");
   assert(
     parityAudit.response.status === 200,
-    "Shell parity audit route must return 200."
+    "Shell parity audit route must return 200.",
   );
   assert(
     Array.isArray(parityAudit.json.records),
-    "Shell parity audit route must include parity records."
+    "Shell parity audit route must include parity records.",
   );
   assert(
     expectedParityRecordKeys.every((key) =>
-      parityAudit.json.records.some((record) => record.key === key)
+      parityAudit.json.records.some((record) => record.key === key),
     ),
-    "Shell parity audit route must include the expected parity record keys."
+    "Shell parity audit route must include the expected parity record keys.",
   );
   assert(
     parityAudit.json.summary,
-    "Shell parity audit route must include summary counts."
+    "Shell parity audit route must include summary counts.",
   );
   assert(
     parityAudit.json.records.every(
@@ -241,29 +264,29 @@ try {
         Array.isArray(record.shellSampleIds) &&
         Array.isArray(record.upstreamSampleIds) &&
         Array.isArray(record.missingInShellSampleIds) &&
-        Array.isArray(record.missingInUpstreamSampleIds)
+        Array.isArray(record.missingInUpstreamSampleIds),
     ),
-    "Shell parity audit route must include actionable route links and sample id arrays."
+    "Shell parity audit route must include actionable route links and sample id arrays.",
   );
 
   const scopedParityAudit = await fetchJson(
-    "/api/shell/parity?project_id=demo-project&intake_session_id=demo-session&session_id=demo-session&idea_id=demo-idea"
+    "/api/shell/parity?project_id=demo-project&intake_session_id=demo-session&session_id=demo-session&idea_id=demo-idea",
   );
   assert(
     scopedParityAudit.response.status === 200,
-    "Scoped shell parity audit route must return 200."
+    "Scoped shell parity audit route must return 200.",
   );
   assert(
     Array.isArray(scopedParityAudit.json.drilldowns),
-    "Scoped shell parity audit route must include drilldown records."
+    "Scoped shell parity audit route must include drilldown records.",
   );
   assert(
     scopedParityAudit.json.drilldowns.length >= 4,
-    "Scoped shell parity audit route must include discovery and execution drilldowns."
+    "Scoped shell parity audit route must include discovery and execution drilldowns.",
   );
   assert(
     scopedParityAudit.json.drilldownSummary,
-    "Scoped shell parity audit route must include drilldown summary counts."
+    "Scoped shell parity audit route must include drilldown summary counts.",
   );
 
   const operatorPut = await fetchJson(contract.liveRoutes.operatorPreferences, {
@@ -273,7 +296,7 @@ try {
   });
   assert(
     operatorPut.response.status === 200,
-    "Shell operator preferences PUT must return 200."
+    "Shell operator preferences PUT must return 200.",
   );
   const operatorCookie = operatorPut.response.headers.get("set-cookie");
   assert(operatorCookie, "Shell operator preferences PUT must set a cookie.");
@@ -283,11 +306,11 @@ try {
   });
   assert(
     operatorGet.response.status === 200,
-    "Shell operator preferences GET must return 200."
+    "Shell operator preferences GET must return 200.",
   );
   assert(
     operatorGet.json.preferences?.refreshProfile === "focused",
-    "Shell operator preferences GET must reflect the updated refresh profile."
+    "Shell operator preferences GET must reflect the updated refresh profile.",
   );
 
   for (const route of contract.deprecatedRoutes) {
@@ -296,11 +319,11 @@ try {
     });
     assert(
       deprecated.response.status === 410,
-      `${route.legacyPath} must return 410.`
+      `${route.legacyPath} must return 410.`,
     );
     assert(
       deprecated.json.shellNamespace === route.shellNamespace,
-      `${route.legacyPath} must point callers to ${route.shellNamespace}.`
+      `${route.legacyPath} must point callers to ${route.shellNamespace}.`,
     );
   }
 
@@ -321,113 +344,116 @@ try {
   });
   assert(
     createHandoff.response.status === 200,
-    "Shell handoff create route must return 200."
+    "Shell handoff create route must return 200.",
   );
   const handoffId = createHandoff.json.handoff?.id;
   assert(handoffId, "Shell handoff create route must return a handoff id.");
 
   const handoffDetail = await fetchJson(
-    `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`
+    `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`,
   );
   assert(
     handoffDetail.response.status === 200,
-    "Shell handoff detail route must return 200."
+    "Shell handoff detail route must return 200.",
   );
   assert(
     handoffDetail.json.handoff?.id === handoffId,
-    "Shell handoff detail route must return the created handoff."
+    "Shell handoff detail route must return the created handoff.",
   );
 
   const legacyHandoffDetail = await fetchJson(
-    `/api/handoffs/execution-brief/${encodeURIComponent(handoffId)}`
+    `/api/handoffs/execution-brief/${encodeURIComponent(handoffId)}`,
   );
   assert(
     legacyHandoffDetail.response.status === 410,
-    "Legacy handoff detail route must return 410."
+    "Legacy handoff detail route must return 410.",
   );
   assert(
     legacyHandoffDetail.json.shellNamespace ===
       `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`,
-    "Legacy handoff detail route must point callers to the shell handoff detail route."
+    "Legacy handoff detail route must point callers to the shell handoff detail route.",
   );
 
   const settingsPage = await fetchHtml(
-    "/settings?project_id=demo-project&intake_session_id=demo-session&session_id=demo-session&idea_id=demo-idea"
+    "/settings?project_id=demo-project&intake_session_id=demo-session&session_id=demo-session&idea_id=demo-idea",
   );
-  assert(settingsPage.response.status === 200, "Scoped settings page must return 200.");
+  assert(
+    settingsPage.response.status === 200,
+    "Scoped settings page must return 200.",
+  );
   assert(
     settingsPage.html.includes("Operator controls"),
-    "Scoped settings HTML must include operator controls."
+    "Scoped settings HTML must include operator controls.",
   );
   assert(
     settingsPage.html.includes(contract.liveRoutes.operatorPreferences),
-    "Scoped settings HTML must mention the shell operator preferences namespace."
+    "Scoped settings HTML must mention the shell operator preferences namespace.",
   );
   assert(
     settingsPage.html.includes("Browser contract audit"),
-    "Scoped settings HTML must include the browser contract audit section."
+    "Scoped settings HTML must include the browser contract audit section.",
   );
   assert(
     settingsPage.html.includes("Upstream parity audit"),
-    "Scoped settings HTML must include the upstream parity audit section."
+    "Scoped settings HTML must include the upstream parity audit section.",
   );
   assert(
     settingsPage.html.includes("Resolved parity targets"),
-    "Scoped settings HTML must include the resolved parity target section."
+    "Scoped settings HTML must include the resolved parity target section.",
   );
   assert(
     settingsPage.html.includes("Detail drilldowns"),
-    "Scoped settings HTML must include parity detail drilldowns."
+    "Scoped settings HTML must include parity detail drilldowns.",
   );
   assert(
     settingsPage.html.includes("Discovery session detail"),
-    "Scoped settings HTML must include discovery session parity drilldown."
+    "Scoped settings HTML must include discovery session parity drilldown.",
   );
   assert(
     settingsPage.html.includes("Discovery dossier detail"),
-    "Scoped settings HTML must include discovery dossier parity drilldown."
+    "Scoped settings HTML must include discovery dossier parity drilldown.",
   );
   assert(
     settingsPage.html.includes("Open shell surface"),
-    "Scoped settings HTML must include actionable parity links."
+    "Scoped settings HTML must include actionable parity links.",
   );
   assert(
     settingsPage.html.includes("Route scope"),
-    "Scoped settings HTML must include the route scope banner."
+    "Scoped settings HTML must include the route scope banner.",
   );
 
   const handoffPage = await fetchHtml(
     `/execution/handoffs/${encodeURIComponent(
-      handoffId
-    )}?project_id=demo-project&intake_session_id=demo-session`
+      handoffId,
+    )}?project_id=demo-project&intake_session_id=demo-session`,
   );
   assert(
     handoffPage.response.status === 200,
-    "Scoped execution handoff page must return 200."
+    "Scoped execution handoff page must return 200.",
   );
   assert(
     handoffPage.html.includes("Execution brief"),
-    "Scoped execution handoff HTML must include the execution brief."
+    "Scoped execution handoff HTML must include the execution brief.",
   );
   assert(
     handoffPage.html.includes("Route scope"),
-    "Scoped execution handoff HTML must include the route scope banner."
+    "Scoped execution handoff HTML must include the route scope banner.",
   );
 
   const discoverySimulationPage = await fetchHtml(
-    "/discovery/board/simulations/demo-idea?project_id=demo-project&intake_session_id=demo-session"
+    "/discovery/board/simulations/demo-idea?project_id=demo-project&intake_session_id=demo-session",
   );
   assert(
     discoverySimulationPage.response.status === 200,
-    "Scoped discovery simulation page must return 200."
+    "Scoped discovery simulation page must return 200.",
   );
   assert(
     discoverySimulationPage.html.includes("Open scoped settings"),
-    "Scoped discovery simulation HTML must include the scoped settings link."
+    "Scoped discovery simulation HTML must include the scoped settings link.",
   );
   assert(
     discoverySimulationPage.html.includes("idea_id=demo-idea"),
-    "Scoped discovery simulation HTML must carry the discovery idea parity target into settings links."
+    "Scoped discovery simulation HTML must carry the discovery idea parity target into settings links.",
   );
 
   console.log(
@@ -443,7 +469,7 @@ try {
         handoffBase: contract.liveRoutes.handoffBase,
         deprecatedRoutes: contract.deprecatedRoutes.length,
       },
-    })
+    }),
   );
 } catch (error) {
   console.error(
@@ -456,8 +482,8 @@ try {
         stderr: lastStderr,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
   process.exitCode = 1;
 } finally {
