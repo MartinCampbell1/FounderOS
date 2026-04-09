@@ -7,8 +7,10 @@ import {
 import {
   enforceShellAdminRequest,
   isSameOriginMutation,
+  isShellAdminTokenAuthorized,
   isShellBodyTooLarge,
   maxShellBodyBytes,
+  readShellAdminTokenFromRequest,
 } from "@/lib/shell-security";
 
 const ALLOWED_SOURCE_PLANES = new Set(["discovery", "execution"]);
@@ -50,7 +52,10 @@ export async function POST(request: Request) {
     return denial;
   }
 
-  if (!isSameOriginMutation(request)) {
+  const shellAdminToken = readShellAdminTokenFromRequest(request);
+  const allowAdminAutomation = isShellAdminTokenAuthorized(shellAdminToken);
+
+  if (!isSameOriginMutation(request) && !allowAdminAutomation) {
     return NextResponse.json(
       { detail: "Cross-site execution brief handoff writes are not allowed." },
       { status: 403 },
