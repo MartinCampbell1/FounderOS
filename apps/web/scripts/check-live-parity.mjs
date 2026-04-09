@@ -141,12 +141,16 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
+  const method = String(init?.method || "GET").toUpperCase();
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
       ...(shellAdminToken
         ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
         : {}),
     },
   });

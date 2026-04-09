@@ -77,6 +77,24 @@ async function waitForServer(url, timeoutMs = 15000) {
 }
 
 async function fetchJson(path, init) {
+  const method = String(init?.method || "GET").toUpperCase();
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(shellAdminToken
+        ? { "x-founderos-shell-admin-token": shellAdminToken }
+        : {}),
+      ...(!["GET", "HEAD", "OPTIONS"].includes(method)
+        ? { Origin: baseUrl }
+        : {}),
+    },
+  });
+  const json = await response.json();
+  return { response, json };
+}
+
+async function fetchHtml(path, init) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
@@ -86,12 +104,6 @@ async function fetchJson(path, init) {
         : {}),
     },
   });
-  const json = await response.json();
-  return { response, json };
-}
-
-async function fetchHtml(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
   const html = await response.text();
   return { response, html };
 }
