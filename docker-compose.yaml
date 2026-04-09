@@ -1,0 +1,36 @@
+services:
+  quorum:
+    build:
+      context: .
+      dockerfile: Dockerfile.quorum
+    environment:
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: 8800
+    ports:
+      - "8800:8800"
+
+  autopilot:
+    build:
+      context: .
+      dockerfile: Dockerfile.autopilot
+    environment:
+      AUTOPILOT_API_HOST: 0.0.0.0
+      AUTOPILOT_API_PORT: 8420
+    ports:
+      - "8420:8420"
+
+  shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - quorum
+      - autopilot
+    environment:
+      FOUNDEROS_WEB_HOST: 0.0.0.0
+      FOUNDEROS_WEB_PORT: 3737
+      QUORUM_API_BASE_URL: http://quorum:8800
+      AUTOPILOT_API_BASE_URL: http://autopilot:8420/api
+      FOUNDEROS_SHELL_ADMIN_TOKEN: change-me
+    ports:
+      - "3737:3737"

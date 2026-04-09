@@ -38,7 +38,7 @@ function buildLiveRouteRecord(input: {
 function detailFromErrors(
   errors: string[],
   fallbackOk: string,
-  fallbackError: string
+  fallbackError: string,
 ): string {
   if (errors.length > 0) {
     return errors[0] ?? fallbackError;
@@ -63,20 +63,21 @@ export function emptyShellContractAuditSnapshot(): ShellContractAuditSnapshot {
 }
 
 export async function buildShellContractAuditSnapshot(
-  operatorControls?: ShellOperatorPreferencesSnapshot
+  operatorControls?: ShellOperatorPreferencesSnapshot,
 ): Promise<ShellContractAuditSnapshot> {
-  const [runtime, dashboard, review, discovery, execution, parityTargets] = await Promise.all([
-    buildShellRuntimeSnapshot(operatorControls),
-    buildDashboardSnapshot(),
-    buildShellReviewCenterSnapshot(),
-    buildDiscoverySessionsSnapshot(null),
-    buildExecutionWorkspaceSnapshot(null),
-    buildShellParityTargetsSnapshot(),
-  ]);
+  const [runtime, dashboard, review, discovery, execution, parityTargets] =
+    await Promise.all([
+      buildShellRuntimeSnapshot(operatorControls),
+      buildDashboardSnapshot(),
+      buildShellReviewCenterSnapshot(),
+      buildDiscoverySessionsSnapshot(null),
+      buildExecutionWorkspaceSnapshot(null),
+      buildShellParityTargetsSnapshot(),
+    ]);
 
   const preferencesSnapshot = buildShellOperatorPreferencesSnapshot(
     operatorControls?.preferences ?? DEFAULT_SHELL_PREFERENCES,
-    operatorControls?.source ?? "default"
+    operatorControls?.source ?? "default",
   );
   const handoffStore = inspectExecutionBriefHandoffStore();
 
@@ -96,7 +97,7 @@ export async function buildShellContractAuditSnapshot(
           ? detailFromErrors(
               runtime.errors,
               "",
-              "Shell runtime snapshot is unavailable."
+              "Shell runtime snapshot is unavailable.",
             )
           : runtime.errors.length > 0
             ? (runtime.errors[0] ?? "Shell runtime snapshot reported an error.")
@@ -134,11 +135,11 @@ export async function buildShellContractAuditSnapshot(
           ? detailFromErrors(
               parityTargets.errors,
               "",
-              "Parity target discovery is unavailable."
+              "Parity target discovery is unavailable.",
             )
           : parityTargets.errors.length > 0
             ? (parityTargets.errors[0] ??
-                "Parity target discovery reported an error.")
+              "Parity target discovery reported an error.")
             : "Parity target discovery is reachable and resolved live target ids.",
     }),
     buildLiveRouteRecord({
@@ -156,7 +157,7 @@ export async function buildShellContractAuditSnapshot(
           ? detailFromErrors(
               dashboard.errors,
               "",
-              "Dashboard snapshot is unavailable."
+              "Dashboard snapshot is unavailable.",
             )
           : dashboard.errors.length > 0
             ? (dashboard.errors[0] ?? "Dashboard snapshot reported an error.")
@@ -176,7 +177,11 @@ export async function buildShellContractAuditSnapshot(
             : "ok",
       detail:
         review.loadState === "error"
-          ? detailFromErrors(review.errors, "", "Review center snapshot is unavailable.")
+          ? detailFromErrors(
+              review.errors,
+              "",
+              "Review center snapshot is unavailable.",
+            )
           : review.errors.length > 0
             ? (review.errors[0] ?? "Review center snapshot reported an error.")
             : "Review center snapshot is reachable and healthy.",
@@ -234,15 +239,17 @@ export async function buildShellContractAuditSnapshot(
       label: "Execution brief handoff store",
       route: SHELL_EXECUTION_BRIEF_HANDOFF_ROUTE,
       status: handoffStore.status,
-      detail: `${handoffStore.detail} Store path: ${handoffStore.path}`,
+      detail: handoffStore.detail,
     }),
   ];
 
-  const deprecatedRoutes = SHELL_BROWSER_CONTRACT.deprecatedRoutes.map((route) => ({
-    ...route,
-    status: "ok" as const,
-    detail: `Legacy browser callers should now receive 410 Gone and re-enter through ${route.shellNamespace}.`,
-  }));
+  const deprecatedRoutes = SHELL_BROWSER_CONTRACT.deprecatedRoutes.map(
+    (route) => ({
+      ...route,
+      status: "ok" as const,
+      detail: `Legacy browser callers should now redirect or alias through ${route.shellNamespace}.`,
+    }),
+  );
 
   const errors = liveRoutes
     .filter((route) => route.status === "error")
@@ -254,8 +261,11 @@ export async function buildShellContractAuditSnapshot(
     deprecatedRoutes,
     summary: {
       liveOkCount: liveRoutes.filter((route) => route.status === "ok").length,
-      liveDegradedCount: liveRoutes.filter((route) => route.status === "degraded").length,
-      liveErrorCount: liveRoutes.filter((route) => route.status === "error").length,
+      liveDegradedCount: liveRoutes.filter(
+        (route) => route.status === "degraded",
+      ).length,
+      liveErrorCount: liveRoutes.filter((route) => route.status === "error")
+        .length,
       deprecatedCount: deprecatedRoutes.length,
     },
     errors,

@@ -1,0 +1,21 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV GATEWAY_HOST=0.0.0.0
+ENV GATEWAY_PORT=8800
+
+COPY founderos_contracts /app/founderos_contracts
+COPY quorum /app/quorum
+
+RUN python -m pip install --upgrade pip \
+  && python -m pip install --no-cache-dir -e /app/founderos_contracts \
+  && python -m pip install --no-cache-dir -e "/app/quorum[api,research,mcp,graph]"
+
+WORKDIR /app/quorum
+
+EXPOSE 8800
+
+CMD ["python", "gateway.py"]

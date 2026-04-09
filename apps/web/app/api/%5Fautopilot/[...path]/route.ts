@@ -1,13 +1,28 @@
-import { buildDeprecatedInternalProxyResponse } from "@/lib/deprecated-internal-routes";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 async function handle(
-  _request: Request,
-  context: { params: Promise<{ path: string[] }> }
+  request: Request,
+  context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  return buildDeprecatedInternalProxyResponse("autopilot", path);
+  if (
+    request.method.toUpperCase() === "GET" &&
+    path.length === 1 &&
+    path[0] === "projects"
+  ) {
+    return NextResponse.redirect(
+      new URL("/api/shell/execution/workspace", request.url),
+      { status: 308 },
+    );
+  }
+
+  const target = new URL(
+    `/api/shell/execution/actions/${path.map(encodeURIComponent).join("/")}`,
+    request.url,
+  );
+  return NextResponse.redirect(target, { status: 308 });
 }
 
 export {

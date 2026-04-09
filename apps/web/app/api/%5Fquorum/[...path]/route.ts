@@ -1,13 +1,29 @@
-import { buildDeprecatedInternalProxyResponse } from "@/lib/deprecated-internal-routes";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 async function handle(
-  _request: Request,
-  context: { params: Promise<{ path: string[] }> }
+  request: Request,
+  context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  return buildDeprecatedInternalProxyResponse("quorum", path);
+  if (
+    request.method.toUpperCase() === "GET" &&
+    path.length === 2 &&
+    path[0] === "orchestrate" &&
+    path[1] === "sessions"
+  ) {
+    return NextResponse.redirect(
+      new URL("/api/shell/discovery/sessions", request.url),
+      { status: 308 },
+    );
+  }
+
+  const target = new URL(
+    `/api/shell/discovery/actions/${path.map(encodeURIComponent).join("/")}`,
+    request.url,
+  );
+  return NextResponse.redirect(target, { status: 308 });
 }
 
 export {

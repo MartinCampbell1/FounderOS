@@ -80,6 +80,22 @@ Default local endpoints:
 - quorum: `http://127.0.0.1:8800`
 - autopilot: `http://127.0.0.1:8420/api`
 
+## Container Stack
+
+The root repository now ships first-class container manifests for the pinned stack:
+
+```bash
+docker compose up --build
+```
+
+This builds:
+
+- `Dockerfile` for the unified shell
+- `Dockerfile.quorum` for the pinned Quorum runtime
+- `Dockerfile.autopilot` for the pinned Autopilot runtime
+
+The compose stack is the canonical containerized release artifact for this root repository.
+
 ## Verification
 
 Run the release-candidate checks from the candidate commit:

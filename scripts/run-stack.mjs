@@ -31,14 +31,14 @@ const validModes = new Set([
 ]);
 const readyTimeoutMs = Number.parseInt(
   process.env.FOUNDEROS_STACK_READY_TIMEOUT_MS || "45000",
-  10
+  10,
 );
 const submoduleHelp =
   "Run `bash scripts/bootstrap_founderos_local.sh` or `git submodule update --init --recursive` before starting the stack.";
 
 if (!validModes.has(mode)) {
   console.error(
-    `[stack] Unsupported mode "${mode}". Use one of: ${[...validModes].join(", ")}.`
+    `[stack] Unsupported mode "${mode}". Use one of: ${[...validModes].join(", ")}.`,
   );
   process.exit(1);
 }
@@ -65,7 +65,10 @@ function assertRuntimeLayout() {
   requirePath(join(quorumRoot, "gateway.py"), "Quorum gateway entrypoint");
   requirePath(join(quorumRoot, "pyproject.toml"), "Quorum package metadata");
   requirePath(autopilotRoot, "Autopilot runtime root");
-  requirePath(join(autopilotRoot, "pyproject.toml"), "Autopilot package metadata");
+  requirePath(
+    join(autopilotRoot, "pyproject.toml"),
+    "Autopilot package metadata",
+  );
 }
 
 function trimTrailingSlash(value) {
@@ -91,13 +94,15 @@ function parseLocalBaseUrl(name, rawValue, expectedPathname) {
   }
 
   if (url.protocol !== "http:") {
-    throw new Error(`${name} must use http:// for the local stack. Received: ${rawValue}`);
+    throw new Error(
+      `${name} must use http:// for the local stack. Received: ${rawValue}`,
+    );
   }
 
   const normalizedPath = trimTrailingSlash(url.pathname || "/") || "/";
   if (normalizedPath !== expectedPathname) {
     throw new Error(
-      `${name} must use pathname "${expectedPathname}" for the local stack. Received: ${url.pathname || "/"}`
+      `${name} must use pathname "${expectedPathname}" for the local stack. Received: ${url.pathname || "/"}`,
     );
   }
 
@@ -208,21 +213,39 @@ async function stopManagedProcess(processRef) {
     return;
   }
 
-  child.kill("SIGINT");
-
-  await new Promise((resolveExit) => {
-    const timeout = setTimeout(() => {
-      if (child.exitCode === null && !child.killed) {
-        child.kill("SIGTERM");
-      }
-      resolveExit();
-    }, 2000);
-
-    child.once("exit", () => {
-      clearTimeout(timeout);
-      resolveExit();
+  const waitForExit = (timeoutMs) =>
+    new Promise((resolveExit) => {
+      const onExit = () => {
+        clearTimeout(timeoutId);
+        resolveExit(true);
+      };
+      const timeoutId = setTimeout(() => {
+        child.off("exit", onExit);
+        resolveExit(false);
+      }, timeoutMs);
+      child.once("exit", onExit);
     });
-  });
+
+  child.kill("SIGINT");
+  if (await waitForExit(2000)) {
+    log(`stopped ${name}`);
+    return;
+  }
+
+  if (child.exitCode === null && !child.killed) {
+    log(`forcing ${name} to stop with SIGTERM`);
+    child.kill("SIGTERM");
+  }
+  if (await waitForExit(2000)) {
+    log(`stopped ${name}`);
+    return;
+  }
+
+  if (child.exitCode === null && !child.killed) {
+    log(`forcing ${name} to stop with SIGKILL`);
+    child.kill("SIGKILL");
+  }
+  await waitForExit(1000);
 
   log(`stopped ${name}`);
 }
@@ -280,16 +303,20 @@ async function chooseShellPort(host) {
   const explicitPort = (process.env.FOUNDEROS_WEB_PORT || "").trim();
   if (explicitPort) {
     const parsedPort = Number.parseInt(explicitPort, 10);
-    if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+    if (
+      !Number.isInteger(parsedPort) ||
+      parsedPort <= 0 ||
+      parsedPort > 65535
+    ) {
       throw new Error(
-        `FOUNDEROS_WEB_PORT must be a valid TCP port. Received: ${explicitPort}.`
+        `FOUNDEROS_WEB_PORT must be a valid TCP port. Received: ${explicitPort}.`,
       );
     }
 
     const available = await isPortAvailable(host, parsedPort);
     if (!available) {
       throw new Error(
-        `FOUNDEROS_WEB_PORT=${explicitPort} is already in use on ${host}. Choose a different port and retry.`
+        `FOUNDEROS_WEB_PORT=${explicitPort} is already in use on ${host}. Choose a different port and retry.`,
       );
     }
     return explicitPort;
@@ -307,7 +334,10 @@ async function chooseShellPort(host) {
     mode !== "review-playbooks" &&
     mode !== "review-preset-suite"
   ) {
-    const preferredAvailable = await isPortAvailable(host, Number(preferredPort));
+    const preferredAvailable = await isPortAvailable(
+      host,
+      Number(preferredPort),
+    );
     if (preferredAvailable) {
       return preferredPort;
     }
@@ -359,25 +389,34 @@ async function chooseManagedBaseUrl({
   const preferredBase = parseLocalBaseUrl(
     name,
     explicitRawValue || fallbackRawValue,
-    expectedPathname
+    expectedPathname,
   );
   const preferredPort = Number.parseInt(preferredBase.port, 10);
 
-  if (!Number.isInteger(preferredPort) || preferredPort <= 0 || preferredPort > 65535) {
-    throw new Error(`${name} must use a valid TCP port. Received: ${preferredBase.port}.`);
+  if (
+    !Number.isInteger(preferredPort) ||
+    preferredPort <= 0 ||
+    preferredPort > 65535
+  ) {
+    throw new Error(
+      `${name} must use a valid TCP port. Received: ${preferredBase.port}.`,
+    );
   }
 
   if (explicitRawValue) {
     const available = await isPortAvailable(preferredBase.host, preferredPort);
     if (!available) {
       throw new Error(
-        `${envKey}=${preferredBase.raw} cannot be used because ${preferredBase.host}:${preferredBase.port} is already occupied.`
+        `${envKey}=${preferredBase.raw} cannot be used because ${preferredBase.host}:${preferredBase.port} is already occupied.`,
       );
     }
     return preferredBase;
   }
 
-  const preferredAvailable = await isPortAvailable(preferredBase.host, preferredPort);
+  const preferredAvailable = await isPortAvailable(
+    preferredBase.host,
+    preferredPort,
+  );
   if (preferredAvailable) {
     return preferredBase;
   }
@@ -392,12 +431,12 @@ async function chooseManagedBaseUrl({
     return parseLocalBaseUrl(
       name,
       buildBaseUrlWithPort(preferredBase.raw, port),
-      expectedPathname
+      expectedPathname,
     );
   }
 
   throw new Error(
-    `Unable to find a free port for ${name} on ${preferredBase.host} in range ${startPort}-${endPort}.`
+    `Unable to find a free port for ${name} on ${preferredBase.host} in range ${startPort}-${endPort}.`,
   );
 }
 
@@ -488,8 +527,8 @@ async function runOneOffJson({ label, command, args, cwd, env }) {
       if ((code ?? 1) !== 0) {
         reject(
           new Error(
-            `${label} exited with code ${code ?? "unknown"}.\nstdout:\n${stdout}\nstderr:\n${stderr}`
-          )
+            `${label} exited with code ${code ?? "unknown"}.\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+          ),
         );
         return;
       }
@@ -501,8 +540,8 @@ async function runOneOffJson({ label, command, args, cwd, env }) {
           new Error(
             `${label} returned invalid JSON.\nstdout:\n${stdout}\nstderr:\n${stderr}\nerror:${
               error instanceof Error ? error.message : String(error)
-            }`
-          )
+            }`,
+          ),
         );
       }
     });
@@ -515,7 +554,9 @@ async function ensureWebBuild(forceBuild) {
     return;
   }
 
-  log(forceBuild ? "running fresh web build" : "web build missing, running build");
+  log(
+    forceBuild ? "running fresh web build" : "web build missing, running build",
+  );
   const code = await runOneOff({
     label: "build",
     command: npmCommand,
@@ -557,11 +598,11 @@ const autopilotBase = await chooseManagedBaseUrl({
 
 const quorumPython = resolvePythonBinary(
   "QUORUM_PYTHON_BIN",
-  join(quorumRoot, ".venv", "bin", "python")
+  join(quorumRoot, ".venv", "bin", "python"),
 );
 const autopilotPython = resolvePythonBinary(
   "AUTOPILOT_PYTHON_BIN",
-  join(autopilotRoot, ".venv", "bin", "python")
+  join(autopilotRoot, ".venv", "bin", "python"),
 );
 assertRuntimeLayout();
 
@@ -619,14 +660,21 @@ try {
   if (!(process.env.FOUNDEROS_WEB_PORT || "").trim() && webPort !== "3737") {
     log(`selected available shell port ${webPort} on ${webHost}`);
   }
-  if (!(process.env.QUORUM_API_BASE_URL || "").trim() && quorumBase.port !== "8800") {
-    log(`selected available quorum port ${quorumBase.port} on ${quorumBase.host}`);
+  if (
+    !(process.env.QUORUM_API_BASE_URL || "").trim() &&
+    quorumBase.port !== "8800"
+  ) {
+    log(
+      `selected available quorum port ${quorumBase.port} on ${quorumBase.host}`,
+    );
   }
   if (
     !(process.env.AUTOPILOT_API_BASE_URL || "").trim() &&
     autopilotBase.port !== "8420"
   ) {
-    log(`selected available autopilot port ${autopilotBase.port} on ${autopilotBase.host}`);
+    log(
+      `selected available autopilot port ${autopilotBase.port} on ${autopilotBase.host}`,
+    );
   }
 
   if (
@@ -721,8 +769,7 @@ try {
       mode === "settings-parity-links" ||
       mode === "review-playbooks" ||
       mode === "review-preset-suite";
-    const defaultParityChainCount =
-      reviewSuiteSeedMode ? "4" : "2";
+    const defaultParityChainCount = reviewSuiteSeedMode ? "4" : "2";
     const parityChainCount =
       (process.env.FOUNDEROS_PARITY_CHAIN_COUNT || "").trim() ||
       defaultParityChainCount;
@@ -735,11 +782,10 @@ try {
 
     if (
       reviewSuiteSeedMode &&
-      (!Number.isInteger(Number(parityChainCount)) || Number(parityChainCount) < 4)
+      (!Number.isInteger(Number(parityChainCount)) ||
+        Number(parityChainCount) < 4)
     ) {
-      throw new Error(
-        `${mode} requires FOUNDEROS_PARITY_CHAIN_COUNT >= 4.`
-      );
+      throw new Error(`${mode} requires FOUNDEROS_PARITY_CHAIN_COUNT >= 4.`);
     }
 
     const seedResult = await runOneOffJson({
@@ -760,24 +806,30 @@ try {
     const parityEnv = {
       ...rootEnv,
       FOUNDEROS_PARITY_BASE_URL: shellBaseUrl,
-      FOUNDEROS_PARITY_PROJECT_ID:
-        String(seedResult.routeScope?.projectId || "").trim(),
-      FOUNDEROS_PARITY_INTAKE_SESSION_ID:
-        String(seedResult.routeScope?.intakeSessionId || "").trim(),
-      FOUNDEROS_PARITY_DISCOVERY_SESSION_ID:
-        String(seedResult.parityTargets?.discoverySessionId || "").trim(),
-      FOUNDEROS_PARITY_DISCOVERY_IDEA_ID:
-        String(seedResult.parityTargets?.discoveryIdeaId || "").trim(),
-      FOUNDEROS_PARITY_MIN_COMPLETE_CHAIN_COUNT:
-        parityMinCompleteChainCount,
+      FOUNDEROS_PARITY_PROJECT_ID: String(
+        seedResult.routeScope?.projectId || "",
+      ).trim(),
+      FOUNDEROS_PARITY_INTAKE_SESSION_ID: String(
+        seedResult.routeScope?.intakeSessionId || "",
+      ).trim(),
+      FOUNDEROS_PARITY_DISCOVERY_SESSION_ID: String(
+        seedResult.parityTargets?.discoverySessionId || "",
+      ).trim(),
+      FOUNDEROS_PARITY_DISCOVERY_IDEA_ID: String(
+        seedResult.parityTargets?.discoveryIdeaId || "",
+      ).trim(),
+      FOUNDEROS_PARITY_MIN_COMPLETE_CHAIN_COUNT: parityMinCompleteChainCount,
       FOUNDEROS_PARITY_MIN_SCENARIO_VARIANT_COUNT:
         parityMinScenarioVariantCount,
       FOUNDEROS_PARITY_REQUIRE_COMPLETE_CHAIN:
-        (process.env.FOUNDEROS_PARITY_REQUIRE_COMPLETE_CHAIN || "").trim() || "1",
+        (process.env.FOUNDEROS_PARITY_REQUIRE_COMPLETE_CHAIN || "").trim() ||
+        "1",
       FOUNDEROS_PARITY_REQUIRE_OPERATOR_DATA:
-        (process.env.FOUNDEROS_PARITY_REQUIRE_OPERATOR_DATA || "").trim() || "1",
+        (process.env.FOUNDEROS_PARITY_REQUIRE_OPERATOR_DATA || "").trim() ||
+        "1",
       FOUNDEROS_PARITY_REQUIRE_DIVERSE_SCENARIOS:
-        (process.env.FOUNDEROS_PARITY_REQUIRE_DIVERSE_SCENARIOS || "").trim() || "1",
+        (process.env.FOUNDEROS_PARITY_REQUIRE_DIVERSE_SCENARIOS || "").trim() ||
+        "1",
     };
 
     const parityExitCode = await runOneOff({
@@ -794,19 +846,23 @@ try {
       const reviewActionsEnv = {
         ...rootEnv,
         FOUNDEROS_PARITY_BASE_URL: shellBaseUrl,
-        FOUNDEROS_PARITY_PROJECT_ID:
-          String(seedResult.routeScope?.projectId || "").trim(),
-        FOUNDEROS_PARITY_INTAKE_SESSION_ID:
-          String(seedResult.routeScope?.intakeSessionId || "").trim(),
-        FOUNDEROS_PARITY_DISCOVERY_SESSION_ID:
-          String(seedResult.parityTargets?.discoverySessionId || "").trim(),
-        FOUNDEROS_PARITY_DISCOVERY_IDEA_ID:
-          String(seedResult.parityTargets?.discoveryIdeaId || "").trim(),
+        FOUNDEROS_PARITY_PROJECT_ID: String(
+          seedResult.routeScope?.projectId || "",
+        ).trim(),
+        FOUNDEROS_PARITY_INTAKE_SESSION_ID: String(
+          seedResult.routeScope?.intakeSessionId || "",
+        ).trim(),
+        FOUNDEROS_PARITY_DISCOVERY_SESSION_ID: String(
+          seedResult.parityTargets?.discoverySessionId || "",
+        ).trim(),
+        FOUNDEROS_PARITY_DISCOVERY_IDEA_ID: String(
+          seedResult.parityTargets?.discoveryIdeaId || "",
+        ).trim(),
         FOUNDEROS_REVIEW_ACTION_TARGETS_JSON: JSON.stringify(
-          seedResult.actionTargets || {}
+          seedResult.actionTargets || {},
         ),
         FOUNDEROS_REVIEW_SUITE_TARGETS_JSON: JSON.stringify(
-          seedResult.presetTargets || {}
+          seedResult.presetTargets || {},
         ),
         FOUNDEROS_PARITY_MIN_SCENARIO_VARIANT_COUNT:
           parityMinScenarioVariantCount,
@@ -821,17 +877,17 @@ try {
             ? "review-playbook"
             : mode === "review-batch-routes"
               ? "review-batch-routes"
-            : mode === "review-memory"
-              ? "review-memory"
-            : mode === "review-pressure-actions"
-              ? "review-pressure-actions"
-            : mode === "review-pressure-entry-links"
-              ? "review-pressure-entry-links"
-            : mode === "settings-parity-links"
-              ? "settings-parity-links"
-            : mode === "review-preset-suite"
-              ? "review-preset-suite"
-              : "review-actions",
+              : mode === "review-memory"
+                ? "review-memory"
+                : mode === "review-pressure-actions"
+                  ? "review-pressure-actions"
+                  : mode === "review-pressure-entry-links"
+                    ? "review-pressure-entry-links"
+                    : mode === "settings-parity-links"
+                      ? "settings-parity-links"
+                      : mode === "review-preset-suite"
+                        ? "review-preset-suite"
+                        : "review-actions",
         command: npmCommand,
         args: [
           "run",
@@ -839,17 +895,17 @@ try {
             ? "test:live-review-playbook"
             : mode === "review-batch-routes"
               ? "test:live-review-batch-routes"
-            : mode === "review-memory"
-              ? "test:live-review-memory"
-            : mode === "review-pressure-actions"
-              ? "test:live-review-pressure-actions"
-            : mode === "review-pressure-entry-links"
-              ? "test:live-review-pressure-entry-links"
-            : mode === "settings-parity-links"
-              ? "test:live-settings-parity-links"
-            : mode === "review-preset-suite"
-              ? "test:live-review-preset-suite"
-              : "test:live-review-actions",
+              : mode === "review-memory"
+                ? "test:live-review-memory"
+                : mode === "review-pressure-actions"
+                  ? "test:live-review-pressure-actions"
+                  : mode === "review-pressure-entry-links"
+                    ? "test:live-review-pressure-entry-links"
+                    : mode === "settings-parity-links"
+                      ? "test:live-settings-parity-links"
+                      : mode === "review-preset-suite"
+                        ? "test:live-review-preset-suite"
+                        : "test:live-review-actions",
           "--workspace",
           "@founderos/web",
         ],

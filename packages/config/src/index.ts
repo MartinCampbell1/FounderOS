@@ -50,10 +50,24 @@ function withNoTrailingSlash(value: string) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function isProductionEnv(env: Record<string, string | undefined>) {
+  return String(env.NODE_ENV || "").trim() === "production";
+}
+
+function isLoopbackHost(hostname: string) {
+  const normalized = hostname.trim().toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1"
+  );
+}
+
 function buildIssue(
   code: string,
   target: string,
-  message: string
+  message: string,
 ): FounderOSConfigIssue {
   return { code, target, message };
 }
@@ -63,7 +77,7 @@ function resolveEnvSetting(
   key: string,
   fallback: string,
   description: string,
-  validate: (value: string) => FounderOSConfigIssue[]
+  validate: (value: string) => FounderOSConfigIssue[],
 ): FounderOSResolvedEnvSetting {
   const rawValue = env[key]?.trim();
   if (!rawValue) {
@@ -104,23 +118,33 @@ function validateHost(value: string, key: string) {
     return [buildIssue("empty-host", key, `${key} cannot be empty.`)];
   }
   if (/\s/.test(value)) {
-    return [buildIssue("host-whitespace", key, `${key} cannot contain whitespace.`)];
+    return [
+      buildIssue("host-whitespace", key, `${key} cannot contain whitespace.`),
+    ];
   }
   return [];
 }
 
 function validatePort(value: string, key: string) {
   if (!/^\d+$/.test(value)) {
-    return [buildIssue("invalid-port", key, `${key} must be a numeric TCP port.`)];
+    return [
+      buildIssue("invalid-port", key, `${key} must be a numeric TCP port.`),
+    ];
   }
   const port = Number.parseInt(value, 10);
   if (port < 1 || port > 65535) {
-    return [buildIssue("port-range", key, `${key} must be between 1 and 65535.`)];
+    return [
+      buildIssue("port-range", key, `${key} must be between 1 and 65535.`),
+    ];
   }
   return [];
 }
 
-function validateBaseUrl(value: string, key: string) {
+function validateBaseUrl(
+  value: string,
+  key: string,
+  env: Record<string, string | undefined> = process.env,
+) {
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -128,34 +152,62 @@ function validateBaseUrl(value: string, key: string) {
         buildIssue(
           "invalid-protocol",
           key,
-          `${key} must use an http or https URL.`
+          `${key} must use an http or https URL.`,
         ),
       ];
     }
-    return [];
+    const issues: FounderOSConfigIssue[] = [];
+    if (isProductionEnv(env) && url.protocol !== "https:") {
+      issues.push(
+        buildIssue(
+          "production-http-upstream",
+          key,
+          `${key} must use https in production.`,
+        ),
+      );
+    }
+    if (isProductionEnv(env) && isLoopbackHost(url.hostname)) {
+      issues.push(
+        buildIssue(
+          "production-loopback-upstream",
+          key,
+          `${key} must not point at a loopback host in production.`,
+        ),
+      );
+    }
+    return issues;
   } catch {
     return [buildIssue("invalid-url", key, `${key} must be an absolute URL.`)];
   }
 }
 
 export function resolveShellRuntimeConfig(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
 ): FounderOSShellRuntimeConfig {
   const host = resolveEnvSetting(
     env,
     "FOUNDEROS_WEB_HOST",
     DEFAULT_FOUNDEROS_WEB_HOST,
     "Hostname used by the unified shell HTTP server.",
-    (value) => validateHost(value, "FOUNDEROS_WEB_HOST")
+    (value) => validateHost(value, "FOUNDEROS_WEB_HOST"),
   );
   const port = resolveEnvSetting(
     env,
     "FOUNDEROS_WEB_PORT",
     DEFAULT_FOUNDEROS_WEB_PORT,
     "Port exposed by the unified shell HTTP server.",
-    (value) => validatePort(value, "FOUNDEROS_WEB_PORT")
+    (value) => validatePort(value, "FOUNDEROS_WEB_PORT"),
   );
   const issues = [...host.issues, ...port.issues];
+  if (isProductionEnv(env) && isLoopbackHost(host.value)) {
+    issues.push(
+      buildIssue(
+        "production-loopback-shell-host",
+        "FOUNDEROS_WEB_HOST",
+        "FOUNDEROS_WEB_HOST must not use a loopback host in production.",
+      ),
+    );
+  }
 
   return {
     host: host.value,
@@ -168,7 +220,7 @@ export function resolveShellRuntimeConfig(
 
 export function resolveShellUpstreamConfig(
   upstream: FounderOSUpstreamId,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
 ): FounderOSShellUpstreamConfig {
   const isQuorum = upstream === "quorum";
   const label = isQuorum ? "Quorum" : "Autopilot";
@@ -181,7 +233,7 @@ export function resolveShellUpstreamConfig(
     envKey,
     fallback,
     `${label} upstream base URL.`,
-    (value) => validateBaseUrl(value, envKey)
+    (value) => validateBaseUrl(value, envKey, env),
   );
 
   return {
@@ -197,13 +249,13 @@ export function resolveShellUpstreamConfig(
 
 export function getUpstreamBaseUrl(
   upstream: FounderOSUpstreamId,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
 ) {
   return resolveShellUpstreamConfig(upstream, env).baseUrl;
 }
 
 export function resolveFounderOSShellConfig(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
 ): FounderOSShellConfig {
   const runtime = resolveShellRuntimeConfig(env);
   const quorum = resolveShellUpstreamConfig("quorum", env);

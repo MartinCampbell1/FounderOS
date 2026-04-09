@@ -1,0 +1,21 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV AUTOPILOT_API_HOST=0.0.0.0
+ENV AUTOPILOT_API_PORT=8420
+
+COPY founderos_contracts /app/founderos_contracts
+COPY autopilot /app/autopilot
+
+RUN python -m pip install --upgrade pip \
+  && python -m pip install --no-cache-dir -e /app/founderos_contracts \
+  && python -m pip install --no-cache-dir -e "/app/autopilot[api]"
+
+WORKDIR /app/autopilot
+
+EXPOSE 8420
+
+CMD ["python", "-m", "autopilot.api.serve"]

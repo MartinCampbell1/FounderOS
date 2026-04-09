@@ -17,8 +17,8 @@ function buildUpstreamHealthUrl(baseUrl: string) {
 export function buildShellSettingsSnapshot(
   operatorControls: ShellOperatorPreferencesSnapshot = buildShellOperatorPreferencesSnapshot(
     DEFAULT_SHELL_PREFERENCES,
-    "default"
-  )
+    "default",
+  ),
 ): ShellSettingsSnapshot {
   const resolvedConfig = resolveFounderOSShellConfig(process.env);
   const quorum = resolvedConfig.upstreams.quorum;
@@ -81,14 +81,16 @@ export function buildShellSettingsSnapshot(
         route: "/api/shell/operator-preferences",
         method: "GET/PUT",
         owner: "apps/web",
-        purpose: "Cookie-backed shell operator controls for refresh cadence and sidebar state.",
+        purpose:
+          "Cookie-backed shell operator controls for refresh cadence and sidebar state.",
         upstream: "shell",
       },
       {
         route: "/api/shell/dashboard",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned dashboard snapshot for client refresh and polling.",
+        purpose:
+          "Shell-owned dashboard snapshot for client refresh and polling.",
         upstream: "shell",
       },
       {
@@ -110,21 +112,24 @@ export function buildShellSettingsSnapshot(
         route: "/api/shell/portfolio",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned portfolio snapshot for client refresh and polling.",
+        purpose:
+          "Shell-owned portfolio snapshot for client refresh and polling.",
         upstream: "shell",
       },
       {
         route: "/api/shell/discovery/sessions",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned discovery session list/detail snapshot for client refresh and polling.",
+        purpose:
+          "Shell-owned discovery session list/detail snapshot for client refresh and polling.",
         upstream: "shell",
       },
       {
         route: "/api/shell/discovery/ideas",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned discovery idea list/dossier snapshot for client refresh and polling.",
+        purpose:
+          "Shell-owned discovery idea list/dossier snapshot for client refresh and polling.",
         upstream: "shell",
       },
       {
@@ -203,7 +208,8 @@ export function buildShellSettingsSnapshot(
         route: "/api/shell/discovery/inbox",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned discovery inbox feed seam for typed browser clients that still need raw review records.",
+        purpose:
+          "Shell-owned discovery inbox feed seam for typed browser clients that still need raw review records.",
         upstream: "shell",
       },
       {
@@ -225,21 +231,24 @@ export function buildShellSettingsSnapshot(
         route: "/api/shell/execution/workspace",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned execution project list/detail snapshot for client refresh and polling.",
+        purpose:
+          "Shell-owned execution project list/detail snapshot for client refresh and polling.",
         upstream: "shell",
       },
       {
         route: "/api/shell/execution/intake",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned execution intake snapshot for client refresh and resume flows.",
+        purpose:
+          "Shell-owned execution intake snapshot for client refresh and resume flows.",
         upstream: "shell",
       },
       {
         route: "/api/shell/execution/handoffs/[handoffId]",
         method: "GET",
         owner: "apps/web",
-        purpose: "Shell-owned execution handoff snapshot for client refresh and launch preset hydration.",
+        purpose:
+          "Shell-owned execution handoff snapshot for client refresh and launch preset hydration.",
         upstream: "shell",
       },
       {
@@ -278,7 +287,8 @@ export function buildShellSettingsSnapshot(
       {
         label: "Route ownership",
         owner: "apps/web",
-        detail: "App Router owns shell routes, layout, gateway routes, and shell-native composites.",
+        detail:
+          "App Router owns shell routes, layout, gateway routes, and shell-native composites.",
       },
       {
         label: "Browser fetch layer",
@@ -289,12 +299,14 @@ export function buildShellSettingsSnapshot(
       {
         label: "Visual primitives",
         owner: "packages/ui",
-        detail: "Shared cards, badges, buttons, theme provider, and shell styling live here.",
+        detail:
+          "Shared cards, badges, buttons, theme provider, and shell styling live here.",
       },
       {
         label: "Backend source of truth",
         owner: "quorum/ + autopilot/",
-        detail: "Both upstream applications still own their backend semantics and remain intact behind the gateway.",
+        detail:
+          "Both upstream applications still own their backend semantics and remain intact behind the gateway.",
       },
     ],
     migrationStatus: [
@@ -415,7 +427,8 @@ export function buildShellSettingsSnapshot(
         label: "Env validation package",
         status: "live",
         href: "/settings",
-        detail: "Shared config resolution now lives in `packages/config` with fallback validation for host, port, and upstream URLs.",
+        detail:
+          "Shared config resolution now lives in `packages/config` with fallback validation for host, port, and upstream URLs.",
       },
       {
         key: "control-plane-settings",
@@ -428,18 +441,19 @@ export function buildShellSettingsSnapshot(
     ],
     developerWorkflow: {
       workspace:
-        process.env.FOUNDEROS_WORKSPACE_ROOT ||
-        "<local FounderOS checkout>",
+        process.env.FOUNDEROS_WORKSPACE_ROOT || "<local FounderOS checkout>",
       commands: [
         {
           label: "Run the shell",
           command: "npm run start --workspace @founderos/web",
-          detail: "Starts the production shell on the configured host and port.",
+          detail:
+            "Starts the production shell on the configured host and port.",
         },
         {
           label: "Validate the shell",
           command: "npm run typecheck && npm run lint && npm run build",
-          detail: "Current minimum verification loop before route-level runtime checks.",
+          detail:
+            "Current minimum verification loop before route-level runtime checks.",
         },
         {
           label: "Start unified local stack",
@@ -463,7 +477,7 @@ export function buildShellSettingsSnapshot(
           label: "Smoke the shell contract",
           command: "npm run test --workspace @founderos/web",
           detail:
-            "Starts the production shell, checks the key `/api/shell/*` seams, verifies `/api/shell/contract` and `/api/shell/parity`, and confirms that legacy browser routes now return `410 Gone` with the correct shell namespace.",
+            "Starts the production shell, checks the key `/api/shell/*` seams, verifies `/api/shell/contract` and `/api/shell/parity`, and confirms that legacy browser routes now redirect or alias into the correct shell namespace.",
         },
         {
           label: "Check live upstream parity",
@@ -548,12 +562,13 @@ export function buildShellSettingsSnapshot(
         },
         {
           label: "Config ownership",
-          detail: "Current settings are code- and env-backed. This route is descriptive rather than mutable.",
+          detail:
+            "Current settings are code- and env-backed. This route is descriptive rather than mutable.",
         },
         {
           label: "Internal gateway layer",
           detail:
-            "Legacy raw upstream proxy routes, the older shell runtime fragments (`/api/settings`, `/api/health`), and the older non-namespaced shell control routes (`/api/operator-preferences`, `/api/handoffs/execution-brief/*`) now return `410 Gone` and point callers back to `/api/shell/*` and `/api/shell/runtime`, so internal transport details no longer masquerade as public browser contracts.",
+            "Legacy raw upstream proxy routes, the older shell runtime fragments (`/api/settings`, `/api/health`), and the older non-namespaced shell control routes (`/api/operator-preferences`, `/api/handoffs/execution-brief/*`) now redirect or alias into `/api/shell/*` and `/api/shell/runtime`, so compatibility remains explicit without pretending those older transport seams are still canonical.",
         },
         {
           label: "Shell contract smoke",
@@ -627,14 +642,14 @@ export function buildShellSettingsSnapshot(
         },
         {
           label: "Scoped parity playbooks",
-        detail:
+          detail:
             "The settings route now derives route-aware live parity commands for the current `project_id`, `intake_session_id`, `session_id`, and `idea_id` context, shows the resolved live ids auto-discovered through `/api/shell/parity-targets`, surfaces target coverage diagnostics including scenario diversity across linked chains, and lets operators run either a blocked-tolerant inspection pass, a strict drift check, a full linked-chain parity requirement, an operator-rich parity requirement, a stricter multi-chain parity requirement, or a scenario-rich parity requirement without reconstructing env flags by hand.",
         },
         {
-            label: "Operator controls",
-            detail:
-              "Refresh cadence, desktop sidebar behavior, and remembered review playbooks now sync through `/api/shell/operator-preferences`, with browser state mirrored into a shell-visible cookie snapshot, applied before hydration, and folded into `/api/shell/runtime` for shell chrome, plane-specific review defaults, the generic review-entry links on discovery and execution operator routes, the deep discovery detail routes, and the execution intake/handoff/project detail routes that now server-seed remembered review context.",
-          },
+          label: "Operator controls",
+          detail:
+            "Refresh cadence, desktop sidebar behavior, and remembered review playbooks now sync through `/api/shell/operator-preferences`, with browser state mirrored into a shell-visible cookie snapshot, applied before hydration, and folded into `/api/shell/runtime` for shell chrome, plane-specific review defaults, the generic review-entry links on discovery and execution operator routes, the deep discovery detail routes, and the execution intake/handoff/project detail routes that now server-seed remembered review context.",
+        },
         {
           label: "Initial render path",
           detail:
