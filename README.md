@@ -56,6 +56,9 @@ single-repo production deploy unit.
 
 Use `.env.example` as the baseline env contract for local and pre-prod setup.
 
+Python installs in the root bootstrap and container builds are constrained through
+`constraints-python.txt` so the shared contract layer stays reproducible across runs.
+
 ## Bootstrap
 
 Prepare the pinned local stack:

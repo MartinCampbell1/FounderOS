@@ -33,12 +33,13 @@ export const DEFAULT_SHELL_REVIEW_PASS_PREFERENCES: Record<
   },
 };
 
-export const DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES: ShellReviewMemoryPreferences = {
-  global: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.global,
-  linked: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.linked,
-  intakeLinked: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.intakeLinked,
-  orphanProject: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.orphanProject,
-};
+export const DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES: ShellReviewMemoryPreferences =
+  {
+    global: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.global,
+    linked: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.linked,
+    intakeLinked: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.intakeLinked,
+    orphanProject: DEFAULT_SHELL_REVIEW_PASS_PREFERENCES.orphanProject,
+  };
 
 export const DEFAULT_SHELL_PREFERENCES: ShellPreferences = {
   refreshProfile: "balanced",
@@ -69,7 +70,8 @@ export const SHELL_REFRESH_PROFILE_OPTIONS: Array<{
 ];
 
 export const SHELL_PREFERENCES_STORAGE_KEY = "founderos-shell-preferences";
-export const SHELL_PREFERENCES_CHANGE_EVENT = "founderos-shell-preferences-change";
+export const SHELL_PREFERENCES_CHANGE_EVENT =
+  "founderos-shell-preferences-change";
 export const SHELL_PREFERENCES_COOKIE_NAME = "founderos-shell-preferences";
 
 export const SHELL_POLL_INTERVALS: Record<
@@ -239,7 +241,9 @@ function decodeCookieValue(value: string) {
   }
 }
 
-export function isShellRefreshProfile(value: unknown): value is ShellRefreshProfile {
+export function isShellRefreshProfile(
+  value: unknown,
+): value is ShellRefreshProfile {
   return value === "focused" || value === "balanced" || value === "minimal";
 }
 
@@ -262,7 +266,9 @@ export function isShellReviewLane(value: unknown): value is ShellReviewLane {
   );
 }
 
-export function isShellReviewPreset(value: unknown): value is ShellReviewPreset {
+export function isShellReviewPreset(
+  value: unknown,
+): value is ShellReviewPreset {
   return (
     value === "discovery-pass" ||
     value === "critical-pass" ||
@@ -273,7 +279,7 @@ export function isShellReviewPreset(value: unknown): value is ShellReviewPreset 
 
 export function normalizeShellReviewPassPreference(
   input: Partial<ShellReviewPassPreference> | null | undefined,
-  fallback: ShellReviewPassPreference
+  fallback: ShellReviewPassPreference,
 ): ShellReviewPassPreference {
   return {
     lane: isShellReviewLane(input?.lane) ? input.lane : fallback.lane,
@@ -287,30 +293,30 @@ export function normalizeShellReviewPassPreference(
 }
 
 export function normalizeShellReviewMemoryPreferences(
-  input: Partial<ShellReviewMemoryPreferences> | null | undefined
+  input: Partial<ShellReviewMemoryPreferences> | null | undefined,
 ): ShellReviewMemoryPreferences {
   return {
     global: normalizeShellReviewPassPreference(
       input?.global,
-      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.global
+      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.global,
     ),
     linked: normalizeShellReviewPassPreference(
       input?.linked,
-      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.linked
+      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.linked,
     ),
     intakeLinked: normalizeShellReviewPassPreference(
       input?.intakeLinked,
-      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.intakeLinked
+      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.intakeLinked,
     ),
     orphanProject: normalizeShellReviewPassPreference(
       input?.orphanProject,
-      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.orphanProject
+      DEFAULT_SHELL_REVIEW_MEMORY_PREFERENCES.orphanProject,
     ),
   };
 }
 
 export function normalizeShellPreferences(
-  input: Partial<ShellPreferences> | null | undefined
+  input: Partial<ShellPreferences> | null | undefined,
 ): ShellPreferences {
   return {
     refreshProfile: isShellRefreshProfile(input?.refreshProfile)
@@ -326,13 +332,15 @@ export function normalizeShellPreferences(
 
 export function getShellPollInterval(
   surface: ShellPollSurface,
-  refreshProfile: ShellRefreshProfile
+  refreshProfile: ShellRefreshProfile,
 ) {
   return SHELL_POLL_INTERVALS[surface][refreshProfile];
 }
 
 export function serializeShellPreferencesCookie(preferences: ShellPreferences) {
-  return encodeURIComponent(JSON.stringify(normalizeShellPreferences(preferences)));
+  return encodeURIComponent(
+    JSON.stringify(normalizeShellPreferences(preferences)),
+  );
 }
 
 export function parseShellPreferencesCookie(raw: string | null | undefined): {
@@ -353,7 +361,7 @@ export function parseShellPreferencesCookie(raw: string | null | undefined): {
       return {
         source: "cookie",
         preferences: normalizeShellPreferences(
-          JSON.parse(decoded) as Partial<ShellPreferences>
+          JSON.parse(decoded) as Partial<ShellPreferences>,
         ),
       };
     } catch {
@@ -389,7 +397,7 @@ export function parseShellPreferencesCookie(raw: string | null | undefined): {
 export function buildShellOperatorPreferencesSnapshot(
   preferences: ShellPreferences,
   source: ShellPreferencesSource,
-  generatedAt = new Date().toISOString()
+  generatedAt = new Date().toISOString(),
 ): ShellOperatorPreferencesSnapshot {
   return {
     generatedAt,
@@ -405,21 +413,29 @@ export function buildShellOperatorPreferencesSnapshot(
 
 export function resolveShellOperatorPreferencesSnapshot(
   raw: string | null | undefined,
-  generatedAt = new Date().toISOString()
+  generatedAt = new Date().toISOString(),
 ) {
   const { source, preferences } = parseShellPreferencesCookie(raw);
-  return buildShellOperatorPreferencesSnapshot(preferences, source, generatedAt);
+  return buildShellOperatorPreferencesSnapshot(
+    preferences,
+    source,
+    generatedAt,
+  );
 }
 
-export function buildShellPreferencesBootstrapScript() {
+export function buildShellPreferencesBootstrapScript(
+  preferences: ShellPreferences,
+) {
   const storageKey = JSON.stringify(SHELL_PREFERENCES_STORAGE_KEY);
-  const cookieName = JSON.stringify(SHELL_PREFERENCES_COOKIE_NAME);
-  const defaultCollapsed = DEFAULT_SHELL_PREFERENCES.sidebarCollapsed ? "true" : "false";
+  const initialPreferences = JSON.stringify(
+    normalizeShellPreferences(preferences),
+  );
+  const defaultCollapsed = preferences.sidebarCollapsed ? "true" : "false";
 
   return `(() => {
   const root = document.documentElement;
   const storageKey = ${storageKey};
-  const cookieName = ${cookieName};
+  const initialPreferences = ${initialPreferences};
   let sidebarCollapsed = ${defaultCollapsed};
 
   try {
@@ -430,27 +446,9 @@ export function buildShellPreferencesBootstrapScript() {
         sidebarCollapsed = parsed.sidebarCollapsed;
       }
     } else {
-      const prefix = cookieName + "=";
-      const cookieEntry = document.cookie
-        .split("; ")
-        .find((entry) => entry.indexOf(prefix) === 0);
-
-      if (cookieEntry) {
-        const encoded = cookieEntry.slice(prefix.length);
-        const decoded = decodeURIComponent(encoded);
-        if (decoded.startsWith("{")) {
-          const parsed = JSON.parse(decoded);
-          if (typeof parsed?.sidebarCollapsed === "boolean") {
-            sidebarCollapsed = parsed.sidebarCollapsed;
-          }
-        } else {
-          const parts = decoded.split(":");
-          if (parts[1] === "1") {
-            sidebarCollapsed = true;
-          } else if (parts[1] === "0") {
-            sidebarCollapsed = false;
-          }
-        }
+      window.localStorage.setItem(storageKey, JSON.stringify(initialPreferences));
+      if (typeof initialPreferences?.sidebarCollapsed === "boolean") {
+        sidebarCollapsed = initialPreferences.sidebarCollapsed;
       }
     }
   } catch (_error) {

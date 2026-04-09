@@ -83,6 +83,7 @@ PYTHON="${PYTHON:-python3}"
 require_command "$PYTHON"
 PY_VERSION=$("$PYTHON" --version 2>&1 | awk '{print $2}')
 echo "[3/8] Python version: $PY_VERSION"
+export PIP_CONSTRAINT="$ROOT_DIR/constraints-python.txt"
 
 echo "[4/8] Validating shared contracts package..."
 cd "$ROOT_DIR"

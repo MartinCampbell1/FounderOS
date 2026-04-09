@@ -12,18 +12,25 @@ import {
 } from "@/components/unified-shell-frame";
 import { buildShellRuntimeSnapshot } from "@/lib/runtime";
 
-export default async function ShellLayout({ children }: { children: ReactNode }) {
+export default async function ShellLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const cookieStore = await cookies();
   const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
+    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value,
   );
-  const initialRuntimeSnapshot = await buildShellRuntimeSnapshot(operatorControls);
+  const initialRuntimeSnapshot =
+    await buildShellRuntimeSnapshot(operatorControls);
 
   return (
     <>
       <script
         dangerouslySetInnerHTML={{
-          __html: buildShellPreferencesBootstrapScript(),
+          __html: buildShellPreferencesBootstrapScript(
+            operatorControls.preferences,
+          ),
         }}
       />
       <Suspense

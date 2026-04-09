@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
     {
       path: "/",
       sameSite: "strict",
-      httpOnly: false,
+      httpOnly: true,
       secure: isSecureRequest,
       maxAge: COOKIE_MAX_AGE_SECONDS,
     },

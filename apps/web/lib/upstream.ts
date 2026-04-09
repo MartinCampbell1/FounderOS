@@ -2,6 +2,33 @@ import { getUpstreamBaseUrl } from "@/lib/gateway";
 import type { UpstreamId } from "@/lib/gateway-contract";
 import { recordShellUpstreamMetric } from "@/lib/observability";
 
+type UpstreamCacheEntry = {
+  payload: unknown;
+  cachedAt: number;
+};
+
+const globalUpstreamCache = globalThis as typeof globalThis & {
+  __FOUNDEROS_UPSTREAM_CACHE__?: Map<string, UpstreamCacheEntry>;
+};
+
+const LAST_KNOWN_GOOD_TTL_MS = 30_000;
+
+function upstreamCacheStore() {
+  if (!globalUpstreamCache.__FOUNDEROS_UPSTREAM_CACHE__) {
+    globalUpstreamCache.__FOUNDEROS_UPSTREAM_CACHE__ = new Map();
+  }
+  return globalUpstreamCache.__FOUNDEROS_UPSTREAM_CACHE__;
+}
+
+function upstreamCacheKey(
+  upstream: UpstreamId,
+  path: string,
+  searchParams?: URLSearchParams,
+) {
+  const suffix = searchParams?.toString();
+  return suffix ? `${upstream}:${path}?${suffix}` : `${upstream}:${path}`;
+}
+
 export function buildUpstreamQuery(
   entries: Record<string, string | number | boolean | null | undefined>,
 ) {
@@ -59,6 +86,7 @@ export async function requestUpstreamJson<T>(
 ): Promise<T> {
   const timeoutMs = options?.timeoutMs ?? 3000;
   const target = buildUpstreamUrl(upstream, path, searchParams);
+  const cacheKey = upstreamCacheKey(upstream, path, searchParams);
 
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -81,7 +109,12 @@ export async function requestUpstreamJson<T>(
       }
 
       recordShellUpstreamMetric(upstream, path, "ok", Date.now() - startedAt);
-      return (await response.json()) as T;
+      const payload = (await response.json()) as T;
+      upstreamCacheStore().set(cacheKey, {
+        payload,
+        cachedAt: Date.now(),
+      });
+      return payload;
     } catch (error) {
       lastError =
         error instanceof Error ? error : new Error("Upstream request failed.");
@@ -100,6 +133,12 @@ export async function requestUpstreamJson<T>(
       }
       await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
     }
+  }
+
+  const cached = upstreamCacheStore().get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt <= LAST_KNOWN_GOOD_TTL_MS) {
+    recordShellUpstreamMetric(upstream, path, "stale_cache_hit");
+    return cached.payload as T;
   }
 
   throw lastError ?? new Error("Upstream request failed.");

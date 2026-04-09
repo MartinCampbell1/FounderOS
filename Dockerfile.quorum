@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV GATEWAY_HOST=0.0.0.0
 ENV GATEWAY_PORT=8800
+ENV PIP_CONSTRAINT=/app/constraints-python.txt
 
+COPY constraints-python.txt /app/constraints-python.txt
 COPY founderos_contracts /app/founderos_contracts
 COPY quorum /app/quorum
 

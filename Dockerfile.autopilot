@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV AUTOPILOT_API_HOST=0.0.0.0
 ENV AUTOPILOT_API_PORT=8420
+ENV PIP_CONSTRAINT=/app/constraints-python.txt
 
+COPY constraints-python.txt /app/constraints-python.txt
 COPY founderos_contracts /app/founderos_contracts
 COPY autopilot /app/autopilot
 
