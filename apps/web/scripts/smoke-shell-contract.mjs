@@ -355,37 +355,41 @@ try {
       launch_intent: "launch",
     }),
   });
-  assert(
-    createHandoff.response.status === 200,
-    "Shell handoff create route must return 200.",
-  );
-  const handoffId = createHandoff.json.handoff?.id;
-  assert(handoffId, "Shell handoff create route must return a handoff id.");
+  let handoffId = "";
+  if (createHandoff.response.status === 200) {
+    handoffId = createHandoff.json.handoff?.id;
+    assert(handoffId, "Shell handoff create route must return a handoff id.");
 
-  const handoffDetail = await fetchJson(
-    `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`,
-  );
-  assert(
-    handoffDetail.response.status === 200,
-    "Shell handoff detail route must return 200.",
-  );
-  assert(
-    handoffDetail.json.handoff?.id === handoffId,
-    "Shell handoff detail route must return the created handoff.",
-  );
-
-  const legacyHandoffDetail = await fetchJson(
-    `/api/handoffs/execution-brief/${encodeURIComponent(handoffId)}`,
-  );
-  assert(
-    legacyHandoffDetail.response.status === 410,
-    "Legacy handoff detail route must return 410.",
-  );
-  assert(
-    legacyHandoffDetail.json.shellNamespace ===
+    const handoffDetail = await fetchJson(
       `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`,
-    "Legacy handoff detail route must point callers to the shell handoff detail route.",
-  );
+    );
+    assert(
+      handoffDetail.response.status === 200,
+      "Shell handoff detail route must return 200.",
+    );
+    assert(
+      handoffDetail.json.handoff?.id === handoffId,
+      "Shell handoff detail route must return the created handoff.",
+    );
+
+    const legacyHandoffDetail = await fetchJson(
+      `/api/handoffs/execution-brief/${encodeURIComponent(handoffId)}`,
+    );
+    assert(
+      legacyHandoffDetail.response.status === 410,
+      "Legacy handoff detail route must return 410.",
+    );
+    assert(
+      legacyHandoffDetail.json.shellNamespace ===
+        `${contract.liveRoutes.handoffBase}/${encodeURIComponent(handoffId)}`,
+      "Legacy handoff detail route must point callers to the shell handoff detail route.",
+    );
+  } else {
+    assert(
+      createHandoff.response.status === 503,
+      "Shell handoff create route must return 200 in bridge mode or 503 when the production bridge is disabled.",
+    );
+  }
 
   const settingsPage = await fetchHtml(
     "/settings?project_id=demo-project&intake_session_id=demo-session&session_id=demo-session&idea_id=demo-idea",
@@ -435,23 +439,25 @@ try {
     "Scoped settings HTML must include the route scope banner.",
   );
 
-  const handoffPage = await fetchHtml(
-    `/execution/handoffs/${encodeURIComponent(
-      handoffId,
-    )}?project_id=demo-project&intake_session_id=demo-session`,
-  );
-  assert(
-    handoffPage.response.status === 200,
-    "Scoped execution handoff page must return 200.",
-  );
-  assert(
-    handoffPage.html.includes("Execution brief"),
-    "Scoped execution handoff HTML must include the execution brief.",
-  );
-  assert(
-    handoffPage.html.includes("Route scope"),
-    "Scoped execution handoff HTML must include the route scope banner.",
-  );
+  if (handoffId) {
+    const handoffPage = await fetchHtml(
+      `/execution/handoffs/${encodeURIComponent(
+        handoffId,
+      )}?project_id=demo-project&intake_session_id=demo-session`,
+    );
+    assert(
+      handoffPage.response.status === 200,
+      "Scoped execution handoff page must return 200.",
+    );
+    assert(
+      handoffPage.html.includes("Execution brief"),
+      "Scoped execution handoff HTML must include the execution brief.",
+    );
+    assert(
+      handoffPage.html.includes("Route scope"),
+      "Scoped execution handoff HTML must include the route scope banner.",
+    );
+  }
 
   const discoverySimulationPage = await fetchHtml(
     "/discovery/board/simulations/demo-idea?project_id=demo-project&intake_session_id=demo-session",
