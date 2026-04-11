@@ -19,6 +19,7 @@ export function ShellPage({
 }) {
   return (
     <div
+      data-testid="shell-page"
       className={cn(
         "shell-content-area mx-auto flex w-full max-w-[1680px] flex-col gap-4",
         className

@@ -179,11 +179,13 @@ function UnifiedShellFrameContent({
   routeScope,
   initialRuntimeSnapshot,
   initialPreferences,
+  testId,
 }: {
   children: React.ReactNode;
   routeScope: { projectId: string; intakeSessionId: string };
   initialRuntimeSnapshot?: ShellRuntimeSnapshot | null;
   initialPreferences?: ShellPreferences | null;
+  testId?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -914,7 +916,10 @@ function UnifiedShellFrameContent({
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      data-testid={testId}
+      className="min-h-screen bg-background text-foreground"
+    >
       {/* ── Command Palette ─────────────────────────────── */}
       {commandOpen ? (
         <>
@@ -1045,7 +1050,7 @@ function UnifiedShellFrameContent({
       {/* ── Layout ──────────────────────────────────────── */}
       <div className="flex min-h-screen">
         {/* ── Sidebar ─────────────────────────────────── */}
-        <div className={sidebarClassName}>
+        <div data-testid="shell-sidebar" className={sidebarClassName}>
           {/* Workspace switcher */}
           <div className="flex items-center gap-2 px-4 py-3">
             <Link
@@ -1182,7 +1187,7 @@ function UnifiedShellFrameContent({
         ) : null}
 
         {/* ── Main content ────────────────────────────── */}
-        <div className="min-w-0 flex-1 bg-background">
+        <div data-testid="shell-main" className="min-w-0 flex-1 bg-background">
           <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-3 sm:px-5 backdrop-blur-xl">
             <div className="flex min-w-0 items-center gap-3">
               <button
@@ -1194,7 +1199,12 @@ function UnifiedShellFrameContent({
                 <Menu className="h-4 w-4" />
               </button>
               <h1 className="flex items-center gap-1.5 truncate text-[14px] text-foreground" style={{ fontFamily: "var(--font-heading, var(--font-sans))" }}>
-                <span className="font-semibold tracking-tight">{NAV_ITEMS.find((item) => item.key === activeSection)?.label}</span>
+                <span
+                  data-testid="shell-section-label"
+                  className="font-semibold tracking-tight"
+                >
+                  {NAV_ITEMS.find((item) => item.key === activeSection)?.label}
+                </span>
                 {(() => {
                   const section = NAV_ITEMS.find((item) => item.key === activeSection);
                   if (!section?.children) return null;
@@ -1240,13 +1250,14 @@ export function UnifiedShellFrame({
   );
 
   return (
-    <UnifiedShellFrameContent
-      routeScope={routeScope}
-      initialRuntimeSnapshot={initialRuntimeSnapshot}
-      initialPreferences={initialPreferences}
-    >
+      <UnifiedShellFrameContent
+        routeScope={routeScope}
+        initialRuntimeSnapshot={initialRuntimeSnapshot}
+        initialPreferences={initialPreferences}
+        testId="shell-frame-main"
+      >
       {children}
-    </UnifiedShellFrameContent>
+      </UnifiedShellFrameContent>
   );
 }
 
@@ -1264,6 +1275,7 @@ export function UnifiedShellFrameFallback({
       routeScope={EMPTY_SHELL_ROUTE_SCOPE}
       initialRuntimeSnapshot={initialRuntimeSnapshot}
       initialPreferences={initialPreferences}
+      testId="shell-frame-fallback"
     >
       {children}
     </UnifiedShellFrameContent>

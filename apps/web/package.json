@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "verify:fast": "tsc --noEmit",
     "test": "node ./scripts/smoke-shell-contract.mjs",
+    "test:browser": "npm run build && playwright test",
     "test:live-parity": "node ./scripts/check-live-parity.mjs",
     "test:live-review-actions": "node ./scripts/check-live-review-actions.mjs",
     "test:live-review-batch-routes": "node ./scripts/check-live-review-batch-routes.mjs",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@founderos/eslint-config": "*",
     "@founderos/typescript-config": "*",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^20.19.0",
     "@types/pg": "^8.20.0",

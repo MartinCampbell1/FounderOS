@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - codex/frontend-backend-hygiene
   workflow_dispatch:
 
 jobs:
@@ -51,7 +52,60 @@ jobs:
         run: npm --workspace @founderos/web run test
 
       - name: Run Quorum backend tests
-        run: npm --workspace @founderos/quorum-api run test
+        id: quorum_backend
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p .ci-artifacts/release-acceptance/quorum
+          node scripts/run-ci-test-step.mjs \
+            --name "Quorum backend tests" \
+            --artifactDir ".ci-artifacts/release-acceptance/quorum" \
+            --command "npm --workspace @founderos/quorum-api run test"
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload Quorum backend test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-acceptance-quorum-backend
+          path: .ci-artifacts/release-acceptance/quorum
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Run Autopilot backend tests
-        run: npm --workspace @founderos/autopilot-api run test
+        id: autopilot_backend
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p .ci-artifacts/release-acceptance/autopilot
+          node scripts/run-ci-test-step.mjs \
+            --name "Autopilot backend tests" \
+            --artifactDir ".ci-artifacts/release-acceptance/autopilot" \
+            --command "npm --workspace @founderos/autopilot-api run test"
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload Autopilot backend test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-acceptance-autopilot-backend
+          path: .ci-artifacts/release-acceptance/autopilot
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Finalize backend test gate
+        if: always()
+        run: |
+          quorum_exit="${{ steps.quorum_backend.outputs.exit_code || '0' }}"
+          autopilot_exit="${{ steps.autopilot_backend.outputs.exit_code || '0' }}"
+
+          if [ "$quorum_exit" != "0" ] || [ "$autopilot_exit" != "0" ]; then
+            echo "One or more backend test steps failed."
+            echo "Quorum exit code: $quorum_exit"
+            echo "Autopilot exit code: $autopilot_exit"
+            exit 1
+          fi

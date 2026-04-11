@@ -36,6 +36,20 @@ function canUseBrowserStorage() {
   return canUseWindow() && typeof window.localStorage !== "undefined";
 }
 
+let cachedPreferenceSource: string | null = null;
+let cachedPreferences: ShellPreferences | null = null;
+
+function cachePreferences(source: string, resolve: () => ShellPreferences) {
+  if (cachedPreferences && cachedPreferenceSource === source) {
+    return cachedPreferences;
+  }
+
+  const nextPreferences = resolve();
+  cachedPreferenceSource = source;
+  cachedPreferences = nextPreferences;
+  return nextPreferences;
+}
+
 function readCookiePreferences() {
   if (!canUseWindow()) {
     return DEFAULT_SHELL_PREFERENCES;
@@ -46,12 +60,13 @@ function readCookiePreferences() {
     .find((entry) => entry.startsWith(`${SHELL_PREFERENCES_COOKIE_NAME}=`));
 
   if (!cookie) {
-    return DEFAULT_SHELL_PREFERENCES;
+    return cachePreferences("cookie:default", () => DEFAULT_SHELL_PREFERENCES);
   }
 
-  return parseShellPreferencesCookie(
-    cookie.slice(SHELL_PREFERENCES_COOKIE_NAME.length + 1)
-  ).preferences;
+  const cookieValue = cookie.slice(SHELL_PREFERENCES_COOKIE_NAME.length + 1);
+  return cachePreferences(`cookie:${cookieValue}`, () =>
+    parseShellPreferencesCookie(cookieValue).preferences
+  );
 }
 
 function readStoredPreferences(): ShellPreferences {
@@ -59,7 +74,9 @@ function readStoredPreferences(): ShellPreferences {
     try {
       const raw = window.localStorage.getItem(SHELL_PREFERENCES_STORAGE_KEY);
       if (raw) {
-        return normalizeShellPreferences(JSON.parse(raw) as Partial<ShellPreferences>);
+        return cachePreferences(`storage:${raw}`, () =>
+          normalizeShellPreferences(JSON.parse(raw) as Partial<ShellPreferences>)
+        );
       }
     } catch {
       return readCookiePreferences();

@@ -4,6 +4,14 @@ FounderOS is the release coordinator for the local-first FounderOS stack. The ro
 publishes the unified shell, shared packages, release docs, and the pinned `autopilot` and
 `quorum` runtime topology required to run the product end-to-end from a clean checkout.
 
+## Release Signal
+
+[![Release Acceptance](https://github.com/MartinCampbell1/FounderOS/actions/workflows/release-acceptance.yml/badge.svg)](https://github.com/MartinCampbell1/FounderOS/actions/workflows/release-acceptance.yml)
+
+- Shipping commit: `2840d63579f84f87f7954da3d4c5e071862fb70b`
+- Release: [`v1.0.1`](https://github.com/MartinCampbell1/FounderOS/releases/tag/v1.0.1)
+- Latest green Release Acceptance run: [#24188838248](https://github.com/MartinCampbell1/FounderOS/actions/runs/24188838248)
+
 ## Repository Layout
 
 - `apps/web`: unified shell and operator UI

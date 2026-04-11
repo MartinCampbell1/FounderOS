@@ -10,6 +10,8 @@ coverage
 .env
 .env.*
 .DS_Store
+apps/web/playwright-report/
+apps/web/test-results/
 founderos_contracts/build/
 founderos_contracts/*.egg-info/
 
