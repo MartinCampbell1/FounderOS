@@ -20,9 +20,14 @@ import {
   ShellFilterChipButton,
   ShellHero,
   ShellPage,
+  ShellSearchSectionCard,
   ShellPillButton,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
+import {
+  ShellRecordActionBar,
+  ShellRecordMeta,
+} from "@/components/shell/shell-record-primitives";
 import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
   attentionPlaneTone,
@@ -38,26 +43,9 @@ import {
   runAttentionAction,
   type AttentionActionResult,
 } from "@/lib/attention-action-model";
-import {
-  buildShellChainGraphStats,
-  matchesShellChainRouteScope,
-  resolveScopedShellChainIntakeSession,
-  resolveScopedShellChainIntakeSessionId,
-  resolveScopedShellChainProject,
-} from "@/lib/chain-graph";
 import { fetchShellInboxSnapshot } from "@/lib/shell-snapshot-client";
-import {
-  resolveReviewMemoryBucket,
-} from "@/lib/review-memory";
 import { runExecutionAttentionMutation } from "@/lib/review-execution-actions";
-import {
-  buildRememberedShellReviewEntryHrefs,
-  buildShellEntrySettingsHref,
-} from "@/lib/shell-entry-hrefs";
-import {
-  getShellPollInterval,
-  useShellPreferences,
-} from "@/lib/shell-preferences";
+import { getShellPollInterval, useShellPreferences } from "@/lib/shell-preferences";
 import { useShellRouteMutationRunner } from "@/lib/use-shell-route-mutation-runner";
 import { useShellSnapshotRefreshNonce } from "@/lib/use-shell-snapshot-refresh-nonce";
 import {
@@ -67,10 +55,6 @@ import {
 import {
   type ShellInboxSnapshot,
 } from "@/lib/inbox";
-import {
-  shellSettingsParityTargetsFromAttentionRecord,
-  shellSettingsParityTargetsFromChainRecord,
-} from "@/lib/settings-parity-targets";
 import { useShellPolledSnapshot } from "@/lib/use-shell-polled-snapshot";
 import { truncate } from "@/lib/format-utils";
 
@@ -129,12 +113,7 @@ function typeBadgeLabel(record: InboxRecord) {
 function subtitleText(record: InboxRecord): string {
   switch (record.type) {
     case "discovery":
-      return [
-        record.item.idea_id ? `idea_${record.item.idea_id}` : null,
-        record.status,
-      ]
-        .filter(Boolean)
-        .join(" \u00b7 ");
+      return record.item.idea_id ? `idea_${record.item.idea_id}` : "";
     case "issue":
       return [
         record.issue.project_name,
@@ -143,19 +122,9 @@ function subtitleText(record: InboxRecord): string {
         .filter(Boolean)
         .join(" \u00b7 ");
     case "approval":
-      return [
-        record.approval.project_name,
-        record.status,
-      ]
-        .filter(Boolean)
-        .join(" \u00b7 ");
+      return record.approval.project_name || "";
     case "runtime":
-      return [
-        record.source.project?.name || record.runtime.project_id,
-        record.status,
-      ]
-        .filter(Boolean)
-        .join(" \u00b7 ");
+      return record.source.project?.name || record.runtime.project_id || "";
   }
 }
 
@@ -229,11 +198,9 @@ function useInboxState(
 
 function InboxNotificationRow({
   record,
-  busyActionKey,
   actions,
 }: {
   record: InboxRecord;
-  busyActionKey: string;
   actions: React.ReactNode;
 }) {
   const isUnread = record.attention > 0;
@@ -243,14 +210,13 @@ function InboxNotificationRow({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 border-b border-border/50 border-l-2 px-4 py-3 transition-[background-color,border-color] duration-100 hover:bg-[color:var(--shell-control-hover)]",
+        "group relative grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-x-2.5 border-b border-border/50 border-l-2 px-3.5 py-2.5 transition-[background-color,border-color] duration-100 hover:bg-[color:var(--shell-control-hover)]",
         toneBorderClass(record),
         record.tone === "danger" && "hover:border-l-red-400",
         record.tone === "warning" && "hover:border-l-amber-400",
         record.tone === "info" && "hover:border-l-indigo-400"
       )}
     >
-      {/* Unread dot */}
       <div className="mt-1.5 flex-none">
         {isUnread ? (
           <span className="block h-2 w-2 rounded-full bg-indigo-500" />
@@ -259,18 +225,16 @@ function InboxNotificationRow({
         )}
       </div>
 
-      {/* Badges */}
-      <div className="flex flex-none items-center gap-1.5 pt-0.5">
-        <Badge tone={attentionPlaneTone(record.plane)} className="text-[10px]">
+      <div className="flex flex-none items-center gap-1">
+        <Badge tone={attentionPlaneTone(record.plane)} className="text-[10px] leading-none">
           {record.plane}
         </Badge>
-        <Badge tone={record.tone} className="text-[10px]">
+        <Badge tone={record.tone} className="text-[10px] leading-none">
           {typeBadgeLabel(record)}
         </Badge>
       </div>
 
-      {/* Content */}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 space-y-0.5">
         <Link href={record.href} className="block">
           <span
             className={cn(
@@ -282,21 +246,19 @@ function InboxNotificationRow({
           </span>
         </Link>
         {subtitle ? (
-          <p className="mt-0.5 text-[12px] leading-4 text-muted-foreground">
+          <p className="text-[12px] leading-4 text-muted-foreground">
             {truncate(subtitle, 120)}
           </p>
         ) : null}
+        <ShellRecordMeta className="gap-x-2 text-[11px] leading-4">
+          <span>{record.status}</span>
+          <span>{time}</span>
+        </ShellRecordMeta>
       </div>
 
-      {/* Inline actions - visible on hover */}
-      <div className="flex flex-none items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <ShellRecordActionBar className="flex-none justify-self-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         {actions}
-      </div>
-
-      {/* Time */}
-      <div className="flex-none pt-0.5 text-[12px] text-muted-foreground">
-        {time}
-      </div>
+      </ShellRecordActionBar>
     </div>
   );
 }
@@ -496,7 +458,6 @@ export function InboxWorkspace({
   const {
     busyActionKey,
     errorMessage,
-    isPending,
     refreshNonce,
     runMutation,
     statusMessage,
@@ -522,7 +483,6 @@ export function InboxWorkspace({
       since: initialSnapshot?.generatedAt ?? null,
     },
   });
-  const { preferences } = useShellPreferences(initialPreferences);
   const {
     chains,
     discoveryFeed,
@@ -531,11 +491,9 @@ export function InboxWorkspace({
     approvals,
     issues,
     runtimes,
-    errors,
     loadState,
   } =
     useInboxState(snapshotRefreshNonce, initialPreferences, initialSnapshot);
-  const pollInterval = getShellPollInterval("inbox", preferences.refreshProfile);
   const query =
     filterState.routeScopeKey === routeScopeKey ? filterState.query : "";
   const filter =
@@ -588,22 +546,6 @@ export function InboxWorkspace({
     () => scopedRecords.filter((record) => record.type === "discovery").length,
     [scopedRecords]
   );
-  const scopedChainLinkedDiscoveryCount = useMemo(
-    () =>
-      scopedRecords.filter(
-        (record) => record.type === "discovery" && Boolean(record.chain)
-      ).length,
-    [scopedRecords]
-  );
-  const scopedDiscoveryAuthoringGapCount = useMemo(
-    () =>
-      scopedRecords.filter(
-        (record) =>
-          record.type === "discovery" &&
-          (record.chain?.authoring.gapCount ?? 0) > 0
-      ).length,
-    [scopedRecords]
-  );
   const scopedIssueCount = useMemo(
     () => scopedRecords.filter((record) => record.type === "issue").length,
     [scopedRecords]
@@ -615,109 +557,6 @@ export function InboxWorkspace({
   const scopedRuntimeCount = useMemo(
     () => scopedRecords.filter((record) => record.type === "runtime").length,
     [scopedRecords]
-  );
-  const intakeOriginAttentionCount = useMemo(
-    () =>
-      scopedRecords.filter(
-        (record) =>
-          record.type !== "discovery" && record.source.sourceKind === "intake_session"
-      ).length,
-    [scopedRecords]
-  );
-  const chainLinkedAttentionCount = useMemo(
-    () =>
-      scopedRecords.filter(
-        (record) => record.type !== "discovery" && record.source.chainKind !== "unlinked"
-      ).length,
-    [scopedRecords]
-  );
-  const orphanChainAttentionCount = useMemo(
-    () =>
-      scopedRecords.filter(
-        (record) =>
-          record.type !== "discovery" && record.source.chainKind === "orphan-project"
-      ).length,
-    [scopedRecords]
-  );
-  const scopedProject = useMemo(
-    () => resolveScopedShellChainProject(chains, routeScope),
-    [chains, routeScope]
-  );
-  const derivedScopedIntakeSessionId = useMemo(
-    () => resolveScopedShellChainIntakeSessionId(chains, routeScope),
-    [chains, routeScope]
-  );
-  const reviewScope = useMemo(
-    () => ({
-      projectId: routeScope.projectId,
-      intakeSessionId: derivedScopedIntakeSessionId,
-    }),
-    [derivedScopedIntakeSessionId, routeScope.projectId]
-  );
-  const scopedIntakeSession = useMemo(
-    () => resolveScopedShellChainIntakeSession(chains, routeScope),
-    [chains, routeScope]
-  );
-  const scopedChains = useMemo(
-    () => chains.filter((record) => matchesShellChainRouteScope(record, routeScope)),
-    [chains, routeScope]
-  );
-  const scopedChainStats = useMemo(
-    () => buildShellChainGraphStats(scopedChains),
-    [scopedChains]
-  );
-  const inboxSettingsHref = useMemo(
-    () =>
-      buildShellEntrySettingsHref(
-        {
-          projectId: routeScope.projectId,
-          intakeSessionId: derivedScopedIntakeSessionId,
-        },
-        shellSettingsParityTargetsFromAttentionRecord(scopedRecords[0] ?? null),
-        shellSettingsParityTargetsFromChainRecord(scopedChains[0] ?? null)
-      ),
-    [derivedScopedIntakeSessionId, routeScope.projectId, scopedChains, scopedRecords]
-  );
-  const scopedDiscoveryMemoryChainRecords = useMemo(
-    () =>
-      scopedRecords.flatMap((record) =>
-        record.type === "discovery" && record.chain
-          ? [
-              {
-                kind: record.chain.chainKind,
-                intakeSessionId: record.chain.intakeSessionId,
-                projectId: record.chain.projectId,
-                project: null,
-              },
-            ]
-          : []
-      ),
-    [scopedRecords]
-  );
-  const reviewMemoryBucket = useMemo(
-    () =>
-      resolveReviewMemoryBucket({
-        scope: reviewScope,
-        chainRecords: [...scopedDiscoveryMemoryChainRecords, ...chains],
-        executionChainKinds: scopedRecords
-          .filter(
-            (
-              record
-            ): record is Exclude<InboxRecord, DiscoveryQueueRecord> =>
-              record.plane === "execution"
-          )
-          .map((record) => record.source.chainKind),
-      }),
-    [chains, reviewScope, scopedDiscoveryMemoryChainRecords, scopedRecords]
-  );
-  const reviewEntryHrefs = useMemo(
-    () =>
-      buildRememberedShellReviewEntryHrefs({
-        scope: reviewScope,
-        preferences,
-        bucket: reviewMemoryBucket,
-      }),
-    [preferences, reviewMemoryBucket, reviewScope]
   );
 
   async function handleResolveDiscovery(record: DiscoveryQueueRecord) {
@@ -750,56 +589,6 @@ export function InboxWorkspace({
         plane: "discovery",
         action: "ignore",
         item: record.item,
-        routeScope,
-        source: "inbox",
-      })
-    );
-  }
-
-  async function handleCompareDiscovery(
-    record: DiscoveryQueueRecord,
-    compareIdeaId: string,
-    note: string
-  ): Promise<boolean> {
-    return runMutation(`${record.key}:compare`, () =>
-      runAttentionAction({
-        plane: "discovery",
-        action: "compare",
-        item: record.item,
-        compareIdeaId,
-        note,
-        routeScope,
-        source: "inbox",
-      })
-    );
-  }
-
-  async function handleEditDiscovery(
-    record: DiscoveryQueueRecord,
-    editText: string
-  ): Promise<boolean> {
-    return runMutation(`${record.key}:edit`, () =>
-      runAttentionAction({
-        plane: "discovery",
-        action: "edit",
-        item: record.item,
-        editText,
-        routeScope,
-        source: "inbox",
-      })
-    );
-  }
-
-  async function handleRespondDiscovery(
-    record: DiscoveryQueueRecord,
-    responseText: string
-  ): Promise<boolean> {
-    return runMutation(`${record.key}:respond`, () =>
-      runAttentionAction({
-        plane: "discovery",
-        action: "respond",
-        item: record.item,
-        responseText,
         routeScope,
         source: "inbox",
       })
@@ -884,123 +673,156 @@ export function InboxWorkspace({
 
   return (
     <ShellPage className="max-w-[1100px]">
+      <ShellHero
+        title="Inbox"
+        description="Triage discovery, execution, issues, approvals, and tool permissions in one queue."
+        meta={
+          <>
+            <span>{counts.all} total</span>
+            <span>{counts.discovery} discovery</span>
+            <span>{counts.execution} execution</span>
+            <span>{counts.approvals + counts.permissions} review gates</span>
+          </>
+        }
+      />
+
       {statusMessage ? <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner> : null}
 
       {errorMessage ? <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner> : null}
 
-      {/* Filter chips — hide zero-count unless active */}
-      <div className="flex flex-wrap items-center gap-2">
-        {filters
-          .filter((option) => option.key === "all" || option.count > 0 || filter === option.key)
-          .map((option) => (
-          <ShellFilterChipButton
-            key={option.key}
-            onClick={() =>
-              setFilterState({
-                routeScopeKey,
-                query,
-                filter: option.key,
-              })
-            }
-            label={option.label}
-            count={option.count}
-            active={filter === option.key}
-          />
-        ))}
-      </div>
+      <ShellSearchSectionCard
+        title="Queue"
+        description="Search and filter the current inbox slice."
+        actions={<Badge tone="info">{sortedRecords.length}</Badge>}
+        searchValue={query}
+        onSearchChange={(event) =>
+          setFilterState({
+            routeScopeKey,
+            query: event.target.value,
+            filter,
+          })
+        }
+        searchPlaceholder="Search notifications"
+        beforeSearch={
+          <div className="flex flex-wrap items-center gap-2">
+            {filters
+              .filter((option) => option.key === "all" || option.count > 0 || filter === option.key)
+              .map((option) => (
+                <ShellFilterChipButton
+                  key={option.key}
+                  onClick={() =>
+                    setFilterState({
+                      routeScopeKey,
+                      query,
+                      filter: option.key,
+                    })
+                  }
+                  label={option.label}
+                  count={option.count}
+                  active={filter === option.key}
+                />
+              ))}
+          </div>
+        }
+        afterSearch={
+          <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+            <span>{sortedRecords.length} visible</span>
+            <span>{scopedDiscoveryCount} discovery</span>
+            <span>{scopedIssueCount} issues</span>
+            <span>{scopedApprovalCount} approvals</span>
+            <span>{scopedRuntimeCount} permissions</span>
+          </div>
+        }
+        contentClassName="space-y-0"
+      >
+        <div className="overflow-hidden rounded-[10px] border border-border/60 bg-background">
+          {loadState === "loading" && records.length === 0 ? (
+            <SkeletonList rows={6} />
+          ) : null}
 
-      {/* Notification list */}
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        {loadState === "loading" && records.length === 0 ? (
-          <SkeletonList rows={6} />
-        ) : null}
-
-        {sortedRecords.map((record) => {
-          if (record.type === "discovery") {
-            return (
+          {sortedRecords.map((record) => {
+            if (record.type === "discovery") {
+              return (
               <InboxNotificationRow
                 key={record.key}
                 record={record}
-                busyActionKey={busyActionKey}
                 actions={
                   <DiscoveryRowActions
                     record={record}
-                    busyActionKey={busyActionKey}
-                    onAccept={handleAcceptDiscovery}
-                    onIgnore={handleIgnoreDiscovery}
-                    onResolve={handleResolveDiscovery}
-                  />
-                }
-              />
-            );
-          }
+                      busyActionKey={busyActionKey}
+                      onAccept={handleAcceptDiscovery}
+                      onIgnore={handleIgnoreDiscovery}
+                      onResolve={handleResolveDiscovery}
+                    />
+                  }
+                />
+              );
+            }
 
-          if (record.type === "issue") {
-            return (
+            if (record.type === "issue") {
+              return (
               <InboxNotificationRow
                 key={record.key}
                 record={record}
-                busyActionKey={busyActionKey}
                 actions={
                   <IssueRowActions
                     record={record}
-                    busyActionKey={busyActionKey}
-                    onResolve={handleResolveIssue}
-                  />
-                }
-              />
-            );
-          }
+                      busyActionKey={busyActionKey}
+                      onResolve={handleResolveIssue}
+                    />
+                  }
+                />
+              );
+            }
 
-          if (record.type === "approval") {
-            return (
+            if (record.type === "approval") {
+              return (
               <InboxNotificationRow
                 key={record.key}
                 record={record}
-                busyActionKey={busyActionKey}
                 actions={
                   <ApprovalRowActions
                     record={record}
+                      busyActionKey={busyActionKey}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                    />
+                  }
+                />
+              );
+            }
+
+            return (
+            <InboxNotificationRow
+              key={record.key}
+              record={record}
+              actions={
+                <RuntimeRowActions
+                  record={record}
                     busyActionKey={busyActionKey}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
+                    onAllow={handleAllow}
+                    onDeny={handleDeny}
                   />
                 }
               />
             );
-          }
+          })}
 
-          return (
-            <InboxNotificationRow
-              key={record.key}
-              record={record}
-              busyActionKey={busyActionKey}
-              actions={
-                <RuntimeRowActions
-                  record={record}
-                  busyActionKey={busyActionKey}
-                  onAllow={handleAllow}
-                  onDeny={handleDeny}
-                />
+          {loadState !== "loading" && sortedRecords.length === 0 ? (
+            <ShellEmptyState
+              centered
+              className="py-14"
+              icon={<Inbox className="h-5 w-5" />}
+              title={hasRouteScope(routeScope) ? undefined : "All clear"}
+              description={
+                hasRouteScope(routeScope)
+                  ? "No notifications match the current scope."
+                  : "You\u2019re all caught up."
               }
             />
-          );
-        })}
-
-        {loadState !== "loading" && sortedRecords.length === 0 ? (
-          <ShellEmptyState
-            centered
-            className="py-16"
-            icon={<Inbox className="h-5 w-5" />}
-            title={hasRouteScope(routeScope) ? undefined : "All clear"}
-            description={
-              hasRouteScope(routeScope)
-                ? "No notifications match the current scope."
-                : "You\u2019re all caught up."
-            }
-          />
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </ShellSearchSectionCard>
     </ShellPage>
   );
 }

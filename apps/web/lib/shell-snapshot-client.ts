@@ -16,9 +16,18 @@ import type {
   ShellDiscoveryIdeasSnapshot,
   ShellDiscoverySessionsSnapshot,
 } from "@/lib/discovery";
+import type { ShellDiscoveryIntelligenceSnapshot } from "@/lib/discovery-intelligence-model";
+import type { ShellDiscoveryImprovementSnapshot } from "@/lib/discovery-improvement-model";
 import type { ShellDiscoveryAuthoringQueueSnapshot } from "@/lib/discovery-authoring-queue";
 import type { ShellDiscoveryReviewSnapshot } from "@/lib/discovery-review";
 import type { ShellExecutionAgentsSnapshot } from "@/lib/execution-agents";
+import type { ShellExecutionAgentSnapshot } from "@/lib/execution-agent-model";
+import type {
+  ShellExecutionAuditSnapshot,
+  ShellExecutionAuditsSnapshot,
+} from "@/lib/execution-audits-model";
+import type { ShellExecutionEventsSnapshot } from "@/lib/execution-events-model";
+import type { ShellExecutionHandoffsSnapshot } from "@/lib/execution-handoffs-model";
 import type {
   ShellExecutionHandoffSnapshot,
   ShellExecutionIntakeSnapshot,
@@ -734,6 +743,88 @@ export function fetchShellDiscoveryIdeasSnapshot(
   }));
 }
 
+export function fetchShellDiscoveryIntelligenceSnapshot(
+  profileId?: string | null,
+  init?: RequestInit
+): Promise<ShellDiscoveryIntelligenceSnapshot> {
+  return requestShellSnapshotJson<ShellDiscoveryIntelligenceSnapshot>(
+    appendShellSnapshotParam(
+      "/api/shell/discovery/intelligence",
+      "profileId",
+      profileId
+    ),
+    init
+  ).catch((error) => ({
+    generatedAt: new Date().toISOString(),
+    records: [],
+    recordsError:
+      error instanceof Error
+        ? `Repo intelligence: ${error.message}`
+        : "Repo intelligence: request failed.",
+    recordsLoadState: "error" as const,
+    selectedProfileId: profileId ?? null,
+    selectedDigest: null,
+    selectedDigestError:
+      profileId && error instanceof Error
+        ? `Repo digest result: ${error.message}`
+        : profileId
+          ? "Repo digest result: request failed."
+          : null,
+    selectedDigestLoadState: profileId ? ("error" as const) : ("idle" as const),
+    selectedGraph: null,
+    selectedGraphError:
+      profileId && error instanceof Error
+        ? `Repo graph result: ${error.message}`
+        : profileId
+          ? "Repo graph result: request failed."
+          : null,
+    selectedGraphLoadState: profileId ? ("error" as const) : ("idle" as const),
+  }));
+}
+
+export function fetchShellDiscoveryImprovementSnapshot(
+  profileId?: string | null,
+  init?: RequestInit
+): Promise<ShellDiscoveryImprovementSnapshot> {
+  return requestShellSnapshotJson<ShellDiscoveryImprovementSnapshot>(
+    appendShellSnapshotParam(
+      "/api/shell/discovery/improvement",
+      "profileId",
+      profileId
+    ),
+    init
+  ).catch((error) => ({
+    generatedAt: new Date().toISOString(),
+    profiles: [],
+    profilesError:
+      error instanceof Error
+        ? `Improvement prompt profiles: ${error.message}`
+        : "Improvement prompt profiles: request failed.",
+    profilesLoadState: "error" as const,
+    reflections: [],
+    reflectionsError:
+      error instanceof Error
+        ? `Improvement reflections: ${error.message}`
+        : "Improvement reflections: request failed.",
+    reflectionsLoadState: "error" as const,
+    matches: [],
+    matchesError:
+      error instanceof Error
+        ? `Improvement self-play matches: ${error.message}`
+        : "Improvement self-play matches: request failed.",
+    matchesLoadState: "error" as const,
+    selectedProfileId: profileId ?? null,
+    selectedProfile: null,
+    selectedProfileError:
+      profileId && error instanceof Error
+        ? `Improvement prompt profile: ${error.message}`
+        : profileId
+          ? "Improvement prompt profile: request failed."
+          : null,
+    selectedProfileLoadState: profileId ? ("error" as const) : ("idle" as const),
+  }));
+}
+
 export function fetchShellExecutionWorkspaceSnapshot(
   projectId?: string | null,
   init?: RequestInit
@@ -855,6 +946,64 @@ export function fetchShellExecutionHandoffSnapshot(
   }));
 }
 
+export function fetchShellExecutionHandoffsSnapshot(
+  input: RequestInfo | URL = "/api/shell/execution/handoffs",
+  init?: RequestInit
+): Promise<ShellExecutionHandoffsSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionHandoffsSnapshot>(input, init).catch(
+    (error) => ({
+      generatedAt: new Date().toISOString(),
+      handoffs: [],
+      handoffsError:
+        error instanceof Error
+          ? `Execution handoffs: ${error.message}`
+          : "Execution handoffs: request failed.",
+      handoffsLoadState: "error" as const,
+    })
+  );
+}
+
+export function fetchShellExecutionAuditsSnapshot(
+  input: RequestInfo | URL = "/api/shell/execution/audits",
+  init?: RequestInit
+): Promise<ShellExecutionAuditsSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionAuditsSnapshot>(input, init).catch(
+    (error) => ({
+      generatedAt: new Date().toISOString(),
+      audits: [],
+      auditsError:
+        error instanceof Error
+          ? `Execution shadow audits: ${error.message}`
+          : "Execution shadow audits: request failed.",
+      auditsLoadState: "error" as const,
+    })
+  );
+}
+
+export function fetchShellExecutionAuditSnapshot(
+  auditId: string,
+  init?: RequestInit
+): Promise<ShellExecutionAuditSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionAuditSnapshot>(
+    `/api/shell/execution/audits/${encodeURIComponent(auditId)}`,
+    init
+  ).catch((error) => ({
+    generatedAt: new Date().toISOString(),
+    audit: null,
+    auditError:
+      error instanceof Error
+        ? `Execution shadow audit: ${error.message}`
+        : "Execution shadow audit: request failed.",
+    auditLoadState: "error" as const,
+    linkedRuns: [],
+    linkedRunsError:
+      error instanceof Error
+        ? `Execution shadow audit linked runs: ${error.message}`
+        : "Execution shadow audit linked runs: request failed.",
+    linkedRunsLoadState: "error" as const,
+  }));
+}
+
 export function fetchShellExecutionAgentsSnapshot(
   input: RequestInfo | URL = "/api/shell/execution/agents",
   init?: RequestInit
@@ -868,6 +1017,91 @@ export function fetchShellExecutionAgentsSnapshot(
           ? `Autopilot projects: ${error.message}`
           : "Autopilot projects: request failed.",
       projectsLoadState: "error" as const,
+      agents: [],
+      agentsError:
+        error instanceof Error
+          ? `Execution runtime agents: ${error.message}`
+          : "Execution runtime agents: request failed.",
+      agentsLoadState: "error" as const,
+      agentsSummary: null,
+      agentsSummaryError:
+        error instanceof Error
+          ? `Execution runtime agent summary: ${error.message}`
+          : "Execution runtime agent summary: request failed.",
+      agentsSummaryLoadState: "error" as const,
+      actionRuns: [],
+      actionRunsError:
+        error instanceof Error
+          ? `Execution runtime agent action runs: ${error.message}`
+          : "Execution runtime agent action runs: request failed.",
+      actionRunsLoadState: "error" as const,
+      actionRunsSummary: null,
+      actionRunsSummaryError:
+        error instanceof Error
+          ? `Execution runtime agent action run summary: ${error.message}`
+          : "Execution runtime agent action run summary: request failed.",
+      actionRunsSummaryLoadState: "error" as const,
     })
   );
+}
+
+export function fetchShellExecutionEventsSnapshot(
+  input: RequestInfo | URL = "/api/shell/execution/events",
+  init?: RequestInit
+): Promise<ShellExecutionEventsSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionEventsSnapshot>(input, init).catch(
+    (error) => ({
+      generatedAt: new Date().toISOString(),
+      filters: {
+        projectId: "",
+        runtimeAgentId: "",
+        orchestratorSessionId: "",
+        limit: 200,
+      },
+      events: [],
+      eventsError:
+        error instanceof Error
+          ? `Execution events: ${error.message}`
+          : "Execution events: request failed.",
+      eventsLoadState: "error" as const,
+      agents: [],
+      agentsError:
+        error instanceof Error
+          ? `Execution runtime agents: ${error.message}`
+          : "Execution runtime agents: request failed.",
+      agentsLoadState: "error" as const,
+      counts: {
+        total: 0,
+        attention: 0,
+        actionRuns: 0,
+        approvals: 0,
+        issues: 0,
+        projects: 0,
+        runtimeAgents: 0,
+        sessions: 0,
+        latestEventAt: null,
+        byStatus: {},
+        byEvent: {},
+      },
+    })
+  );
+}
+
+export function fetchShellExecutionAgentSnapshot(
+  runtimeAgentId: string,
+  init?: RequestInit
+): Promise<ShellExecutionAgentSnapshot> {
+  return requestShellSnapshotJson<ShellExecutionAgentSnapshot>(
+    `/api/shell/execution/agents/${encodeURIComponent(runtimeAgentId)}`,
+    init
+  ).catch((error) => ({
+    generatedAt: new Date().toISOString(),
+    runtimeAgentId,
+    agent: null,
+    agentError:
+      error instanceof Error
+        ? `Execution runtime agent: ${error.message}`
+        : "Execution runtime agent: request failed.",
+    agentLoadState: "error" as const,
+  }));
 }

@@ -1,4 +1,4 @@
-import type { QuorumIdeaDossier } from "@founderos/api-clients";
+import type { QuorumIdeaDossierSummary } from "@founderos/api-clients";
 
 export type ShellDiscoveryAuthoringGap =
   | "evidence"
@@ -63,13 +63,14 @@ export function discoveryAuthoringGapLabel(gap: ShellDiscoveryAuthoringGap) {
 }
 
 export function buildShellDiscoveryAuthoringSummary(
-  dossier: QuorumIdeaDossier
+  dossier: QuorumIdeaDossierSummary
 ): ShellDiscoveryAuthoringSummary {
-  const observationCount = dossier.observations.length;
-  const evidenceCount = dossier.evidence_bundle?.items.length ?? 0;
-  const validationCount = dossier.validation_reports.length;
-  const decisionCount = dossier.decisions.length;
-  const timelineCount = dossier.timeline.length;
+  const summary = dossier.authoring_summary;
+  const observationCount = summary.observation_count;
+  const evidenceCount = summary.evidence_item_count;
+  const validationCount = summary.validation_count;
+  const decisionCount = summary.decision_count;
+  const timelineCount = summary.timeline_count;
   const stage = (dossier.idea.latest_stage || "").trim().toLowerCase();
   const hasEvidence = observationCount > 0 || evidenceCount > 0;
   const needsEvidence = !hasEvidence;
@@ -123,16 +124,7 @@ export function buildShellDiscoveryAuthoringSummary(
     validationCount,
     decisionCount,
     timelineCount,
-    overallConfidence:
-      dossier.evidence_bundle?.overall_confidence ||
-      dossier.validation_reports[0]?.confidence ||
-      "unknown",
-    lastUpdatedAt: maxIso([
-      dossier.evidence_bundle?.updated_at,
-      ...dossier.observations.map((item) => item.captured_at),
-      ...dossier.validation_reports.map((item) => item.updated_at || item.created_at),
-      ...dossier.decisions.map((item) => item.created_at),
-      ...dossier.timeline.map((item) => item.created_at),
-    ]),
+    overallConfidence: summary.overall_confidence || "unknown",
+    lastUpdatedAt: maxIso([summary.last_updated_at]),
   };
 }

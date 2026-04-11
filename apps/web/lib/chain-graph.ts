@@ -7,7 +7,7 @@ import type {
   QuorumDiscoveryIdea,
   QuorumExecutionBriefCandidate,
   QuorumExecutionOutcome,
-  QuorumIdeaDossier,
+  QuorumIdeaDossierSummary,
 } from "@founderos/api-clients";
 
 import {
@@ -151,7 +151,7 @@ function intakeSessionForProject(
 }
 
 export function buildShellChainGraph(
-  dossiers: QuorumIdeaDossier[],
+  dossiers: QuorumIdeaDossierSummary[],
   projects: AutopilotProjectSummary[],
   intakeSessions: AutopilotIntakeSessionSummary[],
   issues: AutopilotExecutionIssueRecord[] = [],

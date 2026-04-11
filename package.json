@@ -11,6 +11,8 @@
     "dev": "turbo dev",
     "dev:stack": "node ./scripts/run-stack.mjs dev",
     "build": "turbo build",
+    "design:linear:refs": "bash ./scripts/setup-linear-references.sh",
+    "design:linear:tokens": "bash ./scripts/extract-linear-tokens.sh",
     "lint": "turbo lint",
     "serve:stack": "node ./scripts/run-stack.mjs serve",
     "test:release-contract": "node --test ./scripts/release-contract.test.mjs",

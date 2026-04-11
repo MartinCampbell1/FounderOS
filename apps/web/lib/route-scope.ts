@@ -365,6 +365,59 @@ export function buildExecutionScopeHref(
   return withShellRouteScope("/execution", scope);
 }
 
+export function buildExecutionHandoffsScopeHref(
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope("/execution/handoffs", scope);
+}
+
+export function buildExecutionAgentsScopeHref(
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope("/execution/agents", scope);
+}
+
+export function buildExecutionAuditsScopeHref(
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope("/execution/audits", scope);
+}
+
+export function buildExecutionEventsScopeHref(
+  scope?: Partial<ShellRouteScope> | null,
+  filters?: {
+    runtimeAgentId?: string | null;
+    orchestratorSessionId?: string | null;
+    initiativeId?: string | null;
+    orchestrator?: string | null;
+  }
+) {
+  const href = withShellRouteScope("/execution/events", scope);
+  if (
+    !filters?.runtimeAgentId &&
+    !filters?.orchestratorSessionId &&
+    !filters?.initiativeId &&
+    !filters?.orchestrator
+  ) {
+    return href;
+  }
+
+  const url = new URL(href, "http://founderos-shell.local");
+  if (filters.runtimeAgentId) {
+    url.searchParams.set("runtime_agent_id", filters.runtimeAgentId);
+  }
+  if (filters.orchestratorSessionId) {
+    url.searchParams.set("orchestrator_session_id", filters.orchestratorSessionId);
+  }
+  if (filters.initiativeId) {
+    url.searchParams.set("initiative_id", filters.initiativeId);
+  }
+  if (filters.orchestrator) {
+    url.searchParams.set("orchestrator", filters.orchestrator);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
 export function buildExecutionReviewScopeHref(
   scope?: Partial<ShellRouteScope> | null,
   filter?: string | null
@@ -405,6 +458,16 @@ export function buildExecutionProjectScopeHref(
 ) {
   return withShellRouteScope(
     `/execution/projects/${encodeURIComponent(projectId)}`,
+    scope
+  );
+}
+
+export function buildExecutionAgentScopeHref(
+  runtimeAgentId: string,
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope(
+    `/execution/agents/${encodeURIComponent(runtimeAgentId)}`,
     scope
   );
 }
@@ -452,6 +515,38 @@ export function buildDiscoveryIdeasScopeHref(
   scope?: Partial<ShellRouteScope> | null
 ) {
   return withShellRouteScope("/discovery/ideas", scope);
+}
+
+export function buildDiscoveryIntelligenceScopeHref(
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope("/discovery/intelligence", scope);
+}
+
+export function buildDiscoveryIntelligenceProfileScopeHref(
+  profileId: string,
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope(
+    `/discovery/intelligence/${encodeURIComponent(profileId)}`,
+    scope
+  );
+}
+
+export function buildDiscoveryImprovementScopeHref(
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope("/discovery/improvement", scope);
+}
+
+export function buildDiscoveryImprovementProfileScopeHref(
+  profileId: string,
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope(
+    `/discovery/improvement/${encodeURIComponent(profileId)}`,
+    scope
+  );
 }
 
 export function buildDiscoveryAuthoringScopeHref(
@@ -582,6 +677,16 @@ export function buildExecutionHandoffScopeHref(
 ) {
   return withShellRouteScope(
     `/execution/handoffs/${encodeURIComponent(handoffId)}`,
+    scope
+  );
+}
+
+export function buildExecutionAuditScopeHref(
+  auditId: string,
+  scope?: Partial<ShellRouteScope> | null
+) {
+  return withShellRouteScope(
+    `/execution/audits/${encodeURIComponent(auditId)}`,
     scope
   );
 }

@@ -9,12 +9,14 @@ export function ShellRouteDiagnosticsScript({
   payload: unknown;
   route: string;
 }) {
+  const serializedPayload = serializePayload(payload);
+
   return (
     <script
       type="application/json"
       data-founderos-route-diagnostics={route}
       dangerouslySetInnerHTML={{
-        __html: serializePayload(payload),
+        __html: serializedPayload,
       }}
     />
   );

@@ -9,7 +9,10 @@ import { Badge } from "@founderos/ui/components/badge";
 import { Rocket, FolderKanban } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { ShellRecordSection } from "@/components/shell/shell-record-primitives";
+import {
+  ShellRecordMeta,
+  ShellRecordSection,
+} from "@/components/shell/shell-record-primitives";
 import { ShellRouteScopeBanner } from "@/components/shell/shell-route-scope-banner";
 import {
   ShellActionStateLabel,
@@ -140,8 +143,11 @@ function HandoffListSection({
   items: string[];
 }) {
   return (
-    <ShellRecordSection title={title}>
-      <div className="mt-3 space-y-2 text-sm leading-7 text-foreground/84">
+    <ShellRecordSection
+      title={title}
+      titleClassName="text-[11px] uppercase tracking-[0.08em] text-muted-foreground"
+    >
+      <div className="mt-2 space-y-1.5 text-[12px] leading-6 text-foreground/82">
         {items.length > 0 ? (
           items.map((item) => <p key={item}>{item}</p>)
         ) : (
@@ -350,14 +356,14 @@ export function ExecutionHandoffWorkspace({
         title={brief.title}
         description={brief.thesis}
         meta={
-          <>
+          <ShellRecordMeta>
             <Badge tone={launchIntentTone(handoff.launch_intent)}>
               {launchIntentLabel(handoff.launch_intent)}
             </Badge>
             <span>Source: {handoff.source_session_id ?? handoff.source_plane}</span>
             <span>Created {formatRelativeTime(handoff.created_at)}</span>
             <span>{formatExpiry(handoff.expires_at)}</span>
-          </>
+          </ShellRecordMeta>
         }
         actions={
           <>
@@ -379,10 +385,10 @@ export function ExecutionHandoffWorkspace({
         description="This execution brief inherits the active project and intake scope so operators can stay on the same linked chain while moving between discovery, handoff, and execution review surfaces."
         clearHref="/execution/handoffs"
       />
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_390px]">
-      <div className="space-y-4">
-        {handoff.source_session_id ? (
-          <ShellSectionCard title="Source session" contentClassName="py-4">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_360px]">
+        <div className="space-y-4">
+          {handoff.source_session_id ? (
+            <ShellRecordSection title="Source session" className="p-3.5">
               <ShellActionLink
                 href={buildDiscoverySessionScopeHref(
                   handoff.source_session_id,
@@ -390,15 +396,12 @@ export function ExecutionHandoffWorkspace({
                 )}
                 label="Back to source session"
               />
-          </ShellSectionCard>
-        ) : null}
+            </ShellRecordSection>
+          ) : null}
 
-        <ShellSectionCard
-          title="Execution brief"
-          contentClassName="space-y-4"
-        >
+          <ShellSectionCard title="Execution brief" contentClassName="space-y-3.5">
             <ShellRecordSection title="Thesis">
-              <p className="mt-3 text-sm leading-7 text-foreground/84">{brief.thesis}</p>
+              <p className="mt-2.5 text-[12px] leading-6 text-foreground/84">{brief.thesis}</p>
             </ShellRecordSection>
 
             {stringList(brief.tags).length > 0 ? (
@@ -411,7 +414,7 @@ export function ExecutionHandoffWorkspace({
               </div>
             ) : null}
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               <HandoffListSection
                 title="MVP scope"
                 items={stringList(brief.execution?.mvp_scope)}
@@ -429,15 +432,12 @@ export function ExecutionHandoffWorkspace({
                 items={stringList(brief.execution?.existing_repos)}
               />
             </div>
-        </ShellSectionCard>
-      </div>
+          </ShellSectionCard>
+        </div>
 
-      <div className="space-y-4">
-        <ShellSectionCard
-          title="Create execution project"
-          contentClassName="space-y-4"
-        >
-            <label className="block space-y-2">
+        <div className="space-y-4">
+          <ShellSectionCard title="Create execution project" contentClassName="space-y-3.5">
+            <label className="block space-y-1.5">
               <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
                 Project name
               </span>
@@ -448,7 +448,7 @@ export function ExecutionHandoffWorkspace({
               />
             </label>
 
-            <label className="block space-y-2">
+            <label className="block space-y-1.5">
               <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
                 Project path
               </span>
@@ -460,7 +460,7 @@ export function ExecutionHandoffWorkspace({
             </label>
 
             {launchPresets.length > 0 ? (
-              <label className="block space-y-2">
+              <label className="block space-y-1.5">
                 <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
                   Launch preset
                 </span>
@@ -475,7 +475,7 @@ export function ExecutionHandoffWorkspace({
                   ))}
                 </ShellSelectField>
                 {selectedLaunchPreset ? (
-                  <p className="text-sm leading-7 text-muted-foreground">
+                  <p className="text-[12px] leading-6 text-muted-foreground">
                     {selectedLaunchPreset.description}
                   </p>
                 ) : null}
@@ -521,11 +521,9 @@ export function ExecutionHandoffWorkspace({
               <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
             ) : null}
 
-            {error ? (
-              <ShellStatusBanner tone="danger">{error}</ShellStatusBanner>
-            ) : null}
-        </ShellSectionCard>
-      </div>
+            {error ? <ShellStatusBanner tone="danger">{error}</ShellStatusBanner> : null}
+          </ShellSectionCard>
+        </div>
       </section>
     </ShellPage>
   );

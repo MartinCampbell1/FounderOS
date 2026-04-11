@@ -16,13 +16,14 @@ import {
   Rocket,
   Search,
 } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellInlineStatus,
   ShellActionStateLabel,
   ShellActionLink,
+  ShellDetailCard,
+  ShellDetailLinkCard,
   ShellEmptyState,
   ShellHero,
   ShellPage,
@@ -143,6 +144,8 @@ function ExecutionProjectsList({
   error,
   reviewHref,
   routeScope,
+  onRefresh,
+  isRefreshing,
 }: {
   projects: AutopilotProjectSummary[];
   activeProjectId: string | null;
@@ -150,6 +153,8 @@ function ExecutionProjectsList({
   error: string | null;
   reviewHref: string;
   routeScope: ExecutionRouteScope;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }) {
   const [query, setQuery] = useState("");
   const scopeActive = hasShellRouteScope(routeScope);
@@ -178,80 +183,114 @@ function ExecutionProjectsList({
     });
   }, [query, visibleProjects]);
 
+  const displayProjects = useMemo(() => {
+    if (!activeProjectId) return filteredProjects;
+    const activeProject = projects.find((project) => project.id === activeProjectId);
+    if (!activeProject) return filteredProjects;
+    if (filteredProjects.some((project) => project.id === activeProject.id)) {
+      return filteredProjects;
+    }
+    return [activeProject, ...filteredProjects];
+  }, [activeProjectId, filteredProjects, projects]);
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
-          Projects
-          <span className="ml-2 text-muted-foreground">{projects.length}</span>
-        </h3>
-      </div>
-      <div className="mb-3">
-        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
-          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <input
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter projects..."
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
-          />
+    <ShellSectionCard
+      title="Projects"
+      description="Browse execution projects by name, status, story, or source."
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge tone="neutral">{displayProjects.length}</Badge>
+          <ShellActionLink href={reviewHref} label="Review" />
+          <ShellRefreshButton type="button" onClick={onRefresh} busy={isRefreshing} compact />
         </div>
+      }
+      className="flex h-full min-h-0 flex-col"
+      headerClassName="gap-2 pb-2.5"
+      contentClassName="min-h-0 flex-1 space-y-3 overflow-y-auto"
+    >
+      <div className="flex h-9 items-center gap-2 rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2.5 focus-within:border-primary/25 focus-within:ring-1 focus-within:ring-primary/15">
+        <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Filter by project, status, story, or source"
+          className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground outline-none"
+        />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {loadState === "loading" && projects.length === 0 ? (
-          <SkeletonList rows={6} className="px-3" />
-        ) : null}
-        {/* Errors handled silently — connection status dots indicate backend availability */}
-        <div className="divide-y divide-border">
-          {filteredProjects.map((project) => {
-            const isActive = project.id === activeProjectId;
-            const progress = project.stories_total > 0
+
+      {error ? (
+        <ShellStatusBanner tone="warning">{error}</ShellStatusBanner>
+      ) : null}
+
+      {loadState === "loading" && projects.length === 0 ? (
+        <SkeletonList rows={6} className="px-1" />
+      ) : null}
+
+      <div className="space-y-1.5">
+        {displayProjects.map((project) => {
+          const isActive = project.id === activeProjectId;
+          const progress =
+            project.stories_total > 0
               ? Math.round((project.stories_done / project.stories_total) * 100)
               : 0;
-            const projectHref = buildExecutionProjectScopeHref(
-              project.id,
-              routeScopeFromExecutionProject(project, routeScope)
-            );
-            return (
-              <Link
-                key={project.id}
-                href={projectHref}
-                className={cn(
-                  "block px-2 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]",
-                  isActive && "bg-[color:var(--shell-nav-active)]"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-medium text-foreground">
-                      {project.name}
-                    </div>
-                    <div className="mt-1 text-[12px] text-muted-foreground">
-                      {project.current_story_title || "No active story"} · {progress}%
-                    </div>
-                  </div>
+          const sourceKind = project.task_source?.source_kind || "manual";
+          const sourceExternalId = project.task_source?.external_id || "";
+          const projectHref = buildExecutionProjectScopeHref(
+            project.id,
+            routeScopeFromExecutionProject(project, routeScope)
+          );
+          return (
+            <ShellDetailLinkCard
+              key={project.id}
+              href={projectHref}
+              className={cn(
+                "p-3",
+                isActive && "border-primary/20 bg-[color:var(--shell-nav-active)]"
+              )}
+              eyebrow={
+                <>
                   <Badge tone={projectStatusTone(project.status)}>{project.status}</Badge>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-        {loadState !== "loading" && filteredProjects.length === 0 ? (
-          <ShellEmptyState
-            centered
-            className="py-12"
-            icon={<FolderKanban className="h-5 w-5" />}
-            title={projects.length === 0 ? "No projects yet" : "No results"}
-            description={
-              projects.length === 0
-                ? "Projects are created when ideas move into execution. Launch an execution run to get started."
-                : "No projects match the current filter."
-            }
-          />
-        ) : null}
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {sourceKind}
+                  </span>
+                  {sourceExternalId ? (
+                    <span className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                      {sourceExternalId}
+                    </span>
+                  ) : null}
+                </>
+              }
+              title={project.name}
+              actions={
+                <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {progress}% complete
+                </span>
+              }
+              bodyClassName="space-y-1.5"
+            >
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-4 text-muted-foreground">
+                <span className="truncate">{project.current_story_title || "No active story"}</span>
+              </div>
+            </ShellDetailLinkCard>
+          );
+        })}
       </div>
-    </div>
+
+      {loadState !== "loading" && displayProjects.length === 0 ? (
+        <ShellEmptyState
+          centered
+          className="py-10"
+          icon={<FolderKanban className="h-5 w-5" />}
+          title={projects.length === 0 ? "No projects yet" : "No results"}
+          description={
+            projects.length === 0
+              ? "Projects appear once work moves into execution."
+              : "No projects match the current filter."
+          }
+        />
+      ) : null}
+    </ShellSectionCard>
   );
 }
 
@@ -337,85 +376,94 @@ function ExecutionLifecyclePanel({
   const isPaused = project.status === "paused" || project.paused;
 
   return (
-    <div>
-      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Controls</h3>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
+    <ShellSectionCard
+      title="Controls"
+      description="Choose a launch preset, then launch, pause, or resume the project."
+      contentClassName="space-y-3"
+    >
+      <div className="flex flex-wrap items-end gap-3">
         {launchPresets.length > 0 ? (
-          <ShellSelectField
-            value={effectiveSelectedLaunchPresetId}
-            onChange={(event) => setSelectedLaunchPresetId(event.target.value)}
-          >
-            {launchPresets.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </ShellSelectField>
+          <label className="min-w-[220px] flex-1 space-y-1.5">
+            <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              Launch preset
+            </span>
+            <ShellSelectField
+              value={effectiveSelectedLaunchPresetId}
+              onChange={(event) => setSelectedLaunchPresetId(event.target.value)}
+            >
+              {launchPresets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </ShellSelectField>
+          </label>
         ) : null}
 
-        {isPaused ? (
-          <ShellPillButton
-            type="button"
-            tone="primary"
-            onClick={handleResume}
-            disabled={busyAction.length > 0}
-          >
-            <ShellActionStateLabel
-              busy={busyAction === "resume"}
-              idleLabel="Resume"
-              busyLabel="Resume"
-              icon={<PlayCircle className="h-4 w-4" />}
-            />
-          </ShellPillButton>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {isPaused ? (
+            <ShellPillButton
+              type="button"
+              tone="primary"
+              compact
+              onClick={handleResume}
+              disabled={busyAction.length > 0}
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "resume"}
+                idleLabel="Resume"
+                busyLabel="Resume"
+                icon={<PlayCircle className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          ) : null}
 
-        {isRunning ? (
-          <ShellPillButton
-            type="button"
-            tone="outline"
-            onClick={handlePause}
-            disabled={busyAction.length > 0}
-          >
-            <ShellActionStateLabel
-              busy={busyAction === "pause"}
-              idleLabel="Pause"
-              busyLabel="Pause"
-              icon={<PauseCircle className="h-4 w-4" />}
-            />
-          </ShellPillButton>
-        ) : (
-          <ShellPillButton
-            type="button"
-            tone="primary"
-            onClick={handleLaunch}
-            disabled={busyAction.length > 0}
-          >
-            <ShellActionStateLabel
-              busy={busyAction === "launch"}
-              idleLabel="Launch"
-              busyLabel="Launch"
-              icon={<Rocket className="h-4 w-4" />}
-            />
-          </ShellPillButton>
-        )}
+          {isRunning ? (
+            <ShellPillButton
+              type="button"
+              tone="outline"
+              compact
+              onClick={handlePause}
+              disabled={busyAction.length > 0}
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "pause"}
+                idleLabel="Pause"
+                busyLabel="Pause"
+                icon={<PauseCircle className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          ) : (
+            <ShellPillButton
+              type="button"
+              tone="primary"
+              compact
+              onClick={handleLaunch}
+              disabled={busyAction.length > 0}
+            >
+              <ShellActionStateLabel
+                busy={busyAction === "launch"}
+                idleLabel="Launch"
+                busyLabel="Launch"
+                icon={<Rocket className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          )}
+        </div>
       </div>
 
       {statusMessage ? (
-        <ShellStatusBanner tone="success" className="mt-3">{statusMessage}</ShellStatusBanner>
+        <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
       ) : null}
 
       {errorMessage ? (
-        <ShellStatusBanner tone="danger" className="mt-3">{errorMessage}</ShellStatusBanner>
+        <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
       ) : null}
 
       {isPending ? (
-        <ShellInlineStatus
-          busy
-          label="Refreshing..."
-          className="mt-2 text-xs"
-        />
+        <ShellInlineStatus busy label="Refreshing..." className="text-xs" />
       ) : null}
-    </div>
+    </ShellSectionCard>
   );
 }
 
@@ -447,46 +495,49 @@ function ProjectStoriesPanel({
   storiesTotal: number;
 }) {
   return (
-    <div>
-      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
-        Stories
-        <span className="ml-2 text-[13px] font-normal text-muted-foreground">
-          {storiesDone}/{storiesTotal}
-        </span>
-      </h3>
-      <div className="mt-2 border-t border-border">
-        {stories.length === 0 ? (
-          <div className="py-6 text-center text-[13px] text-muted-foreground">
-            No stories yet.
-          </div>
-        ) : (
-          stories.map((story) => (
-            <div
-              key={story.id}
-              className="flex items-center gap-3 border-b border-border px-1 py-2"
-            >
-              <span
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  storyStatusDotColor(story.status)
-                )}
-              />
-              <span className="w-[100px] shrink-0 text-[12px] text-muted-foreground">
-                {story.status}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
-                {story.title}
-              </span>
-              <span className="shrink-0 text-[12px] text-muted-foreground">
+    <ShellSectionCard
+      title="Stories"
+      description={`${storiesDone}/${storiesTotal} complete`}
+      contentClassName="space-y-2"
+    >
+      {stories.length === 0 ? (
+        <div className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-3 text-[13px] text-muted-foreground">
+          No stories yet.
+        </div>
+      ) : (
+        stories.map((story) => (
+          <ShellDetailCard
+            key={story.id}
+            className="p-3"
+            bodyClassName="space-y-1.5"
+            eyebrow={
+              <>
+                <span
+                  className={cn(
+                    "h-2 w-2 shrink-0 rounded-full",
+                    storyStatusDotColor(story.status)
+                  )}
+                />
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {story.status}
+                </span>
+              </>
+            }
+            title={story.title}
+          >
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-4 text-muted-foreground">
+              <span>{story.agent || `Story ${story.id}`}</span>
+              <span className="text-border">&middot;</span>
+              <span>
                 {typeof story.iteration === "number"
                   ? `iter ${story.iteration}`
-                  : "\u2014"}
+                  : "no iteration"}
               </span>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+          </ShellDetailCard>
+        ))
+      )}
+    </ShellSectionCard>
   );
 }
 
@@ -496,39 +547,48 @@ function ProjectTimelinePanel({
   timeline: AutopilotTimelineEvent[];
 }) {
   return (
-    <div>
-      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Timeline</h3>
-      <div className="mt-2 border-t border-border">
-        {timeline.length === 0 ? (
-          <div className="py-6 text-center text-[13px] text-muted-foreground">
-            No timeline events yet.
-          </div>
-        ) : (
-          timeline.slice(0, 12).map((event, index) => (
-            <div
-              key={`${event.event}-${event.timestamp}-${index}`}
-              className="flex items-center gap-3 border-b border-border px-1 py-2"
-            >
-              <span
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  timelineEventDotColor(event.status)
-                )}
-              />
-              <span className="w-[100px] shrink-0 text-[12px] text-muted-foreground">
-                {event.event}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
-                {event.message || event.event}
-              </span>
-              <span className="shrink-0 text-[12px] text-muted-foreground">
+    <ShellSectionCard
+      title="Timeline"
+      description="Recent project events and execution state changes."
+      contentClassName="space-y-2"
+    >
+      {timeline.length === 0 ? (
+        <div className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-3 text-[13px] text-muted-foreground">
+          No timeline events yet.
+        </div>
+      ) : (
+        timeline.slice(0, 12).map((event, index) => (
+          <ShellDetailCard
+            key={`${event.event}-${event.timestamp}-${index}`}
+            className="p-3"
+            bodyClassName="space-y-1.5"
+            eyebrow={
+              <>
+                <span
+                  className={cn(
+                    "h-2 w-2 shrink-0 rounded-full",
+                    timelineEventDotColor(event.status)
+                  )}
+                />
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {event.status || "unknown"}
+                </span>
+              </>
+            }
+            title={event.event}
+            actions={
+              <div className="shrink-0 text-[11px] leading-4 text-muted-foreground">
                 {event.timestamp ? formatDate(event.timestamp) : "\u2014"}
-              </span>
+              </div>
+            }
+          >
+            <div className="truncate text-[11px] leading-4 text-muted-foreground">
+              {event.message || event.event}
             </div>
-          ))
-        )}
-      </div>
-    </div>
+          </ShellDetailCard>
+        ))
+      )}
+    </ShellSectionCard>
   );
 }
 
@@ -541,6 +601,8 @@ function ExecutionProjectMonitor({
   onDidMutate,
   reviewHref,
   routeScope,
+  onRefresh,
+  isRefreshing,
 }: {
   project: AutopilotProjectDetail | null;
   loadState: LoadState;
@@ -550,14 +612,17 @@ function ExecutionProjectMonitor({
   onDidMutate: (effect: ExecutionMutationEffect) => void;
   reviewHref: string;
   routeScope: ExecutionRouteScope;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }) {
   if (loadState === "loading" && !project) {
     return (
       <ShellSectionCard
         title="Execution project"
+        description="Select a project to inspect stories, timeline, and launch controls."
         contentClassName="py-10"
       >
-          <SkeletonList rows={6} />
+        <SkeletonList rows={6} />
       </ShellSectionCard>
     );
   }
@@ -596,99 +661,101 @@ function ExecutionProjectMonitor({
   const presetLabel = project.launch_profile?.preset ?? "default";
 
   return (
-    <div className="space-y-6">
-      {/* Project header */}
-      <div>
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-[18px] font-medium text-foreground">
-            {project.name}
-          </h2>
-          <Badge tone={projectStatusTone(project.status)}>{project.status}</Badge>
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-muted-foreground">
-          <span>
-            {project.stories_done}/{project.stories_total} stories
-          </span>
-          <span className="text-border">&middot;</span>
-          <span>Last activity: {formatDate(project.last_activity_at)}</span>
-          <span className="text-border">&middot;</span>
-          <span>{presetLabel} preset</span>
-        </div>
-      </div>
-
-      {/* Stories */}
-      <ProjectStoriesPanel
-        stories={project.stories}
-        storiesDone={project.stories_done}
-        storiesTotal={project.stories_total}
-      />
-
-      {/* Timeline */}
-      <ProjectTimelinePanel timeline={project.timeline} />
-
-      {/* Controls */}
-      <ExecutionLifecyclePanel
-        isPending={isPending}
-        project={project}
-        launchPresets={launchPresets}
-        onDidMutate={onDidMutate}
-        routeScope={scopedProjectContext}
-      />
-
-      {/* Profile */}
-      <div>
-        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
-          Execution profile
-        </h3>
-        <div className="mt-2 space-y-1.5 text-[13px] text-muted-foreground">
-          <div>
-            <span className="text-foreground/60">Workspace</span>{" "}
-            <span className="break-all text-foreground">{project.path}</span>
+    <div className="space-y-4">
+      <ShellHero
+        title={project.name}
+        description="Project detail, execution rhythm, and launch controls."
+        meta={
+          <>
+            <span>
+              {project.stories_done}/{project.stories_total} stories
+            </span>
+            <span className="text-border">&middot;</span>
+            <span>Last activity {formatDate(project.last_activity_at)}</span>
+            <span className="text-border">&middot;</span>
+            <span>{presetLabel} preset</span>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <ShellActionLink href={reviewHref} label="Review" />
+            <ShellRefreshButton type="button" onClick={onRefresh} busy={isRefreshing} compact />
           </div>
-          {project.launch_profile ? (
-            <div>
-              <span className="text-foreground/60">Launch</span>{" "}
-              <span className="text-foreground">
-                {project.launch_profile.preset} &middot;{" "}
-                {project.launch_profile.story_execution_mode} &middot;{" "}
-                {project.launch_profile.project_concurrency_mode}
-              </span>
-            </div>
-          ) : null}
-          {project.task_source ? (
-            <div>
-              <span className="text-foreground/60">Task source</span>{" "}
-              <span className="text-foreground">
-                {project.task_source.source_kind}
-                {project.task_source.external_id
-                  ? ` \u00b7 ${project.task_source.external_id}`
-                  : ""}
-              </span>
-              {project.task_source.repo ? (
-                <span className="ml-1 break-all text-foreground/60">
-                  ({project.task_source.repo})
-                </span>
+        }
+      />
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4">
+          <ProjectStoriesPanel
+            stories={project.stories}
+            storiesDone={project.stories_done}
+            storiesTotal={project.stories_total}
+          />
+          <ProjectTimelinePanel timeline={project.timeline} />
+        </div>
+        <div className="space-y-4">
+          <ExecutionLifecyclePanel
+            isPending={isPending}
+            project={project}
+            launchPresets={launchPresets}
+            onDidMutate={onDidMutate}
+            routeScope={scopedProjectContext}
+          />
+
+          <ShellSectionCard
+            title="Execution profile"
+            description="Workspace, launch profile, and active worker context."
+            contentClassName="space-y-2.5"
+          >
+            <div className="space-y-2 rounded-[8px] border border-border/60 bg-[color:var(--shell-control-bg)] px-3 py-2.5 text-[13px] leading-5">
+              <div className="flex flex-wrap gap-x-2 gap-y-1">
+                <span className="text-muted-foreground">Workspace</span>
+                <span className="break-all text-foreground">{project.path}</span>
+              </div>
+              {project.launch_profile ? (
+                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground">Launch</span>
+                  <span className="text-foreground">
+                    {project.launch_profile.preset} &middot;{" "}
+                    {project.launch_profile.story_execution_mode} &middot;{" "}
+                    {project.launch_profile.project_concurrency_mode}
+                  </span>
+                </div>
+              ) : null}
+              {project.task_source ? (
+                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground">Task source</span>
+                  <span className="text-foreground">
+                    {project.task_source.source_kind}
+                    {project.task_source.external_id
+                      ? ` \u00b7 ${project.task_source.external_id}`
+                      : ""}
+                  </span>
+                  {project.task_source.repo ? (
+                    <span className="break-all text-muted-foreground/70">
+                      ({project.task_source.repo})
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {project.active_worker ? (
+                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground">Worker</span>
+                  <span className="text-foreground">{project.active_worker}</span>
+                </div>
+              ) : null}
+              {project.active_critic ? (
+                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground">Critic</span>
+                  <span className="text-foreground">{project.active_critic}</span>
+                </div>
               ) : null}
             </div>
-          ) : null}
-          {project.active_worker ? (
-            <div>
-              <span className="text-foreground/60">Worker</span>{" "}
-              <span className="text-foreground">{project.active_worker}</span>
-            </div>
-          ) : null}
-          {project.active_critic ? (
-            <div>
-              <span className="text-foreground/60">Critic</span>{" "}
-              <span className="text-foreground">{project.active_critic}</span>
-            </div>
-          ) : null}
+            {project.last_error ? (
+              <ShellStatusBanner tone="danger">{project.last_error}</ShellStatusBanner>
+            ) : null}
+          </ShellSectionCard>
         </div>
-        {project.last_error ? (
-          <ShellStatusBanner tone="danger" className="mt-3">
-            {project.last_error}
-          </ShellStatusBanner>
-        ) : null}
       </div>
     </div>
   );
@@ -753,21 +820,9 @@ export function ExecutionWorkspace({
   const projectError = activeProjectId ? snapshot.projectError : null;
 
   return (
-    <ShellPage className="max-w-[1600px]">
-      <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:min-h-[calc(100vh-160px)]">
-      <aside className="hidden min-h-0 lg:block">
-        <ExecutionProjectsList
-          projects={projects}
-          activeProjectId={activeProjectId}
-          loadState={projectsState}
-          error={projectsError}
-          reviewHref={reviewHref}
-          routeScope={routeScope}
-        />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <div className="lg:hidden">
+    <ShellPage className="max-w-[1560px]">
+      <section className="grid min-h-0 flex-1 gap-4 lg:min-h-[calc(100vh-156px)] lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 lg:block">
           <ExecutionProjectsList
             projects={projects}
             activeProjectId={activeProjectId}
@@ -775,20 +830,38 @@ export function ExecutionWorkspace({
             error={projectsError}
             reviewHref={reviewHref}
             routeScope={routeScope}
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+          />
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+          <div className="lg:hidden">
+            <ExecutionProjectsList
+              projects={projects}
+              activeProjectId={activeProjectId}
+              loadState={projectsState}
+              error={projectsError}
+              reviewHref={reviewHref}
+              routeScope={routeScope}
+              onRefresh={refresh}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+
+          <ExecutionProjectMonitor
+            project={project}
+            loadState={projectState}
+            error={projectError}
+            launchPresets={snapshot.launchPresets}
+            isPending={isPending}
+            onDidMutate={applyEffect}
+            reviewHref={reviewHref}
+            routeScope={routeScope}
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
           />
         </div>
-
-        <ExecutionProjectMonitor
-          project={project}
-          loadState={projectState}
-          error={projectError}
-          launchPresets={snapshot.launchPresets}
-          isPending={isPending}
-          onDidMutate={applyEffect}
-          reviewHref={reviewHref}
-          routeScope={routeScope}
-        />
-      </div>
       </section>
     </ShellPage>
   );

@@ -14,10 +14,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ShellActionLink,
-  ShellEmptyState,
+  ShellDetailCard,
   ShellFilterChipLink,
   ShellLoadingState,
   ShellPage,
+  ShellSearchSectionCard,
+  ShellSelectionEmptyState,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import {
@@ -138,7 +140,6 @@ function DiscoveryIdeasList({
   loadState,
   error,
   chainsError,
-  reviewHref,
   routeScope,
 }: {
   ideas: QuorumDiscoveryIdea[];
@@ -147,7 +148,6 @@ function DiscoveryIdeasList({
   loadState: LoadState;
   error: string | null;
   chainsError: string | null;
-  reviewHref: string;
   routeScope: DiscoveryIdeasRouteScope;
 }) {
   const [query, setQuery] = useState("");
@@ -173,20 +173,22 @@ function DiscoveryIdeasList({
   }, [chainsByIdeaId, ideas, query]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-border px-3 py-2">
-        <input
-          type="text"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Filter ideas..."
-          className="flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-        />
-        <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
-          {filteredIdeas.length}/{ideas.length}
-        </span>
-      </div>
-
+    <ShellSearchSectionCard
+      title="Ideas"
+      description="Open a row to inspect the dossier, linked chain, and execution outcomes."
+      actions={
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <span>{ideas.length} total</span>
+          <span>{filteredIdeas.length} shown</span>
+        </div>
+      }
+      searchValue={query}
+      onSearchChange={(event) => setQuery(event.target.value)}
+      searchPlaceholder="Filter ideas..."
+      searchAccessory={<Lightbulb className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+      contentClassName="space-y-0"
+      className="h-full rounded-xl border border-border/60 bg-card/70 shadow-sm"
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         {chainsError ? (
           <ShellStatusBanner tone="warning">{chainsError}</ShellStatusBanner>
@@ -196,7 +198,7 @@ function DiscoveryIdeasList({
           <ShellLoadingState description="Loading discovery ideas..." />
         ) : null}
 
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/60">
           {filteredIdeas.map((idea) => {
             const isActive = idea.idea_id === activeIdeaId;
             const chain = chainsByIdeaId.get(idea.idea_id) ?? null;
@@ -209,32 +211,64 @@ function DiscoveryIdeasList({
                 key={idea.idea_id}
                 href={href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/40",
-                  isActive && "bg-muted/60"
+                  "grid grid-cols-[12px_minmax(0,1fr)_auto] gap-x-3 gap-y-1 border-l-2 border-transparent px-3 py-2 transition-colors hover:border-border/70 hover:bg-muted/35",
+                  isActive && "border-primary/60 bg-muted/45"
                 )}
               >
                 <span
                   className={cn(
-                    "inline-block h-2 w-2 shrink-0 rounded-full",
+                    "inline-block h-1.5 w-1.5 shrink-0 rounded-full",
                     stageDotColor(idea.latest_stage)
                   )}
                   title={idea.latest_stage}
                 />
-                <span className="min-w-[72px] shrink-0 text-[12px] text-muted-foreground">
-                  {idea.latest_stage}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
-                  {idea.title}
-                </span>
-                <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
-                  {idea.rank_score > 0 ? Math.round(idea.rank_score) : "\u2014"}
-                </span>
-                <span className="w-[44px] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
-                  {idea.belief_score > 0 ? idea.belief_score.toFixed(2) : "\u2014"}
-                </span>
-                <span className="w-[52px] shrink-0 text-right text-[12px] text-muted-foreground/60">
-                  {formatRelativeTime(idea.updated_at)}
-                </span>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-[13px] font-medium text-foreground">
+                      {idea.title}
+                    </span>
+                    {chain?.project?.name ? (
+                      <span className="truncate text-[11px] text-muted-foreground/70">
+                        {chain.project.name}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span className="font-mono text-[10px] text-foreground/70">
+                      idea_{idea.idea_id}
+                    </span>
+                    <Badge
+                      tone={stageTone(idea.latest_stage)}
+                      className="h-5 px-1.5 text-[10px] uppercase tracking-[0.08em]"
+                    >
+                      {idea.latest_stage}
+                    </Badge>
+                    {chain?.intakeSession?.title ? (
+                      <span className="truncate">{chain.intakeSession.title}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 pt-0.25 text-[11px] text-muted-foreground">
+                  <span>
+                    <span className="uppercase tracking-[0.12em] text-muted-foreground/60">
+                      rank
+                    </span>{" "}
+                    <span className="tabular-nums text-foreground/80">
+                      {idea.rank_score > 0 ? Math.round(idea.rank_score) : "\u2014"}
+                    </span>
+                  </span>
+                  <span>
+                    <span className="uppercase tracking-[0.12em] text-muted-foreground/60">
+                      belief
+                    </span>{" "}
+                    <span className="tabular-nums text-foreground/80">
+                      {idea.belief_score > 0 ? idea.belief_score.toFixed(2) : "\u2014"}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/60">
+                    {formatRelativeTime(idea.updated_at)}
+                  </span>
+                </div>
               </Link>
             );
           })}
@@ -242,19 +276,19 @@ function DiscoveryIdeasList({
 
         {loadState !== "loading" && filteredIdeas.length === 0 ? (
           <div className="space-y-4">
-            <ShellEmptyState
-              centered
-              className="py-12"
-              icon={<Lightbulb className="h-5 w-5" />}
+            <ShellSelectionEmptyState
               title={ideas.length === 0 ? "No ideas yet" : "No results"}
               description={
                 ideas.length === 0
                   ? "Ideas are generated from discovery sessions. Start a session to populate this list."
                   : "No discovery ideas match the current filter."
               }
+              icon={<Lightbulb className="h-5 w-5" />}
+              className="py-6"
+              minHeightClassName="min-h-[220px]"
             />
             {error ? (
-              <div className="mx-auto flex max-w-sm items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-[12px] text-muted-foreground">
+              <div className="mx-auto flex max-w-sm items-center gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-[12px] text-muted-foreground">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
                 <span>Service offline — <Link href="/settings" className="underline underline-offset-2 hover:text-foreground">check connections</Link></span>
               </div>
@@ -262,7 +296,7 @@ function DiscoveryIdeasList({
           </div>
         ) : null}
       </div>
-    </div>
+    </ShellSearchSectionCard>
   );
 }
 
@@ -275,10 +309,14 @@ function DossierSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <h3 className="text-[14px] font-medium text-foreground">{title}</h3>
+    <ShellDetailCard
+      title={title}
+      className="bg-background/70"
+      titleClassName="text-[12px] font-semibold tracking-tight"
+      bodyClassName="space-y-2"
+    >
       {children}
-    </section>
+    </ShellDetailCard>
   );
 }
 
@@ -307,11 +345,13 @@ function DiscoveryIdeaMonitor({
 
   if (!dossier) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <div className="text-center text-[13px] text-muted-foreground">
-          Select an idea to view its dossier.
-        </div>
-      </div>
+      <ShellSelectionEmptyState
+        title="Select an idea"
+        description="Open a row to inspect its thesis, evidence, simulation results, and execution outcomes."
+        icon={<Lightbulb className="h-5 w-5" />}
+        className="bg-card/70 shadow-sm"
+        minHeightClassName="min-h-[300px]"
+      />
     );
   }
 
@@ -323,47 +363,48 @@ function DiscoveryIdeaMonitor({
   const evidenceItems = dossier.evidence_bundle?.items ?? [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">{idea.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              "inline-block h-2 w-2 rounded-full",
-              stageDotColor(idea.latest_stage)
-            )}
-          />
-          <Badge tone={stageTone(idea.latest_stage)}>{idea.latest_stage}</Badge>
-          <span className="text-[13px] tabular-nums text-muted-foreground">
-            rank {Math.round(idea.rank_score)}
-          </span>
-          <span className="text-[13px] tabular-nums text-muted-foreground">
-            belief {idea.belief_score.toFixed(2)}
-          </span>
-          {idea.topic_tags.slice(0, 4).map((tag) => (
-            <Badge key={tag} tone="neutral">{tag}</Badge>
-          ))}
-          <span className="text-[12px] text-muted-foreground/60">
-            {formatRelativeTime(idea.updated_at)}
-          </span>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <ShellActionLink
-            href={buildDiscoveryIdeaAuthoringScopeHref(idea.idea_id, chainRouteScope)}
-            label="Authoring"
-          />
-          <ShellActionLink
-            href={buildDiscoveryBoardSimulationIdeaScopeHref(idea.idea_id, chainRouteScope)}
-            label="Simulation"
-          />
-          {chain?.project ? (
-            <ShellActionLink
-              href={buildExecutionProjectScopeHref(chain.project.id, chainRouteScope)}
-              label="Execution"
+    <div className="space-y-4 rounded-xl border border-border/60 bg-card/70 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[15px] font-semibold text-foreground">{idea.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className={cn(
+                "inline-block h-2 w-2 rounded-full",
+                stageDotColor(idea.latest_stage)
+              )}
             />
-          ) : null}
+            <Badge tone={stageTone(idea.latest_stage)}>{idea.latest_stage}</Badge>
+            <span className="text-[12px] tabular-nums text-muted-foreground">
+              rank {Math.round(idea.rank_score)}
+            </span>
+            <span className="text-[12px] tabular-nums text-muted-foreground">
+              belief {idea.belief_score.toFixed(2)}
+            </span>
+            {idea.topic_tags.slice(0, 4).map((tag) => (
+              <Badge key={tag} tone="neutral">{tag}</Badge>
+            ))}
+            <span className="text-[12px] text-muted-foreground/60">
+              {formatRelativeTime(idea.updated_at)}
+            </span>
+          </div>
         </div>
+        <ShellActionLink
+          href={buildDiscoveryIdeaAuthoringScopeHref(idea.idea_id, chainRouteScope)}
+          label="Authoring"
+        />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <ShellActionLink
+          href={buildDiscoveryBoardSimulationIdeaScopeHref(idea.idea_id, chainRouteScope)}
+          label="Simulation"
+        />
+        {chain?.project ? (
+          <ShellActionLink
+            href={buildExecutionProjectScopeHref(chain.project.id, chainRouteScope)}
+            label="Execution"
+          />
+        ) : null}
       </div>
 
       {chainsError ? <ShellStatusBanner tone="warning">{chainsError}</ShellStatusBanner> : null}
@@ -388,7 +429,7 @@ function DiscoveryIdeaMonitor({
               {dossier.observations.slice(0, 5).map((item) => (
                 <div
                   key={item.observation_id}
-                  className="rounded-md border border-border px-3 py-2"
+                  className="rounded-md border border-border/60 bg-background/70 px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-medium text-foreground">{item.source}</span>
@@ -450,7 +491,7 @@ function DiscoveryIdeaMonitor({
       {simReport || marketReport ? (
         <DossierSection title="Simulation results">
           {simReport ? (
-            <div className="rounded-md border border-border px-3 py-2">
+            <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
               <div className="flex items-center gap-2">
                 <Badge tone={simReport.verdict === "pass" ? "success" : simReport.verdict === "fail" ? "danger" : "warning"}>
                   {simReport.verdict}
@@ -468,7 +509,7 @@ function DiscoveryIdeaMonitor({
             </div>
           ) : null}
           {marketReport ? (
-            <div className="mt-2 rounded-md border border-border px-3 py-2">
+            <div className="mt-2 rounded-md border border-border/60 bg-background/70 px-3 py-2">
               <div className="flex items-center gap-2">
                 <Badge tone={marketReport.verdict === "pass" ? "success" : marketReport.verdict === "fail" ? "danger" : "warning"}>
                   {marketReport.verdict}
@@ -495,7 +536,7 @@ function DiscoveryIdeaMonitor({
             {explainability.ranking_summary}
           </p>
           {explainability.ranking_drivers.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {explainability.ranking_drivers.slice(0, 6).map((driver) => (
                 <Badge key={driver} tone="neutral">{driver}</Badge>
               ))}
@@ -548,7 +589,7 @@ function DiscoveryIdeaMonitor({
             {dossier.execution_outcomes.map((outcome) => (
               <div
                 key={outcome.outcome_id}
-                className="rounded-md border border-border px-3 py-2"
+                className="rounded-md border border-border/60 bg-background/70 px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   <Badge tone={outcomeTone(outcome.status)}>{outcome.status}</Badge>
@@ -595,7 +636,7 @@ function DiscoveryIdeaMonitor({
               </Badge>
             ) : null}
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {chain.intakeSessionId ? (
               <ShellActionLink
                 href={buildExecutionIntakeScopeHref(chain.intakeSessionId, chainRouteScope)}
@@ -701,7 +742,7 @@ export function DiscoveryIdeasWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex items-center justify-between gap-3 pb-2">
         <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
           <span className="tabular-nums">{ideas.length} ideas</span>
           <span className="tabular-nums">{chains.length} linked</span>
@@ -723,7 +764,7 @@ export function DiscoveryIdeasWorkspace({
         <ShellStatusBanner tone="warning">{ideasError}</ShellStatusBanner>
       ) : null}
 
-      <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 lg:block">
           <DiscoveryIdeasList
             ideas={ideas}
@@ -732,12 +773,11 @@ export function DiscoveryIdeasWorkspace({
             loadState={ideasState}
             error={ideasError}
             chainsError={chainsError}
-            reviewHref={reviewHref}
             routeScope={routeScope}
           />
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
           <div className="lg:hidden">
             <DiscoveryIdeasList
               ideas={ideas}
@@ -746,7 +786,6 @@ export function DiscoveryIdeasWorkspace({
               loadState={ideasState}
               error={ideasError}
               chainsError={chainsError}
-              reviewHref={reviewHref}
               routeScope={routeScope}
             />
           </div>

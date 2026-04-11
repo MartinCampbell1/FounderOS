@@ -56,8 +56,11 @@ import {
   ShellEmptyState,
   ShellInlineStatus,
   ShellLoadingState,
+  ShellHero,
   ShellPage,
   ShellPillButton,
+  ShellMetricCard,
+  ShellSectionCard,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 
@@ -89,6 +92,27 @@ function severityTone(severity: string): "danger" | "warning" | "info" | "neutra
   if (severity === "high" || severity === "warning") return "warning";
   if (severity === "medium" || severity === "info") return "info";
   return "neutral";
+}
+
+function executionReviewFilterLabel(filter: ExecutionReviewFilter) {
+  if (filter === "issues") return "Issues";
+  if (filter === "approvals") return "Approvals";
+  if (filter === "runtimes") return "Tool permissions";
+  if (filter === "decisions") return "Decisions";
+  if (filter === "intake") return "Intake-origin";
+  if (filter === "linked") return "Linked chains";
+  return "All review";
+}
+
+function executionReviewScopeLabel(scope: ExecutionReviewRouteScope) {
+  const labels: string[] = [];
+  if (scope.projectId) {
+    labels.push("project scoped");
+  }
+  if (scope.intakeSessionId) {
+    labels.push("intake scoped");
+  }
+  return labels.length > 0 ? labels.join(" · ") : "all routes";
 }
 
 function useExecutionReviewState(
@@ -382,7 +406,31 @@ export function ExecutionReviewWorkspace({
   void handleBatchDeny;
 
   return (
-    <ShellPage>
+    <ShellPage className="max-w-[1560px] gap-5 py-5">
+      <ShellHero
+        title="Execution review"
+        description="Triage issues, approvals, and tool permissions in the current execution scope."
+        meta={
+          <>
+            <span>{executionReviewFilterLabel(filter)}</span>
+            <span>{executionReviewScopeLabel(routeScope)}</span>
+            <span>{filteredRecords.length} visible</span>
+            <span>{scopedStats.totalCount} in scope</span>
+          </>
+        }
+        actions={
+          <ShellPillButton
+            type="button"
+            tone="outline"
+            compact
+            disabled={isPending}
+            onClick={() => void handleRememberCurrentFilter()}
+          >
+            Remember pass
+          </ShellPillButton>
+        }
+      />
+
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
       ) : null}
@@ -396,188 +444,214 @@ export function ExecutionReviewWorkspace({
       ) : null}
 
       {loadState === "loading" && filteredRecords.length === 0 ? (
-        <ShellLoadingState description="Loading control plane..." className="py-10" />
+        <ShellLoadingState description="Loading execution review..." className="py-8" />
       ) : null}
 
-      {/* Issues */}
-      {(!initialFilter || initialFilter === "all" || initialFilter === "issues") ? <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-[15px] font-medium text-foreground">Issues</h3>
-          <Badge tone="neutral">{scopedStats.issueCount}</Badge>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ShellMetricCard
+          label="Visible"
+          value={String(filteredRecords.length)}
+          detail={`${scopedStats.totalCount} in scope`}
+        />
+        <ShellMetricCard
+          label="Issues"
+          value={String(scopedStats.issueCount)}
+          detail={`${scopedStats.criticalIssueCount} critical`}
+        />
+        <ShellMetricCard
+          label="Approvals"
+          value={String(scopedStats.approvalCount)}
+          detail="decision queue"
+        />
+        <ShellMetricCard
+          label="Permissions"
+          value={String(scopedStats.runtimeCount)}
+          detail={`${scopedStats.intakeOriginCount} intake-origin`}
+        />
+      </div>
 
-        {filteredIssueRecords.length === 0 ? (
-          <ShellEmptyState description="No open issues" className="py-4" />
-        ) : (
-          <div className="divide-y divide-border rounded-lg border">
-            {filteredIssueRecords.map((record) => {
-              const busy = busyActionKey === `${record.key}:resolve`;
-              return (
-                <div
-                  key={record.key}
-                  className="flex items-center gap-3 px-4 py-2.5 text-[13px]"
-                >
-                  <Badge tone={severityTone(record.issue.severity)}>
-                    {record.issue.severity}
-                  </Badge>
-                  <span className="min-w-0 flex-1 truncate text-foreground">
-                    {record.issue.title}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {record.issue.project_name}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {formatDate(record.issue.created_at)}
-                  </span>
-                  <ShellPillButton
-                    type="button"
-                    tone="outline"
-                    compact
-                    disabled={busyActionKey.length > 0}
-                    onClick={() => void handleResolveIssue(record)}
+      {(!initialFilter || initialFilter === "all" || initialFilter === "issues") ? (
+        <ShellSectionCard
+          title="Issues"
+          description="Open control-plane faults in the current scope."
+          actions={<Badge tone="neutral">{filteredIssueRecords.length}</Badge>}
+          contentClassName="space-y-0"
+        >
+          {filteredIssueRecords.length === 0 ? (
+            <ShellEmptyState description="No open issues" className="py-4" />
+          ) : (
+            <div className="overflow-hidden rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]">
+              {filteredIssueRecords.map((record) => {
+                const busy = busyActionKey === `${record.key}:resolve`;
+                return (
+                  <div
+                    key={record.key}
+                    className="flex items-center gap-3 border-b border-[color:var(--shell-control-border)] px-3.5 py-2 text-[13px] last:border-b-0"
                   >
-                    <ShellActionStateLabel
-                      busy={busy}
-                      idleLabel="Resolve"
-                      busyLabel="Resolving"
-                      icon={<CheckCheck className="h-3.5 w-3.5" />}
-                    />
-                  </ShellPillButton>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section> : null}
-
-      {/* Approvals */}
-      {(!initialFilter || initialFilter === "all" || initialFilter === "approvals") ? <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-[15px] font-medium text-foreground">Approvals</h3>
-          <Badge tone="neutral">{scopedStats.approvalCount}</Badge>
-        </div>
-
-        {filteredApprovalRecords.length === 0 ? (
-          <ShellEmptyState description="No pending approvals" className="py-4" />
-        ) : (
-          <div className="divide-y divide-border rounded-lg border">
-            {filteredApprovalRecords.map((record) => {
-              const busyApprove = busyActionKey === `${record.key}:approve`;
-              const busyReject = busyActionKey === `${record.key}:reject`;
-              return (
-                <div
-                  key={record.key}
-                  className="flex items-center gap-3 px-4 py-2.5 text-[13px]"
-                >
-                  <Badge tone="info">{record.approval.action}</Badge>
-                  <span className="min-w-0 flex-1 truncate text-foreground">
-                    {record.approval.reason || record.title}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {record.approval.project_name}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {record.approval.requested_by}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <ShellPillButton
-                      type="button"
-                      tone="primary"
-                      compact
-                      disabled={busyActionKey.length > 0}
-                      onClick={() => void handleApprove(record)}
-                    >
-                      <ShellActionStateLabel
-                        busy={busyApprove}
-                        idleLabel="Approve"
-                        busyLabel="Approving"
-                        icon={<CheckCheck className="h-3.5 w-3.5" />}
-                      />
-                    </ShellPillButton>
+                    <Badge tone={severityTone(record.issue.severity)}>
+                      {record.issue.severity}
+                    </Badge>
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {record.issue.title}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {record.issue.project_name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {formatDate(record.issue.created_at)}
+                    </span>
                     <ShellPillButton
                       type="button"
                       tone="outline"
                       compact
                       disabled={busyActionKey.length > 0}
-                      onClick={() => void handleReject(record)}
+                      onClick={() => void handleResolveIssue(record)}
                     >
                       <ShellActionStateLabel
-                        busy={busyReject}
-                        idleLabel="Reject"
-                        busyLabel="Rejecting"
-                        icon={<ShieldAlert className="h-3.5 w-3.5" />}
-                      />
-                    </ShellPillButton>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section> : null}
-
-      {/* Tool Permissions */}
-      {(!initialFilter || initialFilter === "all" || initialFilter === "runtimes") ? <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-[15px] font-medium text-foreground">Tool permissions</h3>
-          <Badge tone="neutral">{scopedStats.runtimeCount}</Badge>
-        </div>
-
-        {filteredRuntimeRecords.length === 0 ? (
-          <ShellEmptyState description="No pending permissions" className="py-4" />
-        ) : (
-          <div className="divide-y divide-border rounded-lg border">
-            {filteredRuntimeRecords.map((record) => {
-              const busyAllow = busyActionKey === `${record.key}:allow`;
-              const busyDeny = busyActionKey === `${record.key}:deny`;
-              return (
-                <div
-                  key={record.key}
-                  className="flex items-center gap-3 px-4 py-2.5 text-[13px]"
-                >
-                  <Badge tone="neutral">{record.runtime.tool_name}</Badge>
-                  <span className="min-w-0 flex-1 truncate text-foreground">
-                    {record.runtime.pending_stage}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {record.source.project?.name ?? record.runtime.project_id}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <ShellPillButton
-                      type="button"
-                      tone="primary"
-                      compact
-                      disabled={busyActionKey.length > 0}
-                      onClick={() => void handleAllow(record)}
-                    >
-                      <ShellActionStateLabel
-                        busy={busyAllow}
-                        idleLabel="Allow"
-                        busyLabel="Allowing"
+                        busy={busy}
+                        idleLabel="Resolve"
+                        busyLabel="Resolving"
                         icon={<CheckCheck className="h-3.5 w-3.5" />}
                       />
                     </ShellPillButton>
-                    <ShellPillButton
-                      type="button"
-                      tone="outline"
-                      compact
-                      disabled={busyActionKey.length > 0}
-                      onClick={() => void handleDeny(record)}
-                    >
-                      <ShellActionStateLabel
-                        busy={busyDeny}
-                        idleLabel="Deny"
-                        busyLabel="Denying"
-                        icon={<ShieldAlert className="h-3.5 w-3.5" />}
-                      />
-                    </ShellPillButton>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section> : null}
+                );
+              })}
+            </div>
+          )}
+        </ShellSectionCard>
+      ) : null}
+
+      {(!initialFilter || initialFilter === "all" || initialFilter === "approvals") ? (
+        <ShellSectionCard
+          title="Approvals"
+          description="Pending approval decisions awaiting response."
+          actions={<Badge tone="neutral">{filteredApprovalRecords.length}</Badge>}
+          contentClassName="space-y-0"
+        >
+          {filteredApprovalRecords.length === 0 ? (
+            <ShellEmptyState description="No pending approvals" className="py-4" />
+          ) : (
+            <div className="overflow-hidden rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]">
+              {filteredApprovalRecords.map((record) => {
+                const busyApprove = busyActionKey === `${record.key}:approve`;
+                const busyReject = busyActionKey === `${record.key}:reject`;
+                return (
+                  <div
+                    key={record.key}
+                    className="flex items-center gap-3 border-b border-[color:var(--shell-control-border)] px-3.5 py-2 text-[13px] last:border-b-0"
+                  >
+                    <Badge tone="info">{record.approval.action}</Badge>
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {record.approval.reason || record.title}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {record.approval.project_name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {record.approval.requested_by}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <ShellPillButton
+                        type="button"
+                        tone="primary"
+                        compact
+                        disabled={busyActionKey.length > 0}
+                        onClick={() => void handleApprove(record)}
+                      >
+                        <ShellActionStateLabel
+                          busy={busyApprove}
+                          idleLabel="Approve"
+                          busyLabel="Approving"
+                          icon={<CheckCheck className="h-3.5 w-3.5" />}
+                        />
+                      </ShellPillButton>
+                      <ShellPillButton
+                        type="button"
+                        tone="outline"
+                        compact
+                        disabled={busyActionKey.length > 0}
+                        onClick={() => void handleReject(record)}
+                      >
+                        <ShellActionStateLabel
+                          busy={busyReject}
+                          idleLabel="Reject"
+                          busyLabel="Rejecting"
+                          icon={<ShieldAlert className="h-3.5 w-3.5" />}
+                        />
+                      </ShellPillButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ShellSectionCard>
+      ) : null}
+
+      {(!initialFilter || initialFilter === "all" || initialFilter === "runtimes") ? (
+        <ShellSectionCard
+          title="Tool permissions"
+          description="Pending runtime permissions for tools in the current scope."
+          actions={<Badge tone="neutral">{filteredRuntimeRecords.length}</Badge>}
+          contentClassName="space-y-0"
+        >
+          {filteredRuntimeRecords.length === 0 ? (
+            <ShellEmptyState description="No pending permissions" className="py-4" />
+          ) : (
+            <div className="overflow-hidden rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]">
+              {filteredRuntimeRecords.map((record) => {
+                const busyAllow = busyActionKey === `${record.key}:allow`;
+                const busyDeny = busyActionKey === `${record.key}:deny`;
+                return (
+                  <div
+                    key={record.key}
+                    className="flex items-center gap-3 border-b border-[color:var(--shell-control-border)] px-3.5 py-2 text-[13px] last:border-b-0"
+                  >
+                    <Badge tone="neutral">{record.runtime.tool_name}</Badge>
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {record.runtime.pending_stage}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {record.source.project?.name ?? record.runtime.project_id}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <ShellPillButton
+                        type="button"
+                        tone="primary"
+                        compact
+                        disabled={busyActionKey.length > 0}
+                        onClick={() => void handleAllow(record)}
+                      >
+                        <ShellActionStateLabel
+                          busy={busyAllow}
+                          idleLabel="Allow"
+                          busyLabel="Allowing"
+                          icon={<CheckCheck className="h-3.5 w-3.5" />}
+                        />
+                      </ShellPillButton>
+                      <ShellPillButton
+                        type="button"
+                        tone="outline"
+                        compact
+                        disabled={busyActionKey.length > 0}
+                        onClick={() => void handleDeny(record)}
+                      >
+                        <ShellActionStateLabel
+                          busy={busyDeny}
+                          idleLabel="Deny"
+                          busyLabel="Denying"
+                          icon={<ShieldAlert className="h-3.5 w-3.5" />}
+                        />
+                      </ShellPillButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ShellSectionCard>
+      ) : null}
 
       {isPending ? (
         <ShellInlineStatus busy label="Refreshing..." />

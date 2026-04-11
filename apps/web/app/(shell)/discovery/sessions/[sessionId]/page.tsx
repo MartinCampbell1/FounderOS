@@ -1,35 +1,26 @@
-import { cookies } from "next/headers";
-
 import { DiscoveryWorkspace } from "@/components/discovery/discovery-workspace";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
-
-type DiscoverySessionSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
 
 export default async function DiscoverySessionPage({
   params,
   searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams?: DiscoverySessionSearchParams;
+  searchParams?: ShellPageSearchParams;
 }) {
-  const { sessionId } = await params;
-  const query = searchParams ? await searchParams : undefined;
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
+  const [{ sessionId }, bootstrap] = await Promise.all([
+    params,
+    resolveShellRoutePageBootstrap(searchParams),
+  ]);
   return (
     <DiscoveryWorkspace
       activeSessionId={sessionId}
-      initialPreferences={operatorControls.preferences}
+      initialPreferences={bootstrap.initialPreferences}
       initialSnapshot={null}
-      routeScope={readShellRouteScopeFromQueryRecord(query)}
+      routeScope={bootstrap.routeScope}
     />
   );
 }

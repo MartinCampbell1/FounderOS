@@ -1,5 +1,3 @@
-import { cookies } from "next/headers";
-
 import { ReviewWorkspace } from "@/components/review/review-workspace";
 import {
   normalizeReviewCenterLane,
@@ -10,27 +8,22 @@ import {
   resolveRememberedReviewPass,
   resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
 
-type ReviewSearchParams = Promise<Record<string, string | string[] | undefined>>;
+type ReviewSearchParams = ShellPageSearchParams;
 
 export default async function ReviewPage({
   searchParams,
 }: {
   searchParams?: ReviewSearchParams;
 }) {
-  const params = searchParams ? await searchParams : undefined;
-  const routeScope = readShellRouteScopeFromQueryRecord(params);
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
+  const { query: params, routeScope, initialPreferences } =
+    await resolveShellRoutePageBootstrap(searchParams);
   const preferredReviewPass = resolveRememberedReviewPass(
-    operatorControls.preferences,
+    initialPreferences,
     resolveReviewMemoryBucket({
       scope: routeScope,
       chainRecords: [],
@@ -51,7 +44,7 @@ export default async function ReviewPage({
   return (
     <ReviewWorkspace
       initialSnapshot={null}
-      initialPreferences={operatorControls.preferences}
+      initialPreferences={initialPreferences}
       initialLane={initialLane}
       initialPreset={initialPreset}
       routeScope={routeScope}

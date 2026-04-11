@@ -11,16 +11,16 @@ import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellEmptyState,
+  ShellHero,
   ShellLoadingState,
   ShellPage,
   ShellSearchSectionCard,
   ShellListLink,
+  ShellMetricCard,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import type { ShellDiscoveryReplaySnapshot } from "@/lib/discovery-history";
 import {
-  buildRememberedDiscoveryReviewScopeHref,
-  resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
 import { fetchShellDiscoveryReplaySnapshot } from "@/lib/shell-snapshot-client";
 import {
@@ -73,12 +73,6 @@ function formatElapsed(value: number | null | undefined) {
   const hours = Math.floor(value / 3600);
   const minutes = Math.floor((value % 3600) / 60);
   return `${hours}h ${minutes}m`;
-}
-
-function formatDelta(createdAt: number, timestamp: number) {
-  if (!timestamp || !createdAt) return "t+0s";
-  const delta = Math.max(0, timestamp - createdAt);
-  return `t+${delta.toFixed(delta >= 10 ? 0 : 1)}s`;
 }
 
 // Provider color mapping for agent identity
@@ -257,31 +251,29 @@ function ReplayTimeline({ replay }: { replay: QuorumDebateReplaySession }) {
 
 function ReplayDetail({ replay }: { replay: QuorumDebateReplaySession }) {
   return (
-    <div className="space-y-6 rounded-lg border border-border bg-card p-6">
-      {/* Session header */}
-      <div className="space-y-1">
+    <div className="space-y-4 rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]/72 p-4">
+      <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="info">{replay.status}</Badge>
           <Badge tone="neutral">{replay.mode}</Badge>
-          {replay.elapsed_sec != null && (
+          {replay.elapsed_sec != null ? (
             <span className="text-[12px] text-muted-foreground">
               {formatElapsed(replay.elapsed_sec)}
             </span>
-          )}
+          ) : null}
         </div>
-        <h2 className="text-[15px] font-semibold text-foreground leading-snug">
+        <h2 className="text-[15px] font-semibold leading-snug text-foreground">
           {replay.task}
         </h2>
-        <div className="flex flex-wrap gap-3 text-[12px] text-muted-foreground">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
           <span>{formatDate(replay.created_at)}</span>
           <span>{replay.timeline.length} steps</span>
           <span>{replay.participants.length} participants</span>
         </div>
       </div>
 
-      {/* Participants */}
-      {replay.participants.length > 0 && (
-        <div className="flex flex-wrap gap-3">
+      {replay.participants.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
           {replay.participants.map((p, i) => {
             const icon = p.role.toLowerCase().includes("judge")
               ? "⚖️"
@@ -290,7 +282,7 @@ function ReplayDetail({ replay }: { replay: QuorumDebateReplaySession }) {
             return (
               <div
                 key={`${p.role}:${p.provider}:${i}`}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1"
+                className="flex items-center gap-1.5 rounded-[8px] border border-border/60 bg-background/60 px-2.5 py-1"
               >
                 <span className={`text-sm ${colorClass}`}>{icon}</span>
                 <span className="text-[12px] font-medium text-foreground">{p.role}</span>
@@ -299,12 +291,10 @@ function ReplayDetail({ replay }: { replay: QuorumDebateReplaySession }) {
             );
           })}
         </div>
-      )}
+      ) : null}
 
-      {/* Divider */}
-      <div className="h-px bg-border" />
+      <div className="h-px bg-border/70" />
 
-      {/* Debate timeline */}
       <ReplayTimeline replay={replay} />
     </div>
   );
@@ -334,7 +324,8 @@ function SessionRail({
   return (
     <ShellSearchSectionCard
       title="Replay sessions"
-      actions={<Badge tone="info">{sessions.length}</Badge>}
+      description="Browse replay sessions, then open one to inspect the debate timeline."
+      actions={<Badge tone="info">{filteredSessions.length}</Badge>}
       searchValue={query}
       onSearchChange={(event) => setQuery(event.target.value)}
       searchPlaceholder="Filter sessions"
@@ -355,7 +346,7 @@ function SessionRail({
               href={buildDiscoveryReplayScopeHref(session.id, routeScope)}
               className={
                 active
-                  ? "border-primary/35 bg-[color:var(--shell-nav-active)] px-3 py-2.5"
+                  ? "border-primary/25 bg-[color:var(--shell-nav-active)] px-3 py-2.5"
                   : "px-3 py-2.5"
               }
             >
@@ -394,15 +385,6 @@ export function DiscoveryReplaysWorkspace({
   routeScope?: DiscoveryReplayRouteScope;
 }) {
   const { preferences } = useShellPreferences(initialPreferences);
-  const reviewHref = useMemo(
-    () =>
-      buildRememberedDiscoveryReviewScopeHref({
-        scope: routeScope,
-        preferences,
-        bucket: resolveReviewMemoryBucket({ scope: routeScope }),
-      }),
-    [preferences, routeScope]
-  );
   const snapshotRefreshNonce = useShellSnapshotRefreshNonce({
     invalidation: {
       planes: ["discovery"],
@@ -442,6 +424,9 @@ export function DiscoveryReplaysWorkspace({
   });
 
   const replay = snapshot.replay;
+  const sessionCount = snapshot.sessions.length;
+  const stepCount = replay?.timeline.length ?? 0;
+  const participantCount = replay?.participants.length ?? 0;
   const errors = [
     ...snapshot.errors,
     snapshot.sessionsError ?? "",
@@ -450,9 +435,40 @@ export function DiscoveryReplaysWorkspace({
 
   return (
     <ShellPage className="max-w-[1600px]">
+      <ShellHero
+        title="Discovery replays"
+        description="Inspect replay sessions, then open one to follow the debate timeline and its linked participants."
+        meta={
+          <>
+            <span>{sessionCount} sessions</span>
+            <span>{stepCount} steps</span>
+            <span>{participantCount} participants</span>
+            <span>{replay ? replay.status : "no active replay"}</span>
+          </>
+        }
+      />
+
       {errors.length > 0 && (
-        <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
+        <ShellStatusBanner tone="danger">{errors.join(" ")}</ShellStatusBanner>
       )}
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <ShellMetricCard
+          label="Sessions"
+          value={String(sessionCount)}
+          detail="Replay sessions available in the current discovery slice."
+        />
+        <ShellMetricCard
+          label="Steps"
+          value={String(stepCount)}
+          detail="Timeline steps on the selected replay, if any."
+        />
+        <ShellMetricCard
+          label="Participants"
+          value={String(participantCount)}
+          detail="Providers involved in the active debate."
+        />
+      </section>
 
       <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
         <SessionRail

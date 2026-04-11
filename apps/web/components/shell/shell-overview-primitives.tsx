@@ -21,27 +21,27 @@ export function OverviewStatRow({
     <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-5", className)}>
       {items.map((item) => {
         const content = (
-          <>
-            <div className="text-[28px] font-semibold tabular-nums tracking-tight text-foreground">
+          <div className="space-y-1">
+            <div className="text-[24px] font-semibold tabular-nums tracking-[-0.02em] text-foreground">
               {item.value}
             </div>
-            <div className="mt-1 text-[12px] text-muted-foreground group-hover:text-foreground transition-colors">
+            <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-colors group-hover:text-foreground">
               {item.label}
             </div>
-          </>
+          </div>
         );
         return item.href ? (
           <Link
             key={item.label}
             href={item.href}
-            className="group rounded-xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]"
+            className="group rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5 shadow-none transition-colors hover:bg-[color:var(--shell-control-hover)] hover:border-primary/15"
           >
             {content}
           </Link>
         ) : (
           <div
             key={item.label}
-            className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)]"
+            className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5 shadow-none"
           >
             {content}
           </div>
@@ -67,23 +67,26 @@ export function ConnectionStatus({
   return (
     <div
       className={cn(
-        "flex flex-wrap gap-4 rounded-lg border border-border px-4 py-3",
+        "flex flex-wrap gap-2 rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5",
         className
       )}
     >
       {items.map((item) => (
-        <div key={item.name} className="flex items-center gap-2">
+        <div
+          key={item.name}
+          className="flex items-center gap-2 rounded-[6px] border border-transparent px-2 py-1 transition-colors hover:bg-[color:var(--shell-control-hover)]"
+        >
           <span
             className={cn(
-              "h-2 w-2 rounded-full",
+              "h-2 w-2 rounded-full shrink-0",
               item.status === "online" && "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]",
               item.status === "offline" && "bg-muted-foreground/30",
               item.status === "degraded" && "bg-amber-400"
             )}
           />
-          <span className="text-[13px] text-muted-foreground">{item.name}</span>
+          <span className="text-[12px] font-medium text-foreground">{item.name}</span>
           {item.detail ? (
-            <span className="text-[12px] text-muted-foreground/70">
+            <span className="text-[11px] text-muted-foreground">
               {item.detail}
             </span>
           ) : null}
@@ -109,17 +112,17 @@ export function OverviewEmptySection({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-12 text-center",
+        "flex flex-col items-center justify-center rounded-[8px] border border-dashed border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-4 py-10 text-center",
         className
       )}
     >
       {icon ? (
-        <div className="mb-3 text-muted-foreground/40">{icon}</div>
+        <div className="mb-2 text-muted-foreground/40">{icon}</div>
       ) : null}
       {title ? (
-        <div className="text-[14px] font-medium text-foreground">{title}</div>
+        <div className="text-[13px] font-medium text-foreground">{title}</div>
       ) : null}
-      <div className="mt-1 max-w-md text-[13px] text-muted-foreground">
+      <div className="mt-1.5 max-w-md text-[12px] leading-5 text-muted-foreground">
         {description}
       </div>
     </div>
@@ -144,14 +147,14 @@ export function OverviewListItem({
   className?: string;
 }) {
   const content = (
-    <>
+    <div className="flex min-w-0 flex-1 items-center gap-3">
       {icon ? (
         <div className="shrink-0 text-muted-foreground">{icon}</div>
       ) : null}
-      <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-medium text-foreground">{title}</div>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <div className="truncate text-[13px] font-medium text-foreground">{title}</div>
         {subtitle ? (
-          <div className="text-[12px] text-muted-foreground">{subtitle}</div>
+          <div className="truncate text-[12px] leading-5 text-muted-foreground">{subtitle}</div>
         ) : null}
       </div>
       {trailing ? (
@@ -159,12 +162,12 @@ export function OverviewListItem({
           {trailing}
         </div>
       ) : null}
-    </>
+    </div>
   );
 
   const cls = cn(
-    "flex items-center gap-3 border-b border-border px-1 py-3 last:border-b-0",
-    href && "transition-colors hover:bg-[color:var(--shell-control-hover)]",
+    "flex min-h-11 items-center rounded-[8px] px-3 py-2.5 transition-colors",
+    href && "hover:bg-[color:var(--shell-control-hover)]",
     className
   );
 
@@ -193,11 +196,11 @@ export function OverviewSectionHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b border-border pb-2",
+        "flex items-center justify-between border-b border-[color:var(--shell-control-border)] pb-2.5",
         className
       )}
     >
-      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">{title}</h3>
+      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground">{title}</h3>
       {action}
     </div>
   );

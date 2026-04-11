@@ -4,7 +4,7 @@ import type {
   AutopilotIntakeSessionSummary,
   AutopilotProjectSummary,
   AutopilotToolPermissionRuntimeRecord,
-  QuorumIdeaDossier,
+  QuorumIdeaDossierSummary,
 } from "@founderos/api-clients";
 
 import {
@@ -40,7 +40,7 @@ export interface ShellPortfolioSnapshot {
 }
 
 export function buildPortfolioRecords(
-  dossiers: QuorumIdeaDossier[],
+  dossiers: QuorumIdeaDossierSummary[],
   projects: AutopilotProjectSummary[],
   intakeSessions: AutopilotIntakeSessionSummary[],
   issues: AutopilotExecutionIssueRecord[] = [],

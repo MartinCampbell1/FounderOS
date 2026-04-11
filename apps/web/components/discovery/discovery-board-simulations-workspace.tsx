@@ -17,6 +17,7 @@ import {
   ShellEmptyState,
   ShellPage,
   ShellPillButton,
+  ShellSectionCard,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import type { ShellDiscoveryBoardSnapshot } from "@/lib/discovery-board";
@@ -115,57 +116,75 @@ function SwipeCard({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center text-[12px] text-muted-foreground">
-        {index + 1} of {total} ideas
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <div className="space-y-4">
-          <div className="text-[18px] font-medium leading-snug text-foreground">
-            {idea.title}
+    <ShellSectionCard
+      title="Simulation target"
+      description={`Idea ${index + 1} of ${total}`}
+      contentClassName="space-y-4 pt-0"
+    >
+      <div className="rounded-[10px] border border-border/70 bg-card/80 p-4 shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <div className="text-[18px] font-medium leading-snug text-foreground">
+              {idea.title}
+            </div>
+            {truncatedThesis ? (
+              <p className="max-w-[68ch] text-[14px] leading-6 text-muted-foreground">
+                {truncatedThesis}
+              </p>
+            ) : null}
           </div>
+          <span className="shrink-0 rounded-full border border-border/70 bg-muted/30 px-2.5 py-1 text-[12px] font-medium tabular-nums text-muted-foreground">
+            #{index + 1}/{total}
+          </span>
+        </div>
 
-          {truncatedThesis ? (
-            <p className="text-[14px] leading-6 text-muted-foreground">
-              {truncatedThesis}
-            </p>
-          ) : null}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [
+              "Score",
+              idea.rank_score.toLocaleString(undefined, { maximumFractionDigits: 0 }),
+            ],
+            ["Stage", idea.latest_stage],
+            ["Belief", idea.belief_score.toFixed(2)],
+            ["Updated", formatRelativeTime(idea.updated_at)],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-md border border-border/70 bg-muted/20 px-3 py-2"
+            >
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                {label}
+              </div>
+              <div className="mt-1 text-[13px] font-medium text-foreground">
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
 
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-            <span>Score: {idea.rank_score.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-            <span>·</span>
-            <span>Stage: {idea.latest_stage}</span>
-            <span>·</span>
-            <span>Belief: {idea.belief_score.toFixed(2)}</span>
-            <span>·</span>
-            <span>Updated: {formatRelativeTime(idea.updated_at)}</span>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 pt-2">
-            {actions.map(({ action, label, className: actionClassName }) => {
-              const isBusy = busyActionKey === `swipe:${idea.idea_id}:${action}`;
-              return (
-                <button
-                  key={action}
-                  type="button"
-                  disabled={Boolean(busyActionKey)}
-                  onClick={() => onSwipe(idea.idea_id, action)}
-                  className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${actionClassName}`}
-                >
-                  <ShellActionStateLabel
-                    busy={isBusy}
-                    idleLabel={label}
-                    busyLabel={label}
-                    spinnerClassName="h-3.5 w-3.5 animate-spin"
-                  />
-                </button>
-              );
-            })}
-          </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {actions.map(({ action, label, className: actionClassName }) => {
+            const isBusy = busyActionKey === `swipe:${idea.idea_id}:${action}`;
+            return (
+              <button
+                key={action}
+                type="button"
+                disabled={Boolean(busyActionKey)}
+                onClick={() => onSwipe(idea.idea_id, action)}
+                className={`flex items-center justify-center gap-1.5 rounded-[8px] px-3 py-2 text-[12px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${actionClassName}`}
+              >
+                <ShellActionStateLabel
+                  busy={isBusy}
+                  idleLabel={label}
+                  busyLabel={label}
+                  spinnerClassName="h-3.5 w-3.5 animate-spin"
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </ShellSectionCard>
   );
 }
 
@@ -280,9 +299,11 @@ export function DiscoveryBoardSimulationsWorkspace({
   }
 
   const errors = [...snapshot.errors, errorMessage ?? ""].filter(Boolean);
+  const visibleCount = visibleItems.length;
+  const dismissedCount = totalCount - visibleCount;
 
   return (
-    <ShellPage className="max-w-[800px] mx-auto">
+    <ShellPage className="mx-auto max-w-[800px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <ShellActionLink href={settingsHref} label="Open scoped settings" />
@@ -313,6 +334,52 @@ export function DiscoveryBoardSimulationsWorkspace({
       {errors.length > 0 ? (
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       ) : null}
+
+      <ShellSectionCard
+        title="Queue context"
+        description="Keep the active simulation target pinned while the swipe queue refreshes."
+        contentClassName="space-y-3 pt-0"
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [
+              "Visible",
+              `${visibleCount.toLocaleString()}/${totalCount.toLocaleString()}`,
+              "Ideas left in the swipe queue.",
+            ],
+            [
+              "Active target",
+              activeIdeaId || currentItem?.idea.idea_id || "n/a",
+              "Pinned idea for this simulation pass.",
+            ],
+            [
+              "Dismissed",
+              dismissedCount.toLocaleString(),
+              "Optimistically hidden from view.",
+            ],
+            [
+              "Refreshed",
+              formatRelativeTime(snapshot.generatedAt),
+              currentItem ? currentItem.idea.latest_stage : "Waiting for a target.",
+            ],
+          ].map(([label, value, detail]) => (
+            <div
+              key={label}
+              className="rounded-md border border-border/70 bg-muted/20 px-3 py-2"
+            >
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                {label}
+              </div>
+              <div className="mt-1 truncate text-[13px] font-medium text-foreground">
+                {value}
+              </div>
+              <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                {detail}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ShellSectionCard>
 
       {currentItem ? (
         <SwipeCard

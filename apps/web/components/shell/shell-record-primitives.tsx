@@ -25,9 +25,9 @@ export function ShellRecordCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden rounded-[10px] border-[color:var(--shell-control-border)] bg-card shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+        "overflow-hidden rounded-[8px] border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] shadow-none",
         selected
-          ? "border-primary/50 shadow-[0_0_0_1px_rgba(94,106,210,0.18)]"
+          ? "border-primary/25 ring-1 ring-primary/10"
           : undefined,
         className
       )}
@@ -57,21 +57,21 @@ export function ShellRecordHeader({
   return (
     <CardHeader
       className={cn(
-        "gap-3 border-b border-[color:var(--shell-control-border)] p-4",
+        "gap-2 border-b border-[color:var(--shell-control-border)] p-3",
         className
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2.5">
+        <div className="min-w-0 flex-1 space-y-1.5">
           {badges ? <div className="flex flex-wrap gap-1.5">{badges}</div> : null}
-          <div className="space-y-1.5">
-            <CardTitle className={cn("text-[15px] leading-5", titleClassName)}>
+          <div className="space-y-0.5">
+            <CardTitle className={cn("text-[13px] leading-5", titleClassName)}>
               {title}
             </CardTitle>
             {description ? (
               <CardDescription
                 className={cn(
-                  "max-w-4xl text-[13px] leading-6 text-foreground/74",
+                  "max-w-4xl text-[12px] leading-5 text-foreground/72",
                   descriptionClassName
                 )}
               >
@@ -93,7 +93,7 @@ export function ShellRecordBody({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <CardContent className={cn("space-y-3 p-4 pt-3", className)}>{children}</CardContent>;
+  return <CardContent className={cn("space-y-2.5 p-3 pt-2", className)}>{children}</CardContent>;
 }
 
 export function ShellRecordSection({
@@ -112,7 +112,7 @@ export function ShellRecordSection({
   return (
     <div
       className={cn(
-        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-3",
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-2.5",
         tone === "info"
           ? "border-sky-400/20 bg-sky-500/[0.05]"
           : undefined,
@@ -133,7 +133,7 @@ export function ShellRecordSection({
           {title}
         </div>
       ) : null}
-      <div className={title ? "mt-2" : undefined}>{children}</div>
+      <div className={title ? "mt-1.5" : undefined}>{children}</div>
     </div>
   );
 }
@@ -154,15 +154,15 @@ export function ShellRecordAccessory({
   return (
     <div
       className={cn(
-        "min-w-[132px] rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5",
+        "min-w-[120px] rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2.5 py-2",
         align === "right" ? "text-right" : "text-left",
         className
       )}
     >
-      <div className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-      <div className="mt-1.5 text-[13px] font-medium leading-5 text-foreground">{value}</div>
+      <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[13px] font-medium leading-5 text-foreground">{value}</div>
       {detail ? (
-        <div className="mt-1 text-[11px] leading-4 text-muted-foreground">{detail}</div>
+        <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{detail}</div>
       ) : null}
     </div>
   );
@@ -178,7 +178,7 @@ export function ShellRecordMeta({
   return (
     <div
       className={cn(
-        "flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground",
+        "flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] leading-4 text-muted-foreground",
         className
       )}
     >
@@ -194,7 +194,7 @@ export function ShellRecordActionBar({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn("flex flex-wrap gap-2", className)}>{children}</div>;
+  return <div className={cn("flex flex-wrap gap-1.5", className)}>{children}</div>;
 }
 
 export function ShellRecordSelectionButton({
@@ -216,9 +216,9 @@ export function ShellRecordSelectionButton({
       aria-label={label}
       aria-pressed={selected}
       className={cn(
-        "h-6 w-6 rounded-[4px] px-0",
+        "h-5.5 w-5.5 rounded-[5px] px-0",
         selected
-          ? "border-primary/50 bg-[color:var(--shell-nav-active)] text-foreground hover:bg-[color:var(--shell-nav-active)]"
+          ? "border-primary/25 bg-[color:var(--shell-nav-active)] text-foreground hover:bg-[color:var(--shell-nav-active)]"
           : "text-transparent"
       )}
       onClick={onClick}
@@ -242,7 +242,7 @@ export function ShellRecordLinkButton({
     <Link
       href={href}
       className={cn(
-        "inline-flex h-6 items-center justify-center gap-1.5 rounded-[4px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2.5 text-[12px] font-medium text-[color:var(--shell-control-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground",
+        "inline-flex h-6 items-center justify-center gap-1.5 rounded-[6px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2 text-[12px] font-medium text-[color:var(--shell-control-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground",
         className
       )}
     >

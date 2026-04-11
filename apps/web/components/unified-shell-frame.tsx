@@ -148,6 +148,37 @@ const COMMAND_SHORTCUT_MAP: Record<string, string> = {
   "nav:discovery:archive": "G X",
 };
 
+/** Extra search keywords per command id for richer fuzzy matching. */
+const COMMAND_KEYWORDS: Record<string, string> = {
+  "nav:dashboard": "home overview",
+  "nav:inbox": "notifications queue attention",
+  "nav:discovery:sessions": "chat conversation session",
+  "nav:discovery:ideas": "brainstorm concept",
+  "nav:discovery:board": "kanban pipeline",
+  "nav:discovery:ranking": "leaderboard score ranking",
+  "nav:discovery:swipe": "tinder swipe simulation",
+  "nav:discovery:research": "trace observability search",
+  "nav:discovery:authoring": "write author dossier",
+  "nav:discovery:replays": "replay debate history protocol",
+  "nav:discovery:archive": "archive frontier quality diversity",
+  "nav:discovery:finals": "finals vote irv ranked",
+  "nav:discovery:review": "discovery review authoring trace handoff",
+  "nav:execution:projects": "project list",
+  "nav:execution:intake": "chat new project intake",
+  "nav:execution:controlplane": "review approve control",
+  "nav:execution:handoffs": "handoff transfer",
+  "nav:execution:issues": "issue blocker error critical",
+  "nav:execution:approvals": "approval pending approve reject",
+  "nav:execution:agents": "agent runtime worker bot",
+  "nav:portfolio": "portfolio investments outcomes",
+  "nav:review": "review audit cross-plane",
+  "settings:preferences": "preferences config options",
+  "settings:accounts": "accounts providers api keys",
+  "settings:capabilities": "capabilities features flags tools",
+  "action:new-session": "new session start chat",
+  "action:new-project": "new project create intake",
+};
+
 /* ── Sidebar nav sections ─────────────────────────────────── */
 
 const TOP_NAV_KEYS = ["dashboard", "inbox"] as const;
@@ -214,7 +245,7 @@ function UnifiedShellFrameContent({
     (snapshot: ShellRuntimeSnapshot) => snapshot.loadState,
     []
   );
-  const { snapshot: runtimeSnapshot } = useShellPolledSnapshot({
+  useShellPolledSnapshot({
     emptySnapshot: EMPTY_RUNTIME_SNAPSHOT,
     initialSnapshot: initialRuntimeSnapshot,
     refreshNonce: 0,
@@ -250,11 +281,6 @@ function UnifiedShellFrameContent({
       })),
     [reviewHref, routeScope]
   );
-  const scopedSettingsHref = useMemo(
-    () => buildSettingsScopeHref(routeScope),
-    [routeScope]
-  );
-
   // Collapsible section state — auto-expand sections whose children match the current path
   const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -273,6 +299,7 @@ function UnifiedShellFrameContent({
 
   // Auto-expand sections on client-side navigation
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpandedSections((prev) => {
       const next = new Set(prev);
       for (const item of NAV_ITEMS) {
@@ -302,38 +329,6 @@ function UnifiedShellFrameContent({
   }, []);
 
   /* ── Command palette items ─────────────────────────────── */
-
-  /** Extra search keywords per command id for richer fuzzy matching. */
-  const COMMAND_KEYWORDS: Record<string, string> = {
-    "nav:dashboard": "home overview",
-    "nav:inbox": "notifications queue attention",
-    "nav:discovery:sessions": "chat conversation session",
-    "nav:discovery:ideas": "brainstorm concept",
-    "nav:discovery:board": "kanban pipeline",
-    "nav:discovery:ranking": "leaderboard score ranking",
-    "nav:discovery:swipe": "tinder swipe simulation",
-    "nav:discovery:research": "trace observability search",
-    "nav:discovery:authoring": "write author dossier",
-    "nav:discovery:replays": "replay debate history protocol",
-    "nav:discovery:archive": "archive frontier quality diversity",
-    "nav:discovery:finals": "finals vote irv ranked",
-    "nav:discovery:review": "discovery review authoring trace handoff",
-    "nav:execution:projects": "project list",
-    "nav:execution:intake": "chat new project intake",
-    "nav:execution:controlplane": "review approve control",
-    "nav:execution:handoffs": "handoff transfer",
-    "nav:execution:issues": "issue blocker error critical",
-    "nav:execution:approvals": "approval pending approve reject",
-    "nav:execution:agents": "agent runtime worker bot",
-    "nav:portfolio": "portfolio investments outcomes",
-    "nav:review": "review audit cross-plane",
-    "settings:preferences": "preferences config options",
-    "settings:accounts": "accounts providers api keys",
-    "settings:capabilities": "capabilities features flags tools",
-    "action:new-session": "new session start chat",
-    "action:new-project": "new project create intake",
-  };
-
   const commandItems = useMemo((): CommandPaletteItem[] => {
     const isCurrentRoute = (href: string) =>
       href !== "/" && pathname.startsWith(href);
@@ -722,7 +717,7 @@ function UnifiedShellFrameContent({
   const sidebarClassName = useMemo(
     () =>
       cn(
-        "shell-sidebar-panel fixed inset-y-0 left-0 z-40 flex max-w-[85vw] flex-col border-r text-[var(--shell-sidebar-foreground)] transition-transform duration-200 md:static md:z-auto md:max-w-none md:translate-x-0",
+        "shell-sidebar-panel fixed inset-y-0 left-0 z-40 flex w-[min(84vw,19rem)] max-w-[19rem] flex-col border-r bg-[color:var(--shell-sidebar-bg)] text-[var(--shell-sidebar-foreground)] shadow-[0_24px_80px_rgba(0,0,0,0.18)] transition-transform duration-200 md:static md:z-auto md:w-[244px] md:min-w-[244px] md:max-w-[244px] md:translate-x-0 md:shadow-none",
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       ),
     [mobileOpen]
@@ -736,7 +731,7 @@ function UnifiedShellFrameContent({
           <div className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             {title}
           </div>
-          <div className="mt-2 space-y-1">
+          <div className="mt-1.5 space-y-1">
             {items.map((item) => {
               const Icon = item.icon;
               const isActive = activeCommandId === item.id;
@@ -752,14 +747,14 @@ function UnifiedShellFrameContent({
                       : undefined
                   }
                   className={cn(
-                    "px-3 py-2.5",
-                    isActive && "border-l-2 border-primary bg-primary/[0.08]"
+                    "px-2.5 py-2",
+                    isActive && "border-l-2 border-primary bg-primary/[0.06]"
                   )}
                   title={
-                    <span className="text-[13px] font-medium text-foreground">
+                    <span className="text-[12.5px] font-medium text-foreground">
                       {Icon ? (
                         <span className="inline-flex items-center gap-2">
-                          <Icon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                          <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                           {item.label}
                         </span>
                       ) : (
@@ -768,7 +763,7 @@ function UnifiedShellFrameContent({
                     </span>
                   }
                   description={
-                    <span className="text-[12px] text-muted-foreground/60">{item.detail}</span>
+                    <span className="text-[11.5px] text-muted-foreground/60">{item.detail}</span>
                   }
                   badges={item.badges?.map((badge) => (
                     <Badge key={`${item.id}:${badge.label}`} tone={badge.tone}>
@@ -779,7 +774,7 @@ function UnifiedShellFrameContent({
                     isActive ? (
                       <ShellShortcutCombo keys={["Enter"]} />
                     ) : item.shortcut ? (
-                      <kbd className="inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]">{item.shortcut}</kbd>
+                      <kbd className="inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]">{item.shortcut}</kbd>
                     ) : (
                       <ShellKeyboardHint>Go</ShellKeyboardHint>
                     )
@@ -804,7 +799,7 @@ function UnifiedShellFrameContent({
         href={item.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "shell-nav-item group flex h-8 items-center gap-2 rounded-md text-[13px] transition-colors",
+          "shell-nav-item group flex h-7 items-center gap-2 rounded-[10px] text-[12.5px] transition-colors",
           renderSidebarCollapsed ? "justify-center px-0" : "px-2",
           isActive
             ? "bg-[color:var(--shell-nav-active)] font-medium text-foreground"
@@ -813,13 +808,13 @@ function UnifiedShellFrameContent({
         data-active={isActive}
         aria-label={item.label}
       >
-        <Icon className="h-[16px] w-[16px] shrink-0" />
+        <Icon className="h-3.5 w-3.5 shrink-0" />
         {renderSidebarCollapsed ? null : <span className="truncate">{item.label}</span>}
       </Link>
     );
   }
 
-  function renderSubNavLink(child: SubNavItem & { href: string }, parentHref?: string) {
+  function renderSubNavLink(child: SubNavItem & { href: string }) {
     const Icon = child.icon;
     // Exact match only for all sub-nav items — each sub-route has its own nav entry,
     // so startsWith matching causes dual-highlight (e.g., Board + Archive both active).
@@ -830,7 +825,7 @@ function UnifiedShellFrameContent({
         href={child.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "shell-nav-item group flex h-7 items-center gap-2 rounded-md pl-[28px] pr-2 text-[13px] transition-colors",
+          "shell-nav-item group flex h-7 items-center gap-2 rounded-[10px] pl-[26px] pr-2 text-[12.5px] transition-colors",
           isActive
             ? "bg-[color:var(--shell-nav-active)] font-medium text-foreground"
             : "font-normal text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
@@ -838,7 +833,7 @@ function UnifiedShellFrameContent({
         data-active={isActive}
         aria-label={child.label}
       >
-        <Icon className="h-[14px] w-[14px] shrink-0" />
+        <Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">{child.label}</span>
       </Link>
     );
@@ -857,14 +852,14 @@ function UnifiedShellFrameContent({
           href={item.href}
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "group flex h-8 items-center justify-center rounded-md text-[13px] font-medium transition-colors",
+            "group flex h-7 items-center justify-center rounded-[10px] text-[12.5px] font-medium transition-colors",
             isActive
               ? "bg-[color:var(--shell-nav-active)] text-foreground"
               : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
           )}
           aria-label={item.label}
         >
-          <Icon className="h-[16px] w-[16px] shrink-0" />
+          <Icon className="h-3.5 w-3.5 shrink-0" />
         </Link>
       );
     }
@@ -875,14 +870,14 @@ function UnifiedShellFrameContent({
           type="button"
           onClick={() => toggleSection(item.key)}
           className={cn(
-            "group/collapse flex h-8 w-full items-center justify-between rounded-md px-2 text-[13px] font-medium transition-colors",
+            "group/collapse flex h-7 w-full items-center justify-between rounded-[10px] px-2 text-[12.5px] font-medium transition-colors",
             isActive
               ? "text-foreground"
               : "text-[var(--shell-sidebar-muted)] hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
           )}
         >
           <span className="flex items-center gap-2">
-            <Icon className="h-[16px] w-[16px] shrink-0" />
+            <Icon className="h-3.5 w-3.5 shrink-0" />
             <span>{item.label}</span>
           </span>
           <ChevronRight
@@ -895,7 +890,7 @@ function UnifiedShellFrameContent({
         {isExpanded && item.children ? (
           <div className="mt-0.5 space-y-0.5">
             {item.children.map((child) =>
-              renderSubNavLink(child as SubNavItem & { href: string }, item.href)
+              renderSubNavLink(child as SubNavItem & { href: string })
             )}
           </div>
         ) : null}
@@ -912,6 +907,23 @@ function UnifiedShellFrameContent({
   const flatMidNavItems = scopedNavItems.filter((item) =>
     (FLAT_MID_NAV_KEYS as readonly string[]).includes(item.key)
   );
+  const activeSectionModel = useMemo(
+    () => NAV_ITEMS.find((item) => item.key === activeSection),
+    [activeSection]
+  );
+  const activeChildModel = useMemo(() => {
+    const section = activeSectionModel;
+    if (!section?.children) return null;
+    return (
+      section.children.find(
+        (child) => child.href !== section.href && pathname === child.href
+      ) ??
+      section.children.find(
+        (child) => child.href !== section.href && pathname.startsWith(child.href + "/")
+      ) ??
+      null
+    );
+  }, [activeSectionModel, pathname]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -921,12 +933,12 @@ function UnifiedShellFrameContent({
           <button
             type="button"
             aria-label="Close command palette"
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[6px]"
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[4px]"
             onClick={closeCommandPalette}
           />
-          <div className="fixed inset-x-4 top-[8vh] z-[60] mx-auto w-full max-w-[720px]">
-            <div className="overflow-hidden rounded-xl border border-[color:var(--shell-control-border)]/50 bg-popover text-popover-foreground shadow-[0_16px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-              <div className="border-b border-[color:var(--shell-control-border)] p-3">
+          <div className="fixed inset-x-4 top-[10vh] z-[60] mx-auto w-full max-w-[680px]">
+            <div className="overflow-hidden rounded-[18px] border border-[color:var(--shell-control-border)]/55 bg-popover text-popover-foreground shadow-[0_24px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+              <div className="border-b border-[color:var(--shell-control-border)] px-3 py-2.5">
                 <ShellSearchField
                   value={commandQuery}
                   onChange={(event) => {
@@ -954,13 +966,13 @@ function UnifiedShellFrameContent({
                   }}
                   placeholder="Type a command or search..."
                   className="w-full"
-                  inputClassName="bg-transparent text-[15px] border-none placeholder:text-muted-foreground/40 focus:shadow-none"
+                  inputClassName="border-none bg-transparent text-[14px] placeholder:text-muted-foreground/45 focus:shadow-none"
                   accessory={<ShellKeyboardHint>Esc</ShellKeyboardHint>}
                   inputRef={commandInputRef}
                 />
               </div>
-              <div className="max-h-[62vh] overflow-y-auto p-3">
-                <div className="space-y-4">
+              <div className="max-h-[58vh] overflow-y-auto px-3 py-2.5">
+                <div className="space-y-3.5">
                   {renderCommandGroup(
                     "Quick Actions",
                     groupedCommandItems.quickActions
@@ -1002,12 +1014,12 @@ function UnifiedShellFrameContent({
           <button
             type="button"
             aria-label="Close shortcuts reference"
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[6px]"
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[4px]"
             onClick={() => setShowShortcuts(false)}
           />
-          <div className="fixed inset-x-4 top-[15vh] z-[60] mx-auto w-full max-w-[480px] rounded-2xl border border-[color:var(--shell-control-border)]/50 bg-popover p-6 shadow-[var(--shadow-elevated,0_16px_70px_rgba(0,0,0,0.45))]">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Keyboard shortcuts</h2>
+          <div className="fixed inset-x-4 top-[16vh] z-[60] mx-auto w-full max-w-[460px] rounded-[20px] border border-[color:var(--shell-control-border)]/55 bg-popover p-5 shadow-[0_24px_90px_rgba(0,0,0,0.42)]">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Keyboard shortcuts</h2>
               <button
                 type="button"
                 onClick={() => setShowShortcuts(false)}
@@ -1022,11 +1034,11 @@ function UnifiedShellFrameContent({
                 <div
                   key={entry.label}
                   className={cn(
-                    "flex justify-between py-2",
+                    "flex justify-between py-1.5",
                     idx < SHORTCUT_REFERENCE.length - 1 && "border-b border-border/40"
                   )}
                 >
-                  <span className="text-[13px] text-muted-foreground">{entry.label}</span>
+                  <span className="text-[12px] text-muted-foreground">{entry.label}</span>
                   <kbd className="inline-flex items-center justify-center rounded-[4px] border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_1px_rgba(255,255,255,0.04)]">{entry.keys}</kbd>
                 </div>
               ))}
@@ -1037,7 +1049,7 @@ function UnifiedShellFrameContent({
 
       {/* ── Chord mode indicator ───────────────────────── */}
       {chordMode ? (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in duration-150 rounded-full bg-foreground/95 px-4 py-1.5 text-[11px] font-medium tracking-wide text-background shadow-[var(--shadow-elevated,0_8px_30px_rgba(0,0,0,0.35))] backdrop-blur-lg">
+        <div className="fixed bottom-3.5 left-1/2 z-50 -translate-x-1/2 animate-in fade-in duration-150 rounded-full bg-foreground/95 px-3.5 py-[5px] text-[10.5px] font-medium tracking-wide text-background shadow-[var(--shadow-elevated,0_8px_30px_rgba(0,0,0,0.35))] backdrop-blur-lg">
           G pressed — waiting for next key...
         </div>
       ) : null}
@@ -1047,10 +1059,10 @@ function UnifiedShellFrameContent({
         {/* ── Sidebar ─────────────────────────────────── */}
         <div className={sidebarClassName}>
           {/* Workspace switcher */}
-          <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex items-center gap-2 px-3.5 py-2.5">
             <Link
               href={buildDashboardScopeHref(routeScope)}
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#5e6ad2] to-[#4850b8] text-[10px] font-bold text-white shadow-sm"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-[linear-gradient(135deg,#5e6ad2_0%,#4d58c6_100%)] text-[10px] font-bold text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]"
             >
               FO
             </Link>
@@ -1058,22 +1070,22 @@ function UnifiedShellFrameContent({
               <>
                 <Link
                   href={buildDashboardScopeHref(routeScope)}
-                  className="shell-sidebar-copy min-w-0 flex-1 truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--shell-sidebar-foreground)]"
+                  className="shell-sidebar-copy min-w-0 flex-1 truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--shell-sidebar-foreground)]"
                 >
                   FounderOS
                 </Link>
-                <ChevronDown className="shell-sidebar-copy h-3.5 w-3.5 shrink-0 text-[var(--shell-sidebar-muted)]" />
+                <ChevronDown className="shell-sidebar-copy h-3.5 w-3.5 shrink-0 text-[var(--shell-sidebar-muted)] opacity-90" />
               </>
             )}
             {renderSidebarCollapsed ? null : (
               <div className="shell-sidebar-copy ml-auto flex items-center gap-0.5">
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-[var(--shell-sidebar-foreground)]"
                   onClick={openCommandPalette}
                   aria-label="Search"
                 >
-                  <Search className="h-4 w-4" />
+                  <Search className="h-3.5 w-3.5" />
                 </button>
               </div>
             )}
@@ -1128,7 +1140,7 @@ function UnifiedShellFrameContent({
           <div className="hidden border-t border-[color:var(--shell-sidebar-border)] p-2 md:block">
             <button
               type="button"
-              className="flex h-7 w-full items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] opacity-40 transition-opacity hover:opacity-100"
+              className="flex h-7 w-full items-center justify-center rounded-md text-[var(--shell-sidebar-muted)] opacity-45 transition-opacity hover:opacity-100"
               onClick={() =>
                 updatePreferences({
                   sidebarCollapsed: !preferences.sidebarCollapsed,
@@ -1145,8 +1157,8 @@ function UnifiedShellFrameContent({
           </div>
 
           {/* Mobile grid nav */}
-          <div className="border-t border-[color:var(--shell-sidebar-border)] p-4 md:hidden">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="border-t border-[color:var(--shell-sidebar-border)] p-3.5 md:hidden">
+            <div className="grid grid-cols-2 gap-1.5">
               {scopedNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.key;
@@ -1156,13 +1168,13 @@ function UnifiedShellFrameContent({
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border border-[color:var(--shell-control-border)] px-3 py-2 text-[13px]",
+                      "flex items-center gap-2 rounded-[12px] border border-[color:var(--shell-control-border)] px-2.5 py-2 text-[12.5px] leading-tight",
                       isActive
                         ? "bg-[color:var(--shell-nav-active)] text-foreground"
                         : "text-[var(--shell-sidebar-muted)]"
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5" />
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -1183,7 +1195,7 @@ function UnifiedShellFrameContent({
 
         {/* ── Main content ────────────────────────────── */}
         <div className="min-w-0 flex-1 bg-background">
-          <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-3 sm:px-5 backdrop-blur-xl">
+          <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-[color:var(--shell-topbar-border)] bg-[color:var(--shell-topbar-bg)] px-3.5 sm:px-[22px] backdrop-blur-[14px]">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
@@ -1193,23 +1205,14 @@ function UnifiedShellFrameContent({
               >
                 <Menu className="h-4 w-4" />
               </button>
-              <h1 className="flex items-center gap-1.5 truncate text-[14px] text-foreground" style={{ fontFamily: "var(--font-heading, var(--font-sans))" }}>
-                <span className="font-semibold tracking-tight">{NAV_ITEMS.find((item) => item.key === activeSection)?.label}</span>
-                {(() => {
-                  const section = NAV_ITEMS.find((item) => item.key === activeSection);
-                  if (!section?.children) return null;
-                  // Prefer exact match, then prefix match — skip children whose href === section href
-                  const activeChild =
-                    section.children.find((child) => child.href !== section.href && pathname === child.href) ??
-                    section.children.find((child) => child.href !== section.href && pathname.startsWith(child.href + "/"));
-                  if (!activeChild) return null;
-                  return (
-                    <>
-                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">{activeChild.label}</span>
-                    </>
-                  );
-                })()}
+              <h1 className="flex items-center gap-1.5 truncate text-[13px] text-foreground" style={{ fontFamily: "var(--font-heading, var(--font-sans))" }}>
+                <span className="font-semibold tracking-[-0.015em]">{activeSectionModel?.label}</span>
+                {activeChildModel ? (
+                  <>
+                    <ChevronRight className="h-3 w-3 text-muted-foreground/80" />
+                    <span className="font-medium text-muted-foreground">{activeChildModel.label}</span>
+                  </>
+                ) : null}
               </h1>
             </div>
             <div className="flex items-center gap-1">

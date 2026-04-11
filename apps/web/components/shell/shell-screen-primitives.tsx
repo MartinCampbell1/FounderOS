@@ -49,7 +49,7 @@ export function ShellHero({
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
       {description ? (
-        <p className="text-[13px] leading-6 text-muted-foreground">{description}</p>
+        <p className="text-[13px] leading-5 text-muted-foreground">{description}</p>
       ) : null}
       {meta ? (
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1 text-[12px] text-muted-foreground">
@@ -76,11 +76,20 @@ export function ShellMetricCard({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-1 py-3", className)}>
-      <div className="text-[12px] text-muted-foreground">{label}</div>
-      <div className="text-[18px] font-medium text-foreground">{value}</div>
-      {detail ? <div className="text-[12px] text-muted-foreground">{detail}</div> : null}
-      {href && hrefLabel ? <ShellActionLink href={href} label={hrefLabel} /> : null}
+    <div
+      className={cn(
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5",
+        className
+      )}
+    >
+      <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1.5 text-[20px] font-medium leading-none tracking-[-0.02em] text-foreground">
+        {value}
+      </div>
+      {detail ? <div className="mt-1.5 text-[11px] leading-4 text-muted-foreground">{detail}</div> : null}
+      {href && hrefLabel ? <ShellActionLink href={href} label={hrefLabel} className="mt-2" /> : null}
     </div>
   );
 }
@@ -247,16 +256,16 @@ export function ShellDetailCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border p-4",
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-3",
         className
       )}
     >
       {hasHeader ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
-            {eyebrow ? <div className="flex flex-wrap items-center gap-2">{eyebrow}</div> : null}
+          <div className="space-y-1.5">
+            {eyebrow ? <div className="flex flex-wrap items-center gap-1.5">{eyebrow}</div> : null}
             {title ? (
-              <div className={cn("text-sm font-semibold text-foreground", titleClassName)}>
+              <div className={cn("text-[13px] font-medium leading-5 text-foreground", titleClassName)}>
                 {title}
               </div>
             ) : null}
@@ -264,7 +273,7 @@ export function ShellDetailCard({
           {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
       ) : null}
-      <div className={cn(hasHeader ? "mt-3" : undefined, bodyClassName)}>{children}</div>
+      <div className={cn(hasHeader ? "mt-2.5" : undefined, bodyClassName)}>{children}</div>
     </div>
   );
 }
@@ -294,7 +303,7 @@ export function ShellDetailLinkCard({
     <Link
       href={href}
       className={cn(
-        "block rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-3.5 transition-colors hover:border-primary/30 hover:bg-[color:var(--shell-control-hover)]",
+        "block rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-3 transition-colors hover:border-primary/20 hover:bg-[color:var(--shell-control-hover)]",
         className
       )}
     >
@@ -351,7 +360,7 @@ export function ShellTextList({
   itemClassName?: string;
 }) {
   return (
-    <div className={cn("space-y-2 text-sm leading-7 text-muted-foreground", className)}>
+    <div className={cn("space-y-2 text-sm leading-6 text-muted-foreground", className)}>
       {items.map((item, index) => (
         <div key={index} className={itemClassName}>
           {item}
@@ -437,25 +446,25 @@ export function ShellFactTileGrid({
   detailClassName?: string;
 }) {
   return (
-    <div className={cn("grid gap-3", columnsClassName, className)}>
+    <div className={cn("grid gap-2.5", columnsClassName, className)}>
       {items.map((item, index) => (
         <ShellDetailCard
           key={item.key ?? index}
-          className={cn("bg-background/70", itemClassName)}
+          className={itemClassName}
         >
           <div
             className={cn(
-              "text-[11px] uppercase tracking-[0.14em] text-muted-foreground",
+              "text-[10px] uppercase tracking-[0.12em] text-muted-foreground",
               labelClassName
             )}
           >
             {item.label}
           </div>
-          <div className={cn("mt-2 text-sm font-semibold text-foreground", valueClassName)}>
+          <div className={cn("mt-1.5 text-[13px] font-medium leading-5 text-foreground", valueClassName)}>
             {item.value}
           </div>
           {item.detail ? (
-            <div className={cn("mt-2 text-xs leading-6 text-muted-foreground", detailClassName)}>
+            <div className={cn("mt-1.5 text-[11px] leading-4 text-muted-foreground", detailClassName)}>
               {item.detail}
             </div>
           ) : null}
@@ -490,20 +499,20 @@ export function ShellPreviewListCard({
           <span>{title}</span>
         </div>
       }
-      className={cn("bg-background/70", className)}
+      className={cn("bg-background/60", className)}
     >
       <div className="mt-3 space-y-2">
         {items.map((item, index) => (
           <div
             key={item.key ?? index}
-            className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-background/80 px-3 py-2.5"
+            className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-background/70 px-3 py-2"
           >
             {item.badge ? <div className="flex flex-wrap items-center gap-2">{item.badge}</div> : null}
             <div className={cn(item.badge ? "mt-2" : undefined, "text-sm text-foreground")}>
               {item.title}
             </div>
             {item.detail ? (
-              <div className="mt-1 text-xs leading-6 text-muted-foreground">{item.detail}</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div>
             ) : null}
             {item.meta ? (
               <div className="mt-1 text-[11px] leading-5 text-muted-foreground">{item.meta}</div>
@@ -525,7 +534,7 @@ export function ShellSubtlePanel({
   return (
     <div
       className={cn(
-        "rounded-[12px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-4",
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-3.5",
         className
       )}
     >
@@ -580,7 +589,8 @@ export function ShellEmptyState({
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-3 pt-20 pb-12 text-center",
+        "flex flex-col items-center gap-3 text-center",
+        centered ? "justify-center py-12" : "pt-16 pb-10",
         className
       )}
     >
@@ -601,7 +611,7 @@ export function ShellEmptyState({
         <button
           type="button"
           onClick={action.onClick}
-          className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
+          className="mt-2 inline-flex items-center gap-2 rounded-[8px] border border-border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-accent"
         >
           {action.label}
         </button>
@@ -698,7 +708,7 @@ export function ShellLoadingState({
     return (
       <div
         className={cn(
-          "rounded-[12px] border border-[color:var(--shell-control-border)] bg-background/70 px-4 py-6",
+          "rounded-[8px] border border-[color:var(--shell-control-border)] bg-background/60 px-4 py-5",
           "flex flex-col items-center justify-center gap-4 text-center",
           className
         )}
@@ -710,7 +720,7 @@ export function ShellLoadingState({
           {title ? (
             <div className="text-sm font-medium text-foreground">{title}</div>
           ) : null}
-          <div className="text-sm leading-6 text-muted-foreground">{description}</div>
+          <div className="text-sm leading-5 text-muted-foreground">{description}</div>
         </div>
       </div>
     );
@@ -719,7 +729,7 @@ export function ShellLoadingState({
   return (
     <div
       className={cn(
-        "rounded-[12px] border border-[color:var(--shell-control-border)] bg-background/70 px-4 py-6",
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-background/60 px-4 py-5",
         className
       )}
     >
@@ -729,7 +739,7 @@ export function ShellLoadingState({
           {title ? (
             <div className="text-sm font-medium text-foreground">{title}</div>
           ) : null}
-          <div className="text-sm leading-6 text-muted-foreground">{description}</div>
+          <div className="text-sm leading-5 text-muted-foreground">{description}</div>
         </div>
       </div>
     </div>
@@ -749,7 +759,7 @@ export function ShellListLink({
     <Link
       href={href}
       className={cn(
-        "block rounded-[12px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] p-4 transition-colors hover:border-primary/25 hover:bg-[color:var(--shell-control-hover)]",
+        "block rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5 transition-colors hover:border-primary/20 hover:bg-[color:var(--shell-control-hover)]",
         className
       )}
     >
@@ -810,8 +820,8 @@ export function ShellSearchField({
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         className={cn(
-          "h-8 w-full rounded-md border border-border bg-transparent pl-9 pr-3 text-[13px] text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-ring focus:ring-2 focus:ring-ring/20",
-          accessory ? "pr-20" : undefined,
+          "h-9 w-full rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] pl-9 pr-3 text-[12px] text-foreground outline-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/50 focus:border-primary/25 focus:ring-1 focus:ring-primary/15",
+          accessory ? "pr-16" : undefined,
           inputClassName
         )}
       />
@@ -1032,7 +1042,7 @@ export function ShellPillCount({
   return (
     <span
       className={cn(
-        "rounded-full px-1.5 py-0.5 text-[10px] leading-none",
+        "rounded-[4px] px-1.5 py-0.5 text-[10px] leading-none",
         active
           ? "bg-foreground/10 text-foreground"
           : "bg-[color:var(--shell-panel-muted)] text-[color:var(--shell-control-muted)]",
@@ -1068,11 +1078,11 @@ export function ShellPillButton({
       variant={resolvedVariant}
       className={cn(
         compact
-          ? "h-7 rounded-[8px] px-3 text-[11px] shadow-none"
-          : "h-8 rounded-full px-3 text-[11px] shadow-none",
+          ? "h-7 rounded-[8px] px-2.5 text-[11px] shadow-none"
+          : "h-8 rounded-[8px] px-3 text-[11px] shadow-none",
         tone === "primary" ? "bg-foreground text-background hover:bg-foreground/90" : undefined,
         active && tone !== "primary"
-          ? "border-primary/35 bg-[color:var(--shell-nav-active)] text-foreground hover:bg-[color:var(--shell-nav-active)]"
+          ? "border-primary/25 bg-[color:var(--shell-nav-active)] text-foreground hover:bg-[color:var(--shell-nav-active)]"
           : undefined,
         className
       )}
@@ -1129,7 +1139,7 @@ export function ShellToolbarSurface({
   return (
     <div
       className={cn(
-        "rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]/95 p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]",
+        "rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]/95 p-2 shadow-none",
         className
       )}
     >
@@ -1237,11 +1247,11 @@ export function ShellQueueSectionCard({
       title={title}
       actions={actions}
       className={className}
-      contentClassName={cn("space-y-4 pt-0", contentClassName)}
+      contentClassName={cn("space-y-3.5 pt-0", contentClassName)}
     >
       <ShellToolbarSurface className={toolbarClassName}>
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between">
             <ShellSearchField
               value={searchValue}
               onChange={onSearchChange}
@@ -1253,13 +1263,13 @@ export function ShellQueueSectionCard({
               inputRef={searchInputRef}
             />
             {hint || summary ? (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 {hint ? <ShellKeyboardHint>{hint}</ShellKeyboardHint> : null}
                 {summary ? <span>{summary}</span> : null}
               </div>
             ) : null}
           </div>
-          {chips ? <div className="flex flex-wrap gap-2">{chips}</div> : null}
+          {chips ? <div className="flex flex-wrap gap-1.5">{chips}</div> : null}
         </div>
       </ShellToolbarSurface>
       {children}
@@ -1288,11 +1298,11 @@ export function ShellActionLinkCard({
 }) {
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className="space-y-1.5 p-3 pb-2">
         <CardTitle>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
-      <CardContent className={cn("space-y-3", contentClassName)}>
+      <CardContent className={cn("space-y-2.5 p-3 pt-0", contentClassName)}>
         {items.map((item) => (
           <ShellActionLink
             key={item.key ?? `${item.href}:${item.label}`}
@@ -1322,12 +1332,12 @@ export function ShellLinkTileGrid({
   linkClassName?: string;
 }) {
   return (
-    <section className={cn("grid gap-4 md:grid-cols-3", className)}>
+    <section className={cn("grid gap-3 md:grid-cols-3", className)}>
       {items.map((item) => (
         <ShellListLink
           key={item.key ?? `${item.href}:${String(item.label)}`}
           href={item.href}
-          className={cn("p-4", linkClassName)}
+          className={cn("p-3.5", linkClassName)}
         >
           <div className="flex items-center gap-2">
             {item.icon}
@@ -1358,12 +1368,12 @@ export function ShellSummaryRow({
   return (
     <ShellSubtlePanel
       className={cn(
-        "flex items-start gap-3 p-3 text-sm leading-7 text-muted-foreground",
+        "flex items-start gap-3 p-2.5 text-sm leading-6 text-muted-foreground",
         panelClassName
       )}
     >
       {icon ? (
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted">
           {icon}
         </div>
       ) : null}
@@ -1400,13 +1410,21 @@ export function ShellSummaryCard({
 }) {
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className="space-y-1.5 p-3 pb-2">
         <CardTitle>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
-      <CardContent className={cn("space-y-3", contentClassName)}>
+      <CardContent className={cn("space-y-2.5 p-3 pt-0", contentClassName)}>
         {items.map((item, index) => (
-          <ShellSummaryRow key={item.key ?? `${item.label ?? "item"}:${index}`} {...item} />
+          (() => {
+            const { key, ...summaryRow } = item;
+            return (
+              <ShellSummaryRow
+                key={key ?? `${summaryRow.label ?? "item"}:${index}`}
+                {...summaryRow}
+              />
+            );
+          })()
         ))}
       </CardContent>
     </Card>
@@ -1435,11 +1453,11 @@ export function ShellSectionSummaryCard({
 }) {
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className="space-y-1.5 p-3 pb-2">
         <CardTitle>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
-      <CardContent className={cn("space-y-3 text-sm leading-7 text-muted-foreground", contentClassName)}>
+      <CardContent className={cn("space-y-2.5 p-3 pt-0 text-sm leading-6 text-muted-foreground", contentClassName)}>
         {items.map((item, index) => (
           <ShellRecordSection
             key={item.key ?? `${String(item.title)}:${index}`}
@@ -1468,7 +1486,7 @@ export function ShellSelectionSummary({
   return (
     <ShellRecordSection title={title} className={className}>
       <div>{summary}</div>
-      {detail ? <div className="mt-1.5">{detail}</div> : null}
+      {detail ? <div className="mt-1">{detail}</div> : null}
     </ShellRecordSection>
   );
 }
@@ -1501,10 +1519,10 @@ export function ShellRefreshStateCard({
       title="Refresh state"
       description={description}
       className={className}
-      contentClassName={cn("space-y-3 text-sm text-muted-foreground", contentClassName)}
+      contentClassName={cn("space-y-2.5 text-sm text-muted-foreground", contentClassName)}
     >
-      <ShellRecordSection title={statusTitle} className="bg-background/70">
-        <div className="space-y-2">
+      <ShellRecordSection title={statusTitle} className="bg-background/60">
+        <div className="space-y-1.5">
           <ShellInlineStatus
             busy={busy}
             icon={icon}
@@ -1546,7 +1564,7 @@ export function ShellComposerTextarea({
       placeholder={placeholder}
       disabled={disabled}
       className={cn(
-        "min-h-[132px] w-full rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3.5 py-3 text-[13px] leading-7 text-foreground outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[color:var(--shell-control-muted)] focus:border-primary/60 focus:shadow-[0_0_0_1px_var(--ring)] disabled:cursor-not-allowed disabled:opacity-60",
+        "min-h-[124px] w-full rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3.5 py-2.5 text-[13px] leading-6 text-foreground outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[color:var(--shell-control-muted)] focus:border-primary/60 focus:shadow-[0_0_0_1px_var(--ring)] disabled:cursor-not-allowed disabled:opacity-60",
         className
       )}
     />
@@ -1585,18 +1603,18 @@ export function ShellOptionButton({
       disabled={disabled}
       data-command-selected={active ? "true" : "false"}
       className={cn(
-        "w-full rounded-[10px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3.5 py-3 text-left transition-colors hover:border-primary/25 hover:bg-[color:var(--shell-control-hover)] disabled:cursor-not-allowed disabled:opacity-60",
+        "w-full rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5 text-left transition-colors hover:border-primary/20 hover:bg-[color:var(--shell-control-hover)] disabled:cursor-not-allowed disabled:opacity-60",
         active
-          ? "border-primary/35 bg-[color:var(--shell-nav-active)]"
+          ? "border-primary/25 bg-[color:var(--shell-nav-active)]"
           : undefined,
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          {badges ? <div className="mb-2 flex flex-wrap gap-1.5">{badges}</div> : null}
+          {badges ? <div className="mb-1.5 flex flex-wrap gap-1.5">{badges}</div> : null}
           <div className="text-[13px] font-medium leading-5 text-foreground">{title}</div>
-          <div className="mt-1.5 text-[13px] leading-6 text-muted-foreground">{description}</div>
+          <div className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</div>
         </div>
         {trailing ? <div className="shrink-0">{trailing}</div> : null}
       </div>
@@ -1605,7 +1623,7 @@ export function ShellOptionButton({
 }
 
 const filterChipClassName =
-  "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-all duration-150";
+  "inline-flex h-7 items-center gap-1.5 rounded-[6px] border px-2.5 text-[12px] font-medium transition-colors duration-150";
 
 const filterChipCountClassName =
   "rounded px-1.5 py-0.5 text-[11px] tabular-nums leading-none";
@@ -1627,8 +1645,8 @@ export function ShellFilterChipLink({
       className={cn(
         filterChipClassName,
         active
-          ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
-          : "border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          ? "border-foreground/15 bg-foreground/[0.05] text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground"
       )}
     >
       <span>{label}</span>
@@ -1666,8 +1684,8 @@ export function ShellFilterChipButton({
       className={cn(
         filterChipClassName,
         active
-          ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
-          : "border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          ? "border-foreground/15 bg-foreground/[0.05] text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground"
       )}
     >
       <span>{label}</span>

@@ -11,7 +11,6 @@ import {
   ClipboardCheck,
   CheckCheck,
   GitBranch,
-  Search,
   ShieldAlert,
 } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -23,9 +22,11 @@ import {
   ShellFilterChipLink,
   ShellHero,
   ShellPage,
+  ShellSearchSectionCard,
   ShellPillButton,
   ShellPillCount,
   ShellSectionCard,
+  ShellSubsection,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import { SkeletonList } from "@/components/shell/shell-skeleton";
@@ -244,11 +245,9 @@ function ReviewBatchPanel({
   const batchBusy = busyActionKey.startsWith("batch:");
 
   return (
-    <ShellSectionCard
-      title="Batch triage"
-      contentClassName="space-y-4"
-    >
-        <ShellRecordActionBar>
+    <ShellSectionCard title="Batch triage" contentClassName="space-y-3">
+      <ShellSubsection title="Selection" bodyClassName="space-y-2">
+        <ShellRecordActionBar className="gap-1.5">
           <ShellPillButton
             type="button"
             tone="outline"
@@ -323,8 +322,10 @@ function ReviewBatchPanel({
             <ShellPillCount count={selectedCount} />
           </ShellPillButton>
         </ShellRecordActionBar>
+      </ShellSubsection>
 
-        <ShellRecordActionBar>
+      <ShellSubsection title="Actions" bodyClassName="space-y-2">
+        <ShellRecordActionBar className="gap-1.5">
           <ShellPillButton
             type="button"
             tone="primary"
@@ -417,6 +418,7 @@ function ReviewBatchPanel({
             />
           </ShellPillButton>
         </ShellRecordActionBar>
+      </ShellSubsection>
     </ShellSectionCard>
   );
 }
@@ -451,46 +453,55 @@ function ReviewPresetPanel({
   onRunPreset: (preset: ShellReviewPreset) => Promise<void>;
 }) {
   return (
-    <ShellSectionCard
-      title="Preset playbooks"
-      contentClassName="space-y-4"
-    >
-        <ReviewMemorySection
-          memoryTargetLabel={reviewMemoryBucketLabel(memoryBucket)}
-          rememberedLabel={rememberedPassLabel}
-          rememberLabel={rememberCurrentPassLabel}
-          activeRememberLabel="Current pass remembered"
-          remembered={isCurrentPassRemembered}
-          busy={busyActionKey.length > 0}
-          resetDisabled={isMemoryAtDefault}
-          onRemember={onRememberCurrentPass}
-          onReset={onResetRememberedPass}
-        />
+    <ShellSectionCard title="Preset playbooks" contentClassName="space-y-3">
+      <ReviewMemorySection
+        sectionTitle="Operator memory"
+        memoryTargetLabel={reviewMemoryBucketLabel(memoryBucket)}
+        rememberedLabel={rememberedPassLabel}
+        rememberLabel={rememberCurrentPassLabel}
+        activeRememberLabel="Current pass remembered"
+        remembered={isCurrentPassRemembered}
+        busy={busyActionKey.length > 0}
+        resetDisabled={isMemoryAtDefault}
+        onRemember={onRememberCurrentPass}
+        onReset={onResetRememberedPass}
+      />
 
+      <ShellSubsection title="Playbooks" bodyClassName="space-y-2">
         <div className="grid gap-3">
           {reviewPresetDefinitions().map((preset) => {
             const isActive = activePreset === preset.key;
             const actionBusy = busyActionKey === `preset:${preset.key}`;
             return (
-              <ShellRecordSection key={preset.key}>
+              <ShellRecordSection
+                key={preset.key}
+                className="rounded-[7px] border-border/70 bg-background p-2"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {isActive ? <Badge tone="info">active</Badge> : null}
-                      <Badge tone={presetCounts[preset.key] > 0 ? "warning" : "neutral"}>
+                      <Badge
+                        tone={presetCounts[preset.key] > 0 ? "warning" : "neutral"}
+                        className="text-[10px] leading-none"
+                      >
                         {presetCounts[preset.key]} visible
                       </Badge>
                     </div>
-                    <div className="text-sm font-semibold text-foreground">{preset.label}</div>
-                    <ShellRecordActionBar>
+                    <div className="text-[13px] font-medium text-foreground">{preset.label}</div>
+                    <ShellRecordMeta className="gap-x-2 text-[11px] leading-4">
+                      <span>{preset.steps.length} steps</span>
+                      <span>{presetCounts[preset.key]} matches</span>
+                    </ShellRecordMeta>
+                    <ShellRecordActionBar className="gap-1.5">
                       {preset.steps.map((step) => (
-                        <Badge key={step} tone="neutral">
+                        <Badge key={step} tone="neutral" className="text-[10px] leading-none">
                           {step}
                         </Badge>
                       ))}
                     </ShellRecordActionBar>
                   </div>
-                  <ShellRecordActionBar>
+                  <ShellRecordActionBar className="gap-1.5">
                     <ShellRecordLinkButton
                       href={buildReviewScopeHref(routeScope, lane === "all" ? null : lane, preset.key)}
                       label="Open preset"
@@ -523,13 +534,13 @@ function ReviewPresetPanel({
             label="Clear preset"
           />
         ) : null}
+      </ShellSubsection>
     </ShellSectionCard>
   );
 }
 
 function DiscoveryReviewCard({
   record,
-  routeScope,
   selected,
   busyActionKey,
   onConfirm,
@@ -538,7 +549,6 @@ function DiscoveryReviewCard({
   onOpenHandoff,
 }: {
   record: ShellDiscoveryReviewRecord;
-  routeScope: ShellRouteScope;
   selected: boolean;
   busyActionKey: string;
   onConfirm: (record: ShellDiscoveryReviewRecord) => Promise<void>;
@@ -554,20 +564,30 @@ function DiscoveryReviewCard({
     Boolean(record.dossier.execution_brief_candidate);
 
   return (
-    <ShellRecordCard selected={selected}>
+    <ShellRecordCard selected={selected} className="rounded-[7px]">
       <ShellRecordHeader
         badges={
           <>
-            <Badge tone="info">discovery</Badge>
-            <Badge tone={discoveryKindTone(record.kind)}>
+            <Badge tone="info" className="text-[10px] leading-none">
+              discovery
+            </Badge>
+            <Badge tone={discoveryKindTone(record.kind)} className="text-[10px] leading-none">
               {discoveryKindLabel(record.kind)}
             </Badge>
-            <Badge tone="neutral">{record.dossier.idea.latest_stage}</Badge>
-            {record.chain ? <Badge tone="info">chain-linked</Badge> : null}
+            <Badge tone="neutral" className="text-[10px] leading-none">
+              {record.dossier.idea.latest_stage}
+            </Badge>
+            {record.chain ? (
+              <Badge tone="info" className="text-[10px] leading-none">
+                chain-linked
+              </Badge>
+            ) : null}
           </>
         }
         title={record.dossier.idea.title}
         description={record.reason}
+        className="gap-2.5 p-3"
+        descriptionClassName="text-[12px] leading-5 text-foreground/68"
         accessory={
           <ShellRecordSelectionButton
             selected={selected}
@@ -576,8 +596,8 @@ function DiscoveryReviewCard({
           />
         }
       />
-      <ShellRecordBody>
-        <ShellRecordMeta>
+      <ShellRecordBody className="space-y-2 p-3 pt-2">
+        <ShellRecordMeta className="gap-x-2.5 gap-y-0.5 text-[11px] leading-4">
           <span>stage {record.dossier.idea.latest_stage}</span>
           {record.trace ? <span>{record.trace.stepCount} trace steps</span> : null}
           {record.trace?.linkedSessionIds.length ? (
@@ -585,7 +605,7 @@ function DiscoveryReviewCard({
           ) : null}
           {record.chain?.briefId ? <span>brief {record.chain.briefId}</span> : null}
         </ShellRecordMeta>
-        <ShellRecordActionBar>
+        <ShellRecordActionBar className="gap-1.5">
           <ShellPillButton
             type="button"
             tone="primary"
@@ -635,7 +655,6 @@ function DiscoveryReviewCard({
 
 function ExecutionReviewCard({
   record,
-  routeScope,
   selected,
   busyActionKey,
   onResolveIssue,
@@ -646,7 +665,6 @@ function ExecutionReviewCard({
   onToggleSelected,
 }: {
   record: ShellExecutionAttentionRecord;
-  routeScope: ShellRouteScope;
   selected: boolean;
   busyActionKey: string;
   onResolveIssue: (record: IssueAttentionRecord) => Promise<void>;
@@ -663,22 +681,32 @@ function ExecutionReviewCard({
   const denyActionKey = `${record.key}:deny`;
 
   return (
-    <ShellRecordCard selected={selected}>
+    <ShellRecordCard selected={selected} className="rounded-[7px]">
       <ShellRecordHeader
         badges={
           <>
-            <Badge tone="warning">execution</Badge>
-            <Badge tone={record.tone}>{executionTypeLabel(record)}</Badge>
+            <Badge tone="warning" className="text-[10px] leading-none">
+              execution
+            </Badge>
+            <Badge tone={record.tone} className="text-[10px] leading-none">
+              {executionTypeLabel(record)}
+            </Badge>
             {record.source.chainKind !== "unlinked" ? (
-              <Badge tone="info">{record.source.chainKind}</Badge>
+              <Badge tone="info" className="text-[10px] leading-none">
+                {record.source.chainKind}
+              </Badge>
             ) : null}
             {record.source.sourceKind === "intake_session" ? (
-              <Badge tone="info">intake origin</Badge>
+              <Badge tone="info" className="text-[10px] leading-none">
+                intake origin
+              </Badge>
             ) : null}
           </>
         }
         title={record.title}
         description={record.detail}
+        className="gap-2.5 p-3"
+        descriptionClassName="text-[12px] leading-5 text-foreground/68"
         accessory={
           <ShellRecordSelectionButton
             selected={selected}
@@ -687,8 +715,8 @@ function ExecutionReviewCard({
           />
         }
       />
-      <ShellRecordBody>
-        <ShellRecordMeta>
+      <ShellRecordBody className="space-y-2 p-3 pt-2">
+        <ShellRecordMeta className="gap-x-2.5 gap-y-0.5 text-[11px] leading-4">
           <span>{record.source.project?.name || "unscoped project"}</span>
           {record.source.intakeSession ? (
             <span>{record.source.intakeSession.title}</span>
@@ -698,7 +726,7 @@ function ExecutionReviewCard({
           ) : null}
           <span>{record.source.sourceKind}</span>
         </ShellRecordMeta>
-        <ShellRecordActionBar>
+        <ShellRecordActionBar className="gap-1.5">
           {record.type === "issue" ? (
             <ShellPillButton
               type="button"
@@ -1323,6 +1351,17 @@ export function ReviewWorkspace({
 
   return (
     <ShellPage>
+      <ShellHero
+        title="Review"
+        description="Triage discovery pressure and execution pressure in the current scope."
+        meta={
+          <>
+            <span>{filteredDiscoveryRecords.length + filteredExecutionRecords.length} visible</span>
+            <span>{selectedKeySet.size} selected</span>
+            <span>{scopeActive ? "scoped" : "all routes"}</span>
+          </>
+        }
+      />
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
@@ -1332,53 +1371,59 @@ export function ReviewWorkspace({
         <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
       ) : null}
 
-      <section className="grid gap-4">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {filters
-              .filter((option) => option.key === "all" || option.count > 0 || lane === option.key)
-              .map((option) => (
-              <ShellFilterChipLink
-                key={option.key}
-                href={buildReviewScopeHref(
-                  routeScope,
-                  option.key === "all" ? null : option.key,
-                  preset
-                )}
-                label={option.label}
-                count={option.count}
-                active={lane === option.key}
-              />
-            ))}
-          </div>
+          <ShellSearchSectionCard
+            title="Queue"
+            description="Filter the current lane and search across visible review items."
+            actions={<Badge tone="info">{filteredDiscoveryRecords.length + filteredExecutionRecords.length}</Badge>}
+            searchValue={query}
+            onSearchChange={(event) => setQuery(event.target.value)}
+            searchPlaceholder="Filter review items..."
+            beforeSearch={
+              <div className="flex flex-wrap items-center gap-1.5">
+                {filters
+                  .filter((option) => option.key === "all" || option.count > 0 || lane === option.key)
+                  .map((option) => (
+                    <ShellFilterChipLink
+                      key={option.key}
+                      href={buildReviewScopeHref(
+                        routeScope,
+                        option.key === "all" ? null : option.key,
+                        preset
+                      )}
+                      label={option.label}
+                      count={option.count}
+                      active={lane === option.key}
+                    />
+                  ))}
+              </div>
+            }
+            afterSearch={
+              <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                <span>{filteredDiscoveryRecords.length} discovery</span>
+                <span>{filteredExecutionRecords.length} execution</span>
+                <span>{filteredCriticalIssueRecords.length} critical</span>
+                <span>{filteredHandoffReadyRecords.length} handoff</span>
+              </div>
+            }
+            contentClassName="space-y-4"
+          >
+            {loadState === "loading" &&
+            filteredDiscoveryRecords.length === 0 &&
+            filteredExecutionRecords.length === 0 ? (
+              <SkeletonList rows={6} className="py-4" />
+            ) : null}
 
-          <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter review items..."
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
-            />
-          </div>
-
-          {loadState === "loading" &&
-          filteredDiscoveryRecords.length === 0 &&
-          filteredExecutionRecords.length === 0 ? (
-            <SkeletonList rows={6} className="py-4" />
-          ) : null}
-
-          {filteredDiscoveryRecords.length > 0 ? (
-            <ShellSectionCard
-              title="Discovery review pressure"
-              contentClassName="space-y-4"
-            >
+            {filteredDiscoveryRecords.length > 0 ? (
+              <ShellSectionCard
+                title="Discovery review pressure"
+                contentClassName="space-y-3"
+              >
                 {filteredDiscoveryRecords.map((record) => (
                   <DiscoveryReviewCard
                     key={record.key}
                     record={record}
-                    routeScope={routeScope}
                     selected={selectedKeySet.has(record.key)}
                     busyActionKey={busyActionKey}
                     onConfirm={handleConfirmDiscovery}
@@ -1387,19 +1432,18 @@ export function ReviewWorkspace({
                     onOpenHandoff={handleOpenDiscoveryHandoff}
                   />
                 ))}
-            </ShellSectionCard>
-          ) : null}
+              </ShellSectionCard>
+            ) : null}
 
-          {filteredExecutionRecords.length > 0 ? (
-            <ShellSectionCard
-              title="Execution review pressure"
-              contentClassName="space-y-4"
-            >
+            {filteredExecutionRecords.length > 0 ? (
+              <ShellSectionCard
+                title="Execution review pressure"
+                contentClassName="space-y-3"
+              >
                 {filteredExecutionRecords.map((record) => (
                   <ExecutionReviewCard
                     key={record.key}
                     record={record}
-                    routeScope={routeScope}
                     selected={selectedKeySet.has(record.key)}
                     busyActionKey={busyActionKey}
                     onResolveIssue={handleResolveIssue}
@@ -1410,27 +1454,28 @@ export function ReviewWorkspace({
                     onToggleSelected={toggleSelectedKey}
                   />
                 ))}
-            </ShellSectionCard>
-          ) : null}
+              </ShellSectionCard>
+            ) : null}
 
-          {loadState !== "loading" &&
-          filteredDiscoveryRecords.length === 0 &&
-          filteredExecutionRecords.length === 0 ? (
-            <ShellEmptyState
-              centered
-              className="py-10"
-              icon={<CheckCircle2 className="h-5 w-5" />}
-              title="Review queue empty"
-              description={
-                scopeActive
-                  ? "No review items to process for the current scope."
-                  : "Items requiring your review will appear here \u2014 approvals, issues, and handoff decisions."
-              }
-            />
-          ) : null}
+            {loadState !== "loading" &&
+            filteredDiscoveryRecords.length === 0 &&
+            filteredExecutionRecords.length === 0 ? (
+              <ShellEmptyState
+                centered
+                className="py-10"
+                icon={<CheckCircle2 className="h-5 w-5" />}
+                title="Review queue empty"
+                description={
+                  scopeActive
+                    ? "No review items to process for the current scope."
+                    : "Items requiring your review will appear here \u2014 approvals, issues, and handoff decisions."
+                }
+              />
+            ) : null}
+          </ShellSearchSectionCard>
         </div>
 
-        <div className="hidden xl:hidden space-y-4">
+        <div className="space-y-4">
           <ReviewPresetPanel
             activePreset={preset}
             busyActionKey={busyActionKey}
@@ -1484,7 +1529,6 @@ export function ReviewWorkspace({
             }
             onSelectVisible={() => replaceSelectedKeys(visibleRecordKeys)}
           />
-
         </div>
       </section>
     </ShellPage>

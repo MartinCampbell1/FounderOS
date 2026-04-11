@@ -27,6 +27,7 @@ import {
   ShellRecordHeader,
 } from "@/components/shell/shell-record-primitives";
 import {
+  ShellDetailCard,
   ShellInlineStatus,
   ShellActionStateLabel,
   ShellActionLink,
@@ -123,14 +124,17 @@ function IntakeSessionsSidebar({
   routeScope: ExecutionIntakeRouteScope;
 }) {
   return (
-    <div className="flex h-full flex-col border-r border-border/60 bg-[color:var(--shell-panel-bg,theme(colors.muted/0.3))]">
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Sessions
-        </span>
+    <div className="flex h-full flex-col border-r border-border/60 bg-[color:var(--shell-panel-bg,theme(colors.muted/0.28))]">
+      <div className="flex items-start justify-between border-b border-border/50 px-4 py-2">
+        <div className="space-y-0.5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Sessions
+          </div>
+          <div className="text-[11px] text-muted-foreground">{sessions.length} threads</div>
+        </div>
         <a
           href={buildExecutionIntakeScopeHref(undefined, routeScope)}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] border border-border/60 bg-[color:var(--shell-control-bg)] text-muted-foreground transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
         >
           <MessageSquarePlus className="h-4 w-4" />
         </a>
@@ -144,11 +148,11 @@ function IntakeSessionsSidebar({
 
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {sessions.length === 0 ? (
-          <p className="px-2 py-6 text-center text-xs leading-5 text-muted-foreground">
+          <p className="px-2 py-6 text-center text-[12px] leading-5 text-muted-foreground">
             No sessions yet. Start a conversation to create one.
           </p>
         ) : (
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {sessions.slice(0, 12).map((session) => {
               const isActive = session.id === activeSessionId;
               const sessionHref = buildExecutionIntakeScopeHref(
@@ -164,26 +168,34 @@ function IntakeSessionsSidebar({
                   key={session.id}
                   href={isActive ? undefined : sessionHref}
                   className={cn(
-                    "group block rounded-lg px-3 py-2.5 transition-colors",
+                    "group block rounded-[10px] border border-transparent px-2.5 py-2 transition-colors",
                     isActive
-                      ? "bg-accent/12 text-foreground"
-                      : "text-foreground/80 hover:bg-accent/8"
+                      ? "border-primary/15 bg-[color:var(--shell-nav-active)] text-foreground"
+                      : "text-foreground/80 hover:border-border/60 hover:bg-[color:var(--shell-control-hover)]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="line-clamp-1 text-[13px] font-medium leading-5">
+                    <span className="line-clamp-1 text-[12px] font-medium leading-5">
                       {session.title || "Untitled session"}
                     </span>
                     {session.prd_ready ? (
-                      <Badge tone="info" className="shrink-0 text-[10px]">PRD</Badge>
+                      <Badge tone="info" className="shrink-0 text-[10px]">
+                        PRD
+                      </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] leading-4 text-muted-foreground">
-                    {session.last_message || "No messages yet"}
-                  </p>
-                  <span className="mt-1 block text-[10px] leading-3 text-muted-foreground/60">
-                    {formatSessionTimestamp(session.updated_at)}
-                  </span>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] leading-4 text-muted-foreground">
+                    <span className="line-clamp-1 min-w-0 flex-1">
+                      {session.last_message || "No messages yet"}
+                    </span>
+                    <span className="text-border">&middot;</span>
+                    <span>{formatSessionTimestamp(session.updated_at)}</span>
+                  </div>
+                  {session.linked_project_name ? (
+                    <div className="mt-1 truncate text-[10px] leading-4 text-muted-foreground/70">
+                      {session.linked_project_name}
+                    </div>
+                  ) : null}
                 </a>
               );
             })}
@@ -206,30 +218,28 @@ function IntakeBootstrapBanner({
   onGeneratePrd: () => Promise<void>;
 }) {
   if (!bootstrap) return null;
+  const openQuestions = bootstrap.open_questions ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-[720px] rounded-xl border border-border/50 bg-card/60 p-4">
+    <div className="mx-auto w-full max-w-[720px] rounded-[10px] border border-border/60 bg-[color:var(--shell-control-bg)] p-3.5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 shrink-0 text-accent" />
-            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-              Bootstrap
-            </span>
+            <Badge tone="info">Bootstrap</Badge>
           </div>
-          <p className="mt-1 text-[13px] font-medium leading-5 text-foreground">
-            {bootstrap.title}
-          </p>
-          {bootstrap.open_questions.length > 0 ? (
-            <div className="mt-2 space-y-1">
-              {bootstrap.open_questions.slice(0, 3).map((question) => (
-                <p key={question} className="text-[12px] leading-4 text-muted-foreground">
-                  {question}
-                </p>
+          <p className="text-[13px] font-medium leading-5 text-foreground">{bootstrap.title}</p>
+          {openQuestions.length > 0 ? (
+            <div className="space-y-1 text-[12px] leading-5 text-muted-foreground">
+              {openQuestions.slice(0, 3).map((question) => (
+                <div key={question} className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                  <span className="min-w-0 flex-1">{question}</span>
+                </div>
               ))}
             </div>
           ) : (
-            <p className="mt-1 text-[12px] leading-4 text-muted-foreground">
+            <p className="text-[12px] leading-4 text-muted-foreground">
               Ready to generate PRD.
             </p>
           )}
@@ -237,6 +247,7 @@ function IntakeBootstrapBanner({
         <ShellPillButton
           type="button"
           tone="primary"
+          compact
           onClick={() => void onGeneratePrd()}
           disabled={!canGeneratePrd || loading}
           className="shrink-0"
@@ -294,161 +305,179 @@ function PrdSummaryCard({
   return (
     <ShellSectionCard
       title="Project draft"
-      className="min-h-[640px]"
-      contentClassName="space-y-4"
-    >
-        {launchPresetsError ? (
-          <ShellStatusBanner tone="warning">{launchPresetsError}</ShellStatusBanner>
-        ) : null}
-
-        {!prd ? (
-          <ShellEmptyState
-            title="No PRD yet"
-            description="Start the intake conversation, answer the clarifying questions, and then generate a PRD to create an execution project."
-            icon={
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border/70 bg-muted">
-                <Sparkles className="h-6 w-6 text-accent" />
-              </div>
-            }
-            className="min-h-[420px]"
-            centered
-          />
+      description="Review the PRD, tune the launch preset, and create the execution project."
+      className="min-h-[600px]"
+      contentClassName="space-y-3.5"
+      actions={
+        prd ? (
+          <div className="flex items-center gap-2">
+            <Badge tone="info">PRD ready</Badge>
+            <Badge tone="neutral">{prd.stories.length} stories</Badge>
+          </div>
         ) : (
-          <>
-            <ShellRecordCard>
-              <ShellRecordHeader
-                badges={
-                  <>
-                    <Badge tone="info">PRD ready</Badge>
-                    <Badge tone="neutral">{prd.stories.length} stories</Badge>
-                    <Badge tone="neutral">{prd.phases?.length ?? 0} phases</Badge>
-                  </>
-                }
-                title={prd.title}
-                description={prd.description}
-              />
-            </ShellRecordCard>
+          <Badge tone="neutral">Draft</Badge>
+        )
+      }
+    >
+      {launchPresetsError ? (
+        <ShellStatusBanner tone="warning">{launchPresetsError}</ShellStatusBanner>
+      ) : null}
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  Project name
-                </span>
-                <ShellInputField
-                  value={projectName}
-                  onChange={(event) => onProjectNameChange(event.target.value)}
-                  placeholder={prd.title}
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  Project path
-                </span>
-                <ShellInputField
-                  value={projectPath}
-                  onChange={(event) => onProjectPathChange(event.target.value)}
-                  placeholder="Optional custom workspace path"
-                />
-              </label>
+      {!prd ? (
+        <ShellEmptyState
+          title="No PRD yet"
+          description="Start the intake conversation, answer the clarifying questions, and then generate a PRD to create an execution project."
+          icon={
+            <div className="flex h-16 w-16 items-center justify-center rounded-[18px] border border-border/70 bg-[color:var(--shell-control-bg)]">
+              <Sparkles className="h-6 w-6 text-accent" />
             </div>
+          }
+          className="min-h-[420px]"
+          centered
+        />
+      ) : (
+        <>
+          <ShellRecordCard className="border-border/60 bg-[color:var(--shell-control-bg)] shadow-none">
+            <ShellRecordHeader
+              badges={
+                <>
+                  <Badge tone="info">PRD ready</Badge>
+                  <Badge tone="neutral">{prd.stories.length} stories</Badge>
+                  <Badge tone="neutral">{prd.phases?.length ?? 0} phases</Badge>
+                </>
+              }
+              title={prd.title}
+              description={prd.description}
+              className="p-3"
+            />
+          </ShellRecordCard>
 
-            {launchPresets.length > 0 ? (
-              <label className="block space-y-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  Launch preset
-                </span>
-                <ShellSelectField
-                  value={selectedLaunchPresetId}
-                  onChange={(event) => onLaunchPresetChange(event.target.value)}
-                >
-                  {launchPresets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </ShellSelectField>
-                {selectedLaunchPreset ? (
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    {selectedLaunchPreset.description}
-                  </p>
-                ) : null}
-              </label>
-            ) : (
-              <ShellStatusBanner tone="warning">
-                {launchPresetsError ||
-                  "Launch presets unavailable. You can still create projects manually."}
-              </ShellStatusBanner>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <ShellPillButton
-                type="button"
-                tone="outline"
-                onClick={() => void onCreateProject(false)}
-                disabled={pendingAction.length > 0}
-              >
-                <ShellActionStateLabel
-                  busy={pendingAction === "create"}
-                  idleLabel="Create project"
-                  busyLabel="Create project"
-                  icon={<FolderKanban className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-              <ShellPillButton
-                type="button"
-                tone="primary"
-                onClick={() => void onCreateProject(true)}
-                disabled={pendingAction.length > 0}
-              >
-                <ShellActionStateLabel
-                  busy={pendingAction === "create-launch"}
-                  idleLabel="Create and launch"
-                  busyLabel="Create and launch"
-                  icon={<Rocket className="h-4 w-4" />}
-                />
-              </ShellPillButton>
-            </div>
-
-            {statusMessage ? (
-              <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
-            ) : null}
-
-            {errorMessage ? (
-              <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
-            ) : null}
-
-            {createdProjectId ? (
-              <ShellActionLink
-                href={
-                  createdProjectHref ||
-                  buildExecutionProjectScopeHref(createdProjectId)
-                }
-                label="Open created project"
+          <div className="grid gap-2.5 lg:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Project name
+              </span>
+              <ShellInputField
+                value={projectName}
+                onChange={(event) => onProjectNameChange(event.target.value)}
+                placeholder={prd.title}
               />
-            ) : null}
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Project path
+              </span>
+              <ShellInputField
+                value={projectPath}
+                onChange={(event) => onProjectPathChange(event.target.value)}
+                placeholder="Optional custom workspace path"
+              />
+            </label>
+          </div>
 
-            <div className="space-y-3">
-              <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Story outline
-              </div>
-              <div className="space-y-3">
-                {prd.stories.slice(0, 6).map((story) => (
-                  <ShellRecordCard key={story.id}>
-                    <ShellRecordHeader
-                      badges={
-                        <Badge tone="neutral">
-                          {story.phase_title || story.phase_id || `Story ${story.id}`}
-                        </Badge>
-                      }
-                      title={story.title}
-                      description={story.description}
-                    />
-                  </ShellRecordCard>
+          {launchPresets.length > 0 ? (
+            <label className="block space-y-1">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Launch preset
+              </span>
+              <ShellSelectField
+                value={selectedLaunchPresetId}
+                onChange={(event) => onLaunchPresetChange(event.target.value)}
+              >
+                {launchPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
                 ))}
-              </div>
+              </ShellSelectField>
+              {selectedLaunchPreset ? (
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  {selectedLaunchPreset.description}
+                </p>
+              ) : null}
+            </label>
+          ) : (
+            <ShellStatusBanner tone="warning">
+              {launchPresetsError ||
+                "Launch presets unavailable. You can still create projects manually."}
+            </ShellStatusBanner>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <ShellPillButton
+              type="button"
+              tone="outline"
+              compact
+              onClick={() => void onCreateProject(false)}
+              disabled={pendingAction.length > 0}
+            >
+              <ShellActionStateLabel
+                busy={pendingAction === "create"}
+                idleLabel="Create project"
+                busyLabel="Create project"
+                icon={<FolderKanban className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+            <ShellPillButton
+              type="button"
+              tone="primary"
+              compact
+              onClick={() => void onCreateProject(true)}
+              disabled={pendingAction.length > 0}
+            >
+              <ShellActionStateLabel
+                busy={pendingAction === "create-launch"}
+                idleLabel="Create and launch"
+                busyLabel="Create and launch"
+                icon={<Rocket className="h-4 w-4" />}
+              />
+            </ShellPillButton>
+          </div>
+
+          {statusMessage ? (
+            <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
+          ) : null}
+
+          {errorMessage ? (
+            <ShellStatusBanner tone="danger">{errorMessage}</ShellStatusBanner>
+          ) : null}
+
+          {createdProjectId ? (
+            <ShellActionLink
+              href={createdProjectHref || buildExecutionProjectScopeHref(createdProjectId)}
+              label="Open created project"
+            />
+          ) : null}
+
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Story outline
             </div>
-          </>
-        )}
+            <div className="space-y-2">
+              {prd.stories.slice(0, 6).map((story) => (
+                <ShellDetailCard
+                  key={story.id}
+                  className="border-border/60 bg-[color:var(--shell-control-bg)]/90 p-3 shadow-none"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                      <div className="truncate text-[12px] font-medium text-foreground">
+                        {story.title}
+                      </div>
+                      <div className="text-[11px] leading-4 text-muted-foreground">
+                        {story.status || story.role || "Draft story"}
+                      </div>
+                    </div>
+                    <Badge tone="neutral" className="shrink-0 text-[10px]">
+                      {story.phase_title || story.phase_id || `Story ${story.id}`}
+                    </Badge>
+                  </div>
+                </ShellDetailCard>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </ShellSectionCard>
   );
 }
@@ -785,9 +814,8 @@ export function ExecutionIntakeWorkspace({
 
   return (
     <div className="flex h-[calc(100dvh-var(--shell-header-height,56px))] overflow-hidden">
-      {/* ── Sessions sidebar ── */}
       {hasSessions ? (
-        <div className="hidden w-[260px] shrink-0 lg:block">
+        <div className="hidden w-[248px] shrink-0 lg:block">
           <IntakeSessionsSidebar
             sessions={intakeSessions}
             activeSessionId={effectiveSessionId}
@@ -797,22 +825,28 @@ export function ExecutionIntakeWorkspace({
         </div>
       ) : null}
 
-      {/* ── Main chat column ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-border/50 px-4 py-2.5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[15px] font-semibold leading-6 tracking-[-0.01em] text-foreground">
-              Execution Intake
-            </h1>
+        <div className="flex items-center justify-between border-b border-border/60 bg-[color:var(--shell-panel-bg)] px-4 py-2.5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="text-[14px] font-semibold leading-5 tracking-[-0.01em] text-foreground">
+                Execution Intake
+              </h1>
+              <p className="text-[11px] leading-4 text-muted-foreground">
+                Capture the brief, resolve the PRD, and hand off into execution.
+              </p>
+            </div>
             {effectiveSessionId ? (
-              <span className="hidden text-[11px] text-muted-foreground/60 sm:inline">
+              <span className="hidden rounded-full border border-border/60 bg-[color:var(--shell-control-bg)] px-2 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
                 {effectiveSessionId}
               </span>
             ) : null}
           </div>
           <div className="flex items-center gap-1.5">
-            <ShellFilterChipLink href={buildExecutionScopeHref(activeRouteScope)} label="Execution" />
+            <ShellFilterChipLink
+              href={buildExecutionScopeHref(activeRouteScope)}
+              label="Execution"
+            />
             {effectiveLinkedProjectId ? (
               <ShellFilterChipLink
                 href={buildExecutionProjectScopeHref(effectiveLinkedProjectId, activeRouteScope)}
@@ -822,7 +856,6 @@ export function ExecutionIntakeWorkspace({
           </div>
         </div>
 
-        {/* Session load error */}
         {effectiveSessionLoadError ? (
           <div className="px-4 pt-3 sm:px-6">
             <ShellStatusBanner tone="danger">
@@ -835,7 +868,6 @@ export function ExecutionIntakeWorkspace({
           </div>
         ) : null}
 
-        {/* Bootstrap banner (shown when interview data available) */}
         {effectiveBootstrap ? (
           <div className="px-4 pt-3 sm:px-6">
             <IntakeBootstrapBanner
@@ -847,28 +879,24 @@ export function ExecutionIntakeWorkspace({
           </div>
         ) : null}
 
-        {/* Chat messages */}
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-6 sm:px-6"
-        >
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           {effectiveMessages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-border/60 bg-[color:var(--shell-control-bg)]">
                 <Bot className="h-6 w-6 text-accent" />
               </div>
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                <h2 className="text-[16px] font-semibold tracking-[-0.02em] text-foreground">
                   What would you like to build?
                 </h2>
-                <p className="max-w-sm text-[13px] leading-5 text-muted-foreground">
+                <p className="max-w-sm text-[12px] leading-5 text-muted-foreground">
                   Describe your project idea and the intake agent will ask clarifying
                   questions, then generate a PRD with stories ready for execution.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="mx-auto max-w-[720px] space-y-5">
+            <div className="mx-auto max-w-[680px] space-y-4">
               {effectiveMessages.map((message, index) => {
                 const isUser = message.role === "user";
                 return (
@@ -876,26 +904,31 @@ export function ExecutionIntakeWorkspace({
                     key={`${message.role}-${index}`}
                     className={cn("flex", isUser ? "justify-end" : "justify-start")}
                   >
-                    <div className={cn("flex max-w-[70%] flex-col gap-1", isUser ? "items-end" : "items-start")}>
+                    <div
+                      className={cn(
+                        "flex max-w-[68%] flex-col gap-1",
+                        isUser ? "items-end" : "items-start"
+                      )}
+                    >
                       {!isUser ? (
                         <div className="flex items-center gap-1.5 px-1">
                           <Bot className="h-3 w-3 text-muted-foreground/60" />
-                          <span className="text-[11px] font-medium text-muted-foreground/60">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
                             Intake agent
                           </span>
                         </div>
                       ) : null}
                       <div
                         className={cn(
-                          "rounded-2xl px-4 py-2.5 text-[14px] leading-6",
+                          "rounded-[16px] px-3.5 py-2.5 text-[13px] leading-6",
                           isUser
                             ? "bg-foreground text-background"
-                            : "bg-muted/70 text-foreground"
+                            : "border border-border/60 bg-[color:var(--shell-control-bg)] text-foreground shadow-none"
                         )}
                       >
                         <span className="whitespace-pre-wrap">{message.content}</span>
                       </div>
-                      <span className="px-1 text-[11px] leading-3 text-muted-foreground/40">
+                      <span className="px-1 text-[10px] leading-3 text-muted-foreground/40">
                         just now
                       </span>
                     </div>
@@ -905,17 +938,17 @@ export function ExecutionIntakeWorkspace({
 
               {loading ? (
                 <div className="flex justify-start">
-                  <div className="flex max-w-[70%] flex-col gap-1 items-start">
+                  <div className="flex max-w-[68%] flex-col items-start gap-1">
                     <div className="flex items-center gap-1.5 px-1">
                       <Bot className="h-3 w-3 text-muted-foreground/60" />
-                      <span className="text-[11px] font-medium text-muted-foreground/60">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
                         Intake agent
                       </span>
                     </div>
                     <ShellInlineStatus
                       busy
                       label="Thinking..."
-                      className="rounded-2xl bg-muted/70 px-4 py-2.5"
+                      className="rounded-[16px] border border-border/60 bg-[color:var(--shell-control-bg)] px-3.5 py-2.5 shadow-none"
                     />
                   </div>
                 </div>
@@ -926,8 +959,7 @@ export function ExecutionIntakeWorkspace({
           )}
         </div>
 
-        {/* ── Input area (fixed at bottom) ── */}
-        <div className="border-t border-border/40 bg-background/80 px-4 pb-4 pt-3 backdrop-blur-sm sm:px-6">
+        <div className="border-t border-border/50 bg-[color:var(--shell-panel-bg)]/95 px-4 pb-4 pt-3 backdrop-blur-sm sm:px-6">
           <div className="mx-auto max-w-[720px]">
             <div className="relative">
               <ShellComposerTextarea
@@ -937,14 +969,14 @@ export function ExecutionIntakeWorkspace({
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={loading}
-                className="min-h-[56px] resize-none rounded-2xl pr-12"
+                className="min-h-[54px] resize-none rounded-[14px] pr-11"
               />
               <button
                 type="button"
                 onClick={() => void handleSendMessage()}
                 disabled={loading || !input.trim()}
                 className={cn(
-                  "absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                  "absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-[10px] transition-colors",
                   input.trim() && !loading
                     ? "bg-foreground text-background hover:bg-foreground/90"
                     : "bg-muted text-muted-foreground/40 cursor-not-allowed"
@@ -954,9 +986,8 @@ export function ExecutionIntakeWorkspace({
               </button>
             </div>
 
-            {/* Action buttons row */}
-            <div className="mt-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <ShellPillButton type="button" tone="outline" compact disabled>
                   <FileUp className="h-3 w-3" />
                   <span>Import spec</span>
@@ -988,10 +1019,9 @@ export function ExecutionIntakeWorkspace({
         </div>
       </div>
 
-      {/* ── PRD side panel (appears when PRD is generated) ── */}
       {showPrdPanel ? (
-        <div className="hidden w-[440px] shrink-0 overflow-y-auto border-l border-border/50 bg-background xl:block">
-          <div className="p-4">
+        <div className="hidden w-[412px] shrink-0 overflow-y-auto border-l border-border/50 bg-[color:var(--shell-panel-bg)] xl:block">
+          <div className="p-3.5">
             <PrdSummaryCard
               prd={effectivePrd}
               projectName={displayedProjectName}

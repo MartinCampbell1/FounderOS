@@ -1,37 +1,27 @@
-import { cookies } from "next/headers";
-
 import { ExecutionHandoffWorkspace } from "@/components/execution/execution-handoff-workspace";
 import { buildExecutionHandoffSnapshot } from "@/lib/execution";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
-
-type ExecutionHandoffSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
 
 export default async function ExecutionHandoffPage({
   params,
   searchParams,
 }: {
   params: Promise<{ handoffId: string }>;
-  searchParams?: ExecutionHandoffSearchParams;
+  searchParams?: ShellPageSearchParams;
 }) {
   const { handoffId } = await params;
-  const query = searchParams ? await searchParams : undefined;
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
+  const { routeScope, initialPreferences } =
+    await resolveShellRoutePageBootstrap(searchParams);
   const initialSnapshot = await buildExecutionHandoffSnapshot(handoffId);
   return (
     <ExecutionHandoffWorkspace
       handoffId={handoffId}
-      initialPreferences={operatorControls.preferences}
+      initialPreferences={initialPreferences}
       initialSnapshot={initialSnapshot}
-      routeScope={readShellRouteScopeFromQueryRecord(query)}
+      routeScope={routeScope}
     />
   );
 }

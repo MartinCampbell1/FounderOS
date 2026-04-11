@@ -1,32 +1,22 @@
-import { cookies } from "next/headers";
-
 import { ExecutionIntakeWorkspace } from "@/components/execution/execution-intake-workspace";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
-
-type ExecutionIntakeSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
 
 export default async function ExecutionIntakePage({
   searchParams,
 }: {
-  searchParams?: ExecutionIntakeSearchParams;
+  searchParams?: ShellPageSearchParams;
 }) {
-  const params = searchParams ? await searchParams : undefined;
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
+  const { routeScope, initialPreferences } =
+    await resolveShellRoutePageBootstrap(searchParams);
   return (
     <ExecutionIntakeWorkspace
-      initialPreferences={operatorControls.preferences}
+      initialPreferences={initialPreferences}
       initialSnapshot={null}
       requestedSessionId={null}
-      routeScope={readShellRouteScopeFromQueryRecord(params)}
+      routeScope={routeScope}
     />
   );
 }

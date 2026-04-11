@@ -14,6 +14,7 @@ import {
   ShellActionStateLabel,
   ShellComposerTextarea,
   ShellEmptyState,
+  ShellHero,
   ShellFilterChipLink,
   ShellLoadingState,
   ShellMetricCard,
@@ -25,6 +26,8 @@ import {
   ShellQueueSectionCard,
   ShellSelectionSummary,
   ShellSectionCard,
+  ShellScopeBadgeRow,
+  ShellToolbarSurface,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import {
@@ -34,6 +37,7 @@ import {
   ShellRecordCard,
   ShellRecordHeader,
   ShellRecordLinkButton,
+  ShellRecordMeta,
   ShellRecordSection,
   ShellRecordSelectionButton,
 } from "@/components/shell/shell-record-primitives";
@@ -223,7 +227,7 @@ function DiscoveryReviewBatchPanel({
       contentClassName="space-y-4"
     >
         <ShellSelectionSummary
-          className="bg-background/70"
+          className="bg-[color:var(--shell-control-bg)]/78"
           summary={
             <>
               Selected <span className="font-semibold text-foreground">{selectedCount}</span> of{" "}
@@ -444,7 +448,7 @@ function ReviewRecordCard({
       <ShellRecordBody>
         <ShellRecordSection
           title="Recommended action"
-          className="bg-[color:var(--shell-panel-muted)]/40"
+          className="bg-[color:var(--shell-control-bg)]/72"
         >
           <div className="text-[13px] leading-6 text-muted-foreground">
             {record.recommendedAction}
@@ -453,7 +457,7 @@ function ReviewRecordCard({
 
         <ShellRecordSection
           title="Operator action lane"
-          className="bg-[color:var(--shell-panel-muted)]/34"
+          className="bg-[color:var(--shell-control-bg)]/68"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-[12px] leading-5 text-muted-foreground">
@@ -512,6 +516,13 @@ function ReviewRecordCard({
           </ShellRecordActionBar>
         </ShellRecordSection>
 
+        <ShellRecordMeta>
+          <span>{record.chain?.project?.name || "unscoped project"}</span>
+          {record.chain?.intakeSession ? <span>{record.chain.intakeSession.title}</span> : null}
+          {record.chain?.briefId ? <span>brief {truncate(record.chain.briefId, 24)}</span> : null}
+          <span>{record.trace?.stepCount ?? 0} trace steps</span>
+        </ShellRecordMeta>
+
         <div className="grid gap-3 xl:grid-cols-3">
           <ShellRecordSection title="Authoring coverage">
             <div className="flex flex-wrap gap-2">
@@ -569,7 +580,7 @@ function ReviewRecordCard({
         {record.chain ? (
           <ShellRecordSection
             title="Execution-chain context"
-            className="bg-[color:var(--shell-panel-muted)]/32"
+            className="bg-[color:var(--shell-control-bg)]/64"
           >
             <div className="flex flex-wrap gap-2">
               <Badge tone="info">execution-chain context</Badge>
@@ -798,6 +809,23 @@ export function DiscoveryReviewWorkspace({
     () => buildDiscoveryReviewStatsFromRecords(routeScopedRecords),
     [routeScopedRecords]
   );
+  const reviewRouteLinks: Array<{
+    key: "all" | "authoring" | "trace" | "handoff" | "execution" | "linked" | "replay";
+    label: string;
+    count: number;
+  }> = [
+    { key: "all", label: "All", count: stats.totalCount },
+    { key: "authoring", label: "Authoring", count: stats.authoringCount },
+    { key: "trace", label: "Trace", count: stats.traceReviewCount },
+    { key: "handoff", label: "Handoff", count: stats.handoffReadyCount },
+    {
+      key: "execution",
+      label: "Execution",
+      count: stats.executionFollowthroughCount,
+    },
+    { key: "linked", label: "Linked", count: stats.linkedCount },
+    { key: "replay", label: "Replay", count: stats.replayLinkedCount },
+  ];
   const handleRememberCurrentFilter = useCallback(() => {
     updatePreferences({
       reviewMemory: updateRememberedReviewPass(
@@ -892,21 +920,42 @@ export function DiscoveryReviewWorkspace({
 
   return (
     <ShellPage>
-      <div className="flex items-center justify-end gap-2">
-        <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
-        <ShellFilterChipLink
-          href={buildDiscoveryAuthoringScopeHref(routeScope)}
-          label="Authoring queue"
-        />
-        <ShellFilterChipLink
-          href={buildDiscoveryBoardScopeHref(routeScope)}
-          label="Board"
-        />
-        <ShellFilterChipLink
-          href={buildReviewScopeHref(routeScope, "discovery")}
-          label="Review center"
-        />
-      </div>
+      <ShellHero
+        title="Discovery review"
+        description="Confirm, reopen, or hand off discovery records without leaving the shell-owned review lane."
+        meta={
+          <>
+            <span>{stats.totalCount} total</span>
+            <span>{filteredRecords.length} visible</span>
+            <span>{selectedRecords.length} selected</span>
+            <span>{stats.replayLinkedCount} replay-linked</span>
+          </>
+        }
+        actions={<ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />}
+      />
+
+      <ShellToolbarSurface>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ShellScopeBadgeRow
+            projectId={routeScope.projectId}
+            intakeSessionId={routeScope.intakeSessionId}
+            description={
+              scopeActive ? "Scoped discovery review lane" : "All discovery review records"
+            }
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ShellFilterChipLink
+              href={buildDiscoveryAuthoringScopeHref(routeScope)}
+              label="Authoring queue"
+            />
+            <ShellFilterChipLink href={buildDiscoveryBoardScopeHref(routeScope)} label="Board" />
+            <ShellFilterChipLink
+              href={buildReviewScopeHref(routeScope, "discovery")}
+              label="Review center"
+            />
+          </div>
+        </div>
+      </ShellToolbarSurface>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <ShellMetricCard
@@ -936,7 +985,7 @@ export function DiscoveryReviewWorkspace({
       </section>
 
       {snapshot.error ? (
-        <ShellStatusBanner tone="warning">{snapshot.error}</ShellStatusBanner>
+        <ShellStatusBanner tone="danger">{snapshot.error}</ShellStatusBanner>
       ) : null}
 
       {statusMessage ? (
@@ -957,22 +1006,15 @@ export function DiscoveryReviewWorkspace({
             searchPlaceholder="Filter by idea, trace, replay, project, intake, or recommended action"
             hint={scopeActive ? "scope" : "lane"}
             summary={`${filteredRecords.length} visible after filter`}
-            chips={[
-              ["all", "All"],
-              ["authoring", "Authoring"],
-              ["trace", "Trace"],
-              ["handoff", "Handoff"],
-              ["execution", "Execution"],
-              ["linked", "Linked"],
-              ["replay", "Replay"],
-            ].map(([key, label]) => (
+            chips={reviewRouteLinks.map(({ key, label, count }) => (
               <ShellFilterChipLink
                 key={key}
                 href={buildDiscoveryReviewScopeHref(
                   routeScope,
                   key === "all" ? null : key
                 )}
-                label={String(label ?? key ?? "")}
+                label={label}
+                count={count}
                 active={filter === key}
               />
             ))}

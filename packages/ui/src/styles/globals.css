@@ -26,8 +26,8 @@
 }
 
 :root {
-  --font-sans: "Geist", "Inter", system-ui, sans-serif;
-  --font-mono: "Geist Mono", "SFMono-Regular", ui-monospace, monospace;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-mono: "Berkeley Mono", "SFMono-Regular", ui-monospace, monospace;
   --font-size-micro: 11px;
   --font-size-mini: 12px;
   --font-size-small: 13px;
@@ -39,83 +39,88 @@
   --font-size-issue-title: 22px;
   --line-height-normal: 22px;
   --line-height-large: 28.8px;
-  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.09);
-  --shadow-button-strong: 0 1px 1px rgba(0, 0, 0, 0.15);
-  --shadow-tooltip: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-dropdown: 0 7px 32px rgba(0, 0, 0, 0.35);
-  --shadow-dropdown-soft: 0 4px 24px rgba(0, 0, 0, 0.2);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-button: 0 1px 1px rgba(0, 0, 0, 0.06);
+  --shadow-button-strong: 0 1px 1px rgba(0, 0, 0, 0.12);
+  --shadow-tooltip: 0 10px 20px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0 18px 36px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-dropdown-soft: 0 12px 24px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-elevated: 0 20px 44px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
   --radius-control: 8px;
   --background: #fcfcfd;
-  --foreground: #1b1b1b;
-  --card: #ffffff;
-  --card-foreground: #1b1b1b;
-  --popover: #ffffff;
-  --popover-foreground: #1b1b1b;
-  --primary: #5e6ad2;
+  --foreground: #23252a;
+  --card: #fbfbfb;
+  --card-foreground: #23252a;
+  --popover: #fbfbfb;
+  --popover-foreground: #23252a;
+  --primary: #5e69d1;
   --primary-foreground: #ffffff;
-  --secondary: #ececed;
-  --secondary-foreground: #1b1b1b;
-  --muted: #f6f6f7;
-  --muted-foreground: #70747c;
-  --accent: #5e6ad2;
+  --secondary: #f3f4f5;
+  --secondary-foreground: #23252a;
+  --muted: #f7f8f8;
+  --muted-foreground: #8a8f98;
+  --accent: #6d78d5;
   --accent-foreground: #ffffff;
   --destructive: #d9343f;
-  --border: #f0f0f0;
-  --input: #e6e6e7;
-  --ring: rgba(109, 120, 213, 0.35);
+  --border: #e6e6e6;
+  --input: #e0e0e0;
+  --ring: rgba(94, 105, 209, 0.32);
   --shell-sidebar-bg: #f5f5f5;
-  --shell-sidebar-border: #e8e8e8;
-  --shell-sidebar-foreground: #1b1b1b;
+  --shell-sidebar-border: #e0e0e0;
+  --shell-sidebar-foreground: #23252a;
   --shell-sidebar-muted: #8a8f97;
-  --shell-panel-muted: #f0f0f0;
-  --shell-panel-subtle: rgba(255, 255, 255, 0.92);
-  --shell-control-bg: #ffffff;
+  --shell-panel-muted: #f3f4f5;
+  --shell-panel-subtle: rgba(255, 255, 255, 0.9);
+  --shell-control-bg: #fbfbfb;
   --shell-control-border: #e0e0e0;
-  --shell-control-hover: rgba(0, 0, 0, 0.04);
-  --shell-control-muted: #9e9ea0;
-  --shell-nav-active: rgba(0, 0, 0, 0.06);
-  --shell-topbar-bg: rgba(252, 252, 253, 0.88);
-  --shell-topbar-border: #ebebeb;
+  --shell-control-hover: rgba(35, 37, 42, 0.035);
+  --shell-control-muted: #8a8f98;
+  --shell-nav-active: rgba(94, 105, 209, 0.08);
+  --shell-topbar-bg: rgba(252, 252, 253, 0.9);
+  --shell-topbar-border: #e0e0e0;
 }
 
 .dark {
   --background: #0f0f11;
-  --foreground: #ffffff;
+  --foreground: #f7f8f8;
   --card: #141516;
-  --card-foreground: #ffffff;
+  --card-foreground: #f7f8f8;
   --popover: #141516;
-  --popover-foreground: #ffffff;
-  --primary: #5e6ad2;
-  --primary-foreground: #fefeff;
+  --popover-foreground: #f7f8f8;
+  --primary: #5e69d1;
+  --primary-foreground: #f7f8f8;
   --secondary: #141516;
-  --secondary-foreground: #ffffff;
+  --secondary-foreground: #f7f8f8;
   --muted: #141516;
-  --muted-foreground: #8a8f97;
-  --accent: #6b75df;
-  --accent-foreground: #ffffff;
+  --muted-foreground: #8a8f98;
+  --accent: #6d78d5;
+  --accent-foreground: #f7f8f8;
   --destructive: #ff5b5d;
   --border: #1c1e21;
   --input: #252628;
-  --ring: rgba(94, 106, 210, 0.45);
+  --ring: rgba(94, 105, 209, 0.45);
   --shell-sidebar-bg: #090909;
   --shell-sidebar-border: #1c1e21;
-  --shell-sidebar-foreground: #e2e3e5;
-  --shell-sidebar-muted: #8a8f97;
+  --shell-sidebar-foreground: #f7f8f8;
+  --shell-sidebar-muted: #6b6f76;
   --shell-panel-muted: #141516;
-  --shell-panel-subtle: rgba(20, 21, 22, 0.92);
+  --shell-panel-subtle: rgba(20, 21, 22, 0.9);
   --shell-control-bg: #141516;
   --shell-control-border: #252628;
-  --shell-control-hover: #ffffff11;
-  --shell-control-muted: #545557;
-  --shell-nav-active: #ffffff11;
-  --shell-topbar-bg: rgba(15, 15, 17, 0.88);
+  --shell-control-hover: rgba(255, 255, 255, 0.06);
+  --shell-control-muted: #6b6f76;
+  --shell-nav-active: rgba(94, 105, 209, 0.18);
+  --shell-topbar-bg: rgba(15, 15, 17, 0.9);
   --shell-topbar-border: #1c1e21;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-button: 0 1px 1px rgba(0, 0, 0, 0.18);
+  --shadow-button-strong: 0 1px 1px rgba(0, 0, 0, 0.28);
+  --shadow-tooltip: 0 10px 20px rgba(0, 0, 0, 0.32);
+  --shadow-dropdown: 0 20px 42px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.24);
+  --shadow-dropdown-soft: 0 12px 24px rgba(0, 0, 0, 0.24);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-elevated: 0 20px 44px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.22);
 }
 
 @layer base {
@@ -140,7 +145,7 @@
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   /* Typography — heading font for strong hierarchy */

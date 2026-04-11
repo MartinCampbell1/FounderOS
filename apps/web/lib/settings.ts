@@ -427,7 +427,9 @@ export function buildShellSettingsSnapshot(
       },
     ],
     developerWorkflow: {
-      workspace: "/Users/martin/FounderOS",
+      workspace:
+        process.env.FOUNDEROS_WORKSPACE_ROOT ||
+        "<local FounderOS checkout>",
       commands: [
         {
           label: "Run the shell",

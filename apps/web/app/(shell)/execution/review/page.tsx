@@ -1,17 +1,9 @@
-import { cookies } from "next/headers";
-
 import { ExecutionReviewWorkspace } from "@/components/execution/execution-review-workspace";
 import { readExecutionReviewFilterFromQueryRecord } from "@/lib/execution-review-model";
 import {
   executionReviewFilterFromRememberedPass,
-  resolveRememberedReviewPass,
-  resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
-import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
+import { resolveReviewPageBootstrap } from "@/lib/review-page-bootstrap";
 
 type ExecutionReviewSearchParams = Promise<
   Record<string, string | string[] | undefined>
@@ -22,36 +14,21 @@ export default async function ExecutionReviewPage({
 }: {
   searchParams?: ExecutionReviewSearchParams;
 }) {
-  const params = searchParams ? await searchParams : undefined;
-  const routeScope = readShellRouteScopeFromQueryRecord(params);
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
-  const explicitFilter = Array.isArray(params?.filter) ? params?.filter[0] : params?.filter;
-  const preferredPass = resolveRememberedReviewPass(
-    operatorControls.preferences,
-    resolveReviewMemoryBucket({
-      scope: routeScope,
+  const bootstrap = await resolveReviewPageBootstrap({
+    searchParams,
+    memoryBucketArgs: {
       executionChainKinds: [],
-    })
-  );
-  const initialFilter = explicitFilter
-    ? readExecutionReviewFilterFromQueryRecord(params)
-    : executionReviewFilterFromRememberedPass(
-        preferredPass,
-        resolveReviewMemoryBucket({
-          scope: routeScope,
-          executionChainKinds: [],
-        })
-      );
+    },
+    readFilterFromQueryRecord: readExecutionReviewFilterFromQueryRecord,
+    rememberedPassToFilter: executionReviewFilterFromRememberedPass,
+  });
 
   return (
     <ExecutionReviewWorkspace
       initialSnapshot={null}
-      initialPreferences={operatorControls.preferences}
-      initialFilter={initialFilter}
-      routeScope={routeScope}
+      initialPreferences={bootstrap.initialPreferences}
+      initialFilter={bootstrap.initialFilter}
+      routeScope={bootstrap.routeScope}
     />
   );
 }

@@ -1,22 +1,21 @@
 "use client";
 
-import {
-  compareDiscoveryRankingPair,
-  swipeDiscoveryIdeaFromBoard,
-  type DiscoveryMutationEffect,
-} from "@/lib/discovery-mutations";
+import { type DiscoveryMutationEffect } from "@/lib/discovery-mutations";
 import type {
   QuorumDiscoveryIdea,
-  QuorumDiscoverySwipeAction,
   ShellPreferences,
 } from "@founderos/api-clients";
+import { Badge } from "@founderos/ui/components/badge";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
 import {
   ShellFilterChipLink,
+  ShellHero,
+  ShellMetricCard,
   ShellPage,
   ShellRefreshButton,
+  ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import type { ShellDiscoveryBoardSnapshot } from "@/lib/discovery-board";
 import { fetchShellDiscoveryBoardSnapshot } from "@/lib/shell-snapshot-client";
@@ -76,7 +75,6 @@ interface BoardColumn {
   readonly label: string;
   readonly description: string;
   readonly borderColor: string;
-  readonly badgeBg: string;
   readonly stages: readonly string[];
 }
 
@@ -86,7 +84,6 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Draft",
     description: "Raw ideas from discovery sessions",
     borderColor: "border-t-neutral-400",
-    badgeBg: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
     stages: ["sourced"],
   },
   {
@@ -94,7 +91,6 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Queued",
     description: "Ranked and ready for evaluation",
     borderColor: "border-t-blue-500",
-    badgeBg: "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     stages: ["ranked", "swiped"],
   },
   {
@@ -102,7 +98,6 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Simulated",
     description: "Market simulation completed",
     borderColor: "border-t-amber-500",
-    badgeBg: "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     stages: ["simulated"],
   },
   {
@@ -110,7 +105,6 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Debated",
     description: "Agent debate and analysis done",
     borderColor: "border-t-purple-500",
-    badgeBg: "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     stages: ["debated"],
   },
   {
@@ -118,7 +112,6 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Validated",
     description: "Ready for execution",
     borderColor: "border-t-green-500",
-    badgeBg: "bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300",
     stages: ["executed"],
   },
   {
@@ -126,10 +119,16 @@ const BOARD_COLUMNS: readonly BoardColumn[] = [
     label: "Handed off",
     description: "Moved to execution pipeline",
     borderColor: "border-t-indigo-500",
-    badgeBg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
     stages: ["handed_off"],
   },
 ] as const;
+
+function columnCount(
+  groups: ReadonlyMap<string, QuorumDiscoveryIdea[]>,
+  key: string,
+) {
+  return groups.get(key)?.length ?? 0;
+}
 
 function collectAllIdeas(snapshot: ShellDiscoveryBoardSnapshot): QuorumDiscoveryIdea[] {
   const seen = new Set<string>();
@@ -207,24 +206,31 @@ function BoardCard({
   return (
     <Link
       href={buildDiscoveryIdeaScopeHref(idea.idea_id, routeScope)}
-      className="group block rounded-lg border border-border/60 bg-card p-3 transition-shadow hover:shadow-sm"
+      className="group block rounded-[8px] border border-border/60 bg-[color:var(--shell-control-bg)] px-2.5 py-2 transition-colors hover:border-border/80 hover:bg-[color:var(--shell-control-hover)]"
     >
-      <div className="truncate text-[13px] font-medium leading-5 text-foreground group-hover:text-accent-foreground">
-        {idea.title}
-      </div>
-      <div className="mt-1.5 flex items-center gap-3 text-[12px] text-muted-foreground">
-        <span>Score: {idea.rank_score.toFixed(0)}</span>
-        <span>Belief: {idea.belief_score.toFixed(2)}</span>
+      <div className="space-y-1.5">
+        <div className="truncate text-[12px] font-medium leading-4 text-foreground">
+          {idea.title}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge tone="neutral" className="px-1.5 py-0 text-[10px] leading-4">
+            Score {idea.rank_score.toFixed(0)}
+          </Badge>
+          <Badge tone="neutral" className="px-1.5 py-0 text-[10px] leading-4">
+            Belief {idea.belief_score.toFixed(2)}
+          </Badge>
+        </div>
       </div>
       {idea.topic_tags.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1">
           {idea.topic_tags.slice(0, 3).map((tag) => (
-            <span
+            <Badge
               key={tag}
-              className="inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[11px] leading-tight text-muted-foreground"
+              tone="neutral"
+              className="px-1.5 py-0 text-[10px] leading-4"
             >
               {tag}
-            </span>
+            </Badge>
           ))}
         </div>
       ) : null}
@@ -246,22 +252,25 @@ function BoardColumnView({
   routeScope: DiscoveryBoardRouteScope;
 }) {
   return (
-    <div className="flex min-w-[160px] sm:min-w-[200px] max-w-[260px] shrink-0 flex-col">
+    <div className="flex min-w-[208px] sm:min-w-[232px] max-w-[296px] shrink-0 flex-col">
       <div
-        className={`rounded-t-lg border-t-2 ${column.borderColor} border-x border-border/40 bg-muted/30 px-3 py-2.5`}
+        className={`rounded-t-[10px] border-x border-t border-t-2 border-border/60 ${column.borderColor} bg-[color:var(--shell-control-bg)] px-3 py-2`}
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-medium text-foreground">
-            {column.label}
-          </span>
-          <span
-            className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-medium leading-none ${column.badgeBg}`}
-          >
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-0.5">
+            <span className="text-[12px] font-semibold tracking-tight text-foreground">
+              {column.label}
+            </span>
+            <p className="text-[10.5px] leading-4 text-muted-foreground">
+              {column.description}
+            </p>
+          </div>
+          <Badge tone="neutral" className="shrink-0 px-2 py-0.5 text-[10px] leading-4">
             {ideas.length}
-          </span>
+          </Badge>
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-b-lg border-x border-b border-border/40 bg-muted/10 p-2">
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto rounded-b-[10px] border-x border-b border-border/60 bg-background/55 p-2">
         {ideas.length > 0 ? (
           ideas.map((idea) => (
             <BoardCard
@@ -271,8 +280,13 @@ function BoardColumnView({
             />
           ))
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 p-4 text-center">
-            <span className="text-[11px] text-muted-foreground/60">{column.description}</span>
+          <div className="flex flex-1 flex-col justify-center rounded-[8px] border border-dashed border-border/60 bg-background/45 px-2.5 py-3">
+            <div className="text-[11px] font-medium text-foreground/80">
+              No ideas yet
+            </div>
+            <div className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
+              {column.description}
+            </div>
           </div>
         )}
       </div>
@@ -290,13 +304,10 @@ export function DiscoveryBoardWorkspace({
   routeScope?: DiscoveryBoardRouteScope;
 }) {
   const { preferences } = useShellPreferences(initialPreferences);
+  const hasRouteScope = Boolean(routeScope.projectId || routeScope.intakeSessionId);
   const {
-    busyActionKey,
-    errorMessage,
     refreshClient,
     refreshNonce,
-    runMutation,
-    statusMessage,
   } = useShellRouteMutationRunner<DiscoveryMutationEffect>({
     planes: ["discovery"],
     scope: routeScope,
@@ -337,81 +348,125 @@ export function DiscoveryBoardWorkspace({
     selectLoadState,
   });
 
-  const settingsTargetIdeaId = useMemo(
-    () =>
-      snapshot.nextPair?.left.idea.idea_id ||
-      snapshot.leaderboard?.items[0]?.idea.idea_id ||
-      snapshot.swipeQueue?.items[0]?.idea.idea_id ||
-      snapshot.simulationIdeas[0]?.idea_id ||
-      "",
-    [
-      snapshot.leaderboard,
-      snapshot.nextPair,
-      snapshot.simulationIdeas,
-      snapshot.swipeQueue,
-    ]
-  );
-
-  const handleCompare = useCallback(
-    (verdict: "left" | "right" | "tie") => {
-      const nextPair = snapshot.nextPair;
-      if (!nextPair) {
-        return;
-      }
-
-      void runMutation(`compare:${verdict}`, () =>
-        compareDiscoveryRankingPair({
-          leftIdeaId: nextPair.left.idea.idea_id,
-          rightIdeaId: nextPair.right.idea.idea_id,
-          verdict,
-          routeScope,
-          source: "discovery-board",
-        })
-      );
-    },
-    [routeScope, runMutation, snapshot.nextPair]
-  );
-
-  const handleSwipe = useCallback(
-    (ideaId: string, action: QuorumDiscoverySwipeAction) => {
-      void runMutation(`swipe:${ideaId}:${action}`, () =>
-        swipeDiscoveryIdeaFromBoard({
-          ideaId,
-          action,
-          routeScope,
-          source: "discovery-board",
-        })
-      );
-    },
-    [routeScope, runMutation]
-  );
-
   const allIdeas = useMemo(() => collectAllIdeas(snapshot), [snapshot]);
   const columnGroups = useMemo(() => groupIdeasByColumn(allIdeas), [allIdeas]);
-
-  const errors = [
-    ...snapshot.errors,
-    errorMessage ?? "",
-  ].filter(Boolean);
+  const columnCounts = useMemo(
+    () => ({
+      draft: columnCount(columnGroups, "draft"),
+      queued: columnCount(columnGroups, "queued"),
+      simulated: columnCount(columnGroups, "simulated"),
+      debated: columnCount(columnGroups, "debated"),
+      validated: columnCount(columnGroups, "validated"),
+      handed_off: columnCount(columnGroups, "handed_off"),
+    }),
+    [columnGroups]
+  );
+  const columnDescriptions = useMemo(
+    () =>
+      Object.fromEntries(
+        BOARD_COLUMNS.map((column) => [column.key, column.description])
+      ) as Record<string, string>,
+    []
+  );
+  const summaryMetrics = [
+    {
+      label: "Ideas",
+      value: `${allIdeas.length}`,
+      detail: hasRouteScope ? "Scoped board" : "Global board",
+    },
+    {
+      label: "Draft",
+      value: `${columnCounts.draft}`,
+      detail: columnDescriptions.draft,
+    },
+    {
+      label: "Queued",
+      value: `${columnCounts.queued}`,
+      detail: columnDescriptions.queued,
+    },
+    {
+      label: "Simulated",
+      value: `${columnCounts.simulated}`,
+      detail: columnDescriptions.simulated,
+    },
+    {
+      label: "Validated",
+      value: `${columnCounts.validated}`,
+      detail: columnDescriptions.validated,
+    },
+    {
+      label: "Handed off",
+      value: `${columnCounts.handed_off}`,
+      detail: columnDescriptions.handed_off,
+    },
+  ] as const;
 
   return (
-    <ShellPage className="max-w-[1400px]">
-      <div className="sticky top-11 z-10 -mx-6 flex items-center justify-between border-b border-border/40 bg-background/95 px-6 py-2 backdrop-blur-sm">
-        <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
-          <span>{allIdeas.length} ideas</span>
-          <span>{formatDate(snapshot.generatedAt)}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ShellFilterChipLink href={buildDiscoveryBoardRankingScopeHref(routeScope)} label="Ranking" />
-          <ShellFilterChipLink href={buildDiscoveryBoardArchiveScopeHref(routeScope)} label="Archive" />
-          <ShellFilterChipLink href={buildDiscoveryBoardFinalsScopeHref(routeScope)} label="Finals" />
-          <ShellFilterChipLink href={buildDiscoveryBoardSimulationsScopeHref(routeScope)} label="Simulations" />
+    <ShellPage className="max-w-[1400px] gap-3">
+      <ShellHero
+        title="Discovery board"
+        description="Rank, simulate, debate, and hand ideas off without leaving the board."
+        meta={
+          <>
+            <span>{allIdeas.length} ideas</span>
+            <span>{BOARD_COLUMNS.length} columns</span>
+            <span>{hasRouteScope ? "Scoped view" : "Global view"}</span>
+            <span>Updated {formatDate(snapshot.generatedAt)}</span>
+          </>
+        }
+        actions={
           <ShellRefreshButton type="button" onClick={() => refreshClient()} compact />
+        }
+      />
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+        {summaryMetrics.map((metric) => (
+          <ShellMetricCard
+            key={metric.label}
+            label={metric.label}
+            value={metric.value}
+            detail={metric.detail}
+          />
+        ))}
+      </div>
+
+      {snapshot.errors.length > 0 ? (
+        <ShellStatusBanner tone="warning">{snapshot.errors.join(" ")}</ShellStatusBanner>
+      ) : null}
+
+      <div className="sticky top-11 z-10 -mx-6 border-y border-border/50 bg-background/92 px-6 py-2 backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Board views
+            </span>
+            <ShellFilterChipLink
+              href={buildDiscoveryBoardRankingScopeHref(routeScope)}
+              label="Ranking"
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryBoardArchiveScopeHref(routeScope)}
+              label="Archive"
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryBoardFinalsScopeHref(routeScope)}
+              label="Finals"
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryBoardSimulationsScopeHref(routeScope)}
+              label="Simulations"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span>{snapshot.scoreboard ? "Observability live" : "Observability pending"}</span>
+            <span>•</span>
+            <span>{formatDate(snapshot.generatedAt)}</span>
+          </div>
         </div>
       </div>
 
       <div className="relative">
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-2.5 overflow-x-auto pb-4">
           {BOARD_COLUMNS.map((col) => (
             <BoardColumnView
               key={col.key}

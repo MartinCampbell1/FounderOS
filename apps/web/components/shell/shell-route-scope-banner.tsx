@@ -40,10 +40,10 @@ function ScopeActionLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-6 items-center justify-center gap-1.5 rounded-[4px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2.5 text-[12px] font-medium text-[color:var(--shell-control-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
+      className="inline-flex h-5 items-center gap-1 rounded-[4px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-2 text-[11px] font-medium tracking-[-0.01em] text-[color:var(--shell-control-muted)] transition-colors hover:bg-[color:var(--shell-control-hover)] hover:text-foreground"
     >
       {label}
-      <ArrowRight className="h-3.5 w-3.5" />
+      <ArrowRight className="h-3 w-3 opacity-70" />
     </Link>
   );
 }
@@ -70,57 +70,56 @@ export function ShellRouteScopeBanner({
   const resolvedIntakeLabel = (intakeLabel || scope?.intakeSessionId || "").trim();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-3">
-      <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="neutral">Route scope</Badge>
-            {scope?.projectId ? (
-              <Badge tone="neutral">project {resolvedProjectLabel}</Badge>
-            ) : null}
-            {scope?.intakeSessionId ? (
-              <Badge tone="info">intake {resolvedIntakeLabel}</Badge>
-            ) : null}
-          </div>
-          <div className="text-[12px] leading-5 text-muted-foreground">{description}</div>
+    <div className="flex flex-wrap items-start justify-between gap-3 rounded-[6px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)] px-3 py-2.5">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge tone="neutral">Route scope</Badge>
+          {scope?.projectId ? (
+            <Badge tone="neutral">project {resolvedProjectLabel}</Badge>
+          ) : null}
+          {scope?.intakeSessionId ? (
+            <Badge tone="info">intake {resolvedIntakeLabel}</Badge>
+          ) : null}
+        </div>
+        <div className="max-w-[64ch] text-[12px] leading-5 text-muted-foreground">
+          {description}
+        </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-          {showProjectLink && scope?.projectId ? (
-            <ScopeActionLink
-              href={buildExecutionProjectScopeHref(scope.projectId, scope)}
-              label="Open execution project"
-            />
-          ) : null}
-          {showIntakeLink && scope?.intakeSessionId ? (
-            <ScopeActionLink
-              href={buildExecutionIntakeScopeHref(scope.intakeSessionId, scope)}
-              label="Open intake session"
-            />
-          ) : null}
-          {showDashboardLink ? (
-            <ScopeActionLink
-              href={buildDashboardScopeHref(scope)}
-              label="Open scoped dashboard"
-            />
-          ) : null}
-          {showPortfolioLink ? (
-            <ScopeActionLink
-              href={buildPortfolioScopeHref(scope)}
-              label="Open scoped portfolio"
-            />
-          ) : null}
-          {showInboxLink ? (
-            <ScopeActionLink
-              href={buildInboxScopeHref(scope)}
-              label="Open scoped inbox"
-            />
-          ) : null}
-          {showSettingsLink ? (
-            <ScopeActionLink
-              href={settingsHref || buildSettingsScopeHref(scope)}
-              label="Open scoped settings"
-            />
-          ) : null}
-          <ScopeActionLink href={clearHref} label="Clear scope" />
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        {showProjectLink && scope?.projectId ? (
+          <ScopeActionLink
+            href={buildExecutionProjectScopeHref(scope.projectId, scope)}
+            label="Project"
+          />
+        ) : null}
+        {showIntakeLink && scope?.intakeSessionId ? (
+          <ScopeActionLink
+            href={buildExecutionIntakeScopeHref(scope.intakeSessionId, scope)}
+            label="Intake"
+          />
+        ) : null}
+        {showDashboardLink ? (
+          <ScopeActionLink
+            href={buildDashboardScopeHref(scope)}
+            label="Dashboard"
+          />
+        ) : null}
+        {showPortfolioLink ? (
+          <ScopeActionLink
+            href={buildPortfolioScopeHref(scope)}
+            label="Portfolio"
+          />
+        ) : null}
+        {showInboxLink ? (
+          <ScopeActionLink href={buildInboxScopeHref(scope)} label="Inbox" />
+        ) : null}
+        {showSettingsLink ? (
+          <ScopeActionLink
+            href={settingsHref || buildSettingsScopeHref(scope)}
+            label="Settings"
+          />
+        ) : null}
+        <ScopeActionLink href={clearHref} label="Clear scope" />
       </div>
     </div>
   );

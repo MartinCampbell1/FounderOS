@@ -12,7 +12,6 @@ import {
 import { Badge } from "@founderos/ui/components/badge";
 import { cn } from "@founderos/ui/lib/utils";
 import {
-  FolderOpen,
   GitBranch,
   MousePointerClick,
   Orbit,
@@ -39,10 +38,7 @@ import {
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import { SkeletonList } from "@/components/shell/shell-skeleton";
-import {
-  type LinkedShellChainRecord,
-  type ShellChainGraphStats,
-} from "@/lib/chain-graph";
+import { type LinkedShellChainRecord } from "@/lib/chain-graph";
 import {
   runDiscoverySessionAction,
   type DiscoveryMutationEffect,
@@ -52,10 +48,6 @@ import {
   resolveDiscoveryMutationBrief,
   resolveDiscoverySessionActionState,
 } from "@/lib/discovery-ui-state";
-import {
-  buildRememberedDiscoveryReviewScopeHref,
-  resolveReviewMemoryBucket,
-} from "@/lib/review-memory";
 import {
   resolveDiscoverySessionAutoOpenHref,
 } from "@/lib/shell-route-intents";
@@ -189,12 +181,6 @@ function readableAgentName(message: QuorumMessage) {
 
 function sanitizeMessage(text: string) {
   return text.replace(/\s+/g, " ").trim();
-}
-
-function clearDiscoveryScopeHref(activeSessionId: string | null) {
-  return activeSessionId
-    ? `/discovery/sessions/${encodeURIComponent(activeSessionId)}`
-    : "/discovery";
 }
 
 function useQuorumDiscoverySnapshot(
@@ -442,22 +428,14 @@ function useQuorumLiveSessionState(
 function DiscoverySessionsList({
   sessions,
   linkedIdeas,
-  chainStats,
   activeSessionId,
   loadState,
-  error,
-  chainsError,
-  reviewHref,
   routeScope,
 }: {
   sessions: QuorumSessionSummary[];
   linkedIdeas: LinkedShellChainRecord[];
-  chainStats: ShellChainGraphStats;
   activeSessionId: string | null;
   loadState: SessionLoadState;
-  error: string | null;
-  chainsError: string | null;
-  reviewHref: string;
   routeScope: DiscoveryRouteScope;
 }) {
   const [query, setQuery] = useState("");
@@ -475,27 +453,28 @@ function DiscoverySessionsList({
   }, [query, sessions]);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
-          Sessions{" "}
-          <span className="text-muted-foreground">{sessions.length}</span>
+    <div className="flex h-full flex-col rounded-xl border border-border/60 bg-card/70 shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
+        <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+          Sessions <span className="text-muted-foreground">{sessions.length}</span>
         </h3>
+        <span className="text-[12px] tabular-nums text-muted-foreground">
+          linked {linkedIdeas.length}
+        </span>
       </div>
 
-      {/* Search */}
-      <div className="mb-3">
-        <div className="flex h-8 items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
-          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <input
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter sessions..."
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
-          />
-        </div>
+      <div className="flex items-center gap-2 border-b border-border/60 bg-background/70 px-3 py-2">
+        <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Filter sessions..."
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground/60 outline-none"
+        />
+        <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
+          {filteredSessions.length}/{sessions.length}
+        </span>
       </div>
 
       {/* Session list */}
@@ -504,9 +483,7 @@ function DiscoverySessionsList({
           <SkeletonList rows={6} className="px-3" />
         ) : null}
 
-        {/* Errors handled silently — connection status shown via status dots */}
-
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/60">
           {filteredSessions.map((session) => {
             const isActive = session.id === activeSessionId;
             return (
@@ -514,8 +491,8 @@ function DiscoverySessionsList({
                 key={session.id}
                 href={buildDiscoverySessionScopeHref(session.id, routeScope)}
                 className={cn(
-                  "block px-2 py-3 transition-colors duration-100 hover:bg-[color:var(--shell-control-hover)]",
-                  isActive && "bg-[color:var(--shell-nav-active)]"
+                  "block border-l-2 border-transparent px-3 py-2.5 transition-colors duration-100 hover:border-border/70 hover:bg-[color:var(--shell-control-hover)]",
+                  isActive && "border-primary/60 bg-[color:var(--shell-nav-active)]"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -562,37 +539,42 @@ function DiscoveryConversation({
   );
 
   return (
-    <div>
-      <h3 className="mb-3 text-[13px] font-semibold tracking-tight text-foreground">
-        Conversation
-      </h3>
+    <section className="rounded-xl border border-border/60 bg-card/70 p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+          Conversation
+        </h3>
+        <span className="text-[12px] tabular-nums text-muted-foreground">
+          {visibleMessages.length}
+        </span>
+      </div>
       {visibleMessages.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-muted-foreground">
+        <div className="py-6 text-center text-[13px] text-muted-foreground">
           No readable messages are available yet.
         </div>
       ) : (
-        <div className="divide-y divide-border/50">
+        <div className="divide-y divide-border/60">
           {visibleMessages.map((message, index) => (
             <div
               key={`${message.agent_id}-${message.timestamp}-${index}`}
-              className="py-3"
+              className="py-2.5"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-foreground capitalize">
+                <span className="text-[12px] font-semibold text-foreground capitalize">
                   {readableAgentName(message)}
                 </span>
                 <span className="text-[12px] text-muted-foreground">
                   {formatDateTime(message.timestamp)}
                 </span>
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed text-foreground">
+              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
                 {message.content.trim()}
               </p>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -606,7 +588,7 @@ function DiscoveryTimeline({
   const visibleEvents = [...events].reverse();
 
   return (
-    <div>
+    <section className="rounded-xl border border-border/60 bg-card/70 p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
           Timeline
@@ -614,13 +596,16 @@ function DiscoveryTimeline({
         <Badge tone={streamTone(streamState)}>{streamLabel(streamState)}</Badge>
       </div>
       {visibleEvents.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-muted-foreground">
+        <div className="py-6 text-center text-[13px] text-muted-foreground">
           No runtime events are available yet.
         </div>
       ) : (
-        <div className="space-y-0">
+        <div className="space-y-2.5">
           {visibleEvents.map((event) => (
-            <div key={event.id} className="flex gap-3 py-2">
+            <div
+              key={event.id}
+              className="flex gap-3 rounded-lg border border-border/60 bg-background/70 p-3"
+            >
               <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-muted-foreground/30" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -632,12 +617,12 @@ function DiscoveryTimeline({
                   </span>
                 </div>
                 {event.title ? (
-                  <div className="mt-1 text-[13px] font-medium text-foreground">
+                  <div className="mt-1 text-[12px] font-medium text-foreground">
                     {event.title}
                   </div>
                 ) : null}
                 {event.detail ? (
-                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
                     {event.detail}
                   </p>
                 ) : null}
@@ -646,7 +631,7 @@ function DiscoveryTimeline({
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -809,10 +794,10 @@ function SessionControlsPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 rounded-xl border border-border/60 bg-card/70 p-4 shadow-sm">
       {/* Controls */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-1.5">
           {sessionActionState.isPaused ? (
             <ShellPillButton
               type="button"
@@ -866,7 +851,7 @@ function SessionControlsPanel({
         </div>
 
         {(sessionActionState.isPaused || sessionActionState.isTerminal) ? (
-          <div className="space-y-3">
+          <div className="space-y-2.5 rounded-lg border border-border/60 bg-background/70 p-3">
             <ShellComposerTextarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -877,7 +862,7 @@ function SessionControlsPanel({
               }
               className="min-h-[96px]"
             />
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {sessionActionState.isPaused ? (
                 <ShellPillButton
                   type="button"
@@ -923,14 +908,14 @@ function SessionControlsPanel({
       </div>
 
       {/* Execution handoff */}
-      <div className="space-y-3 border-t border-border pt-4">
-        <h4 className="text-[13px] font-semibold tracking-tight text-foreground">
+      <div className="space-y-3 border-t border-border/60 pt-3">
+        <h4 className="text-[12px] font-semibold tracking-tight text-foreground">
           Execution handoff
         </h4>
 
         {launchPresets.length > 0 ? (
-          <label className="block space-y-1.5">
-            <span className="text-[12px] text-muted-foreground">
+          <label className="block space-y-1">
+            <span className="text-[11px] text-muted-foreground">
               Launch mode
             </span>
             <ShellSelectField
@@ -946,7 +931,7 @@ function SessionControlsPanel({
           </label>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <ShellPillButton
             type="button"
             tone="outline"
@@ -1054,14 +1039,14 @@ function DiscoverySessionMonitor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-xl border border-border/60 bg-card/70 p-4 shadow-sm">
       {/* Session header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[15px] font-semibold text-foreground">
+          <h2 className="truncate text-[14px] font-semibold text-foreground">
             {session.task || session.id}
           </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
             <Badge tone="neutral">{session.mode}</Badge>
             <Badge tone={statusTone(session.status)}>{session.status}</Badge>
             <span>{formatRelativeTime(session.created_at)}</span>
@@ -1073,9 +1058,9 @@ function DiscoverySessionMonitor({
         <ShellRefreshButton type="button" onClick={onRefresh} busy={isRefreshing} />
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         {/* Left: Conversation + Timeline */}
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-4">
           <DiscoveryConversation messages={session.messages} />
           <DiscoveryTimeline events={events} streamState={streamState} />
         </div>
@@ -1103,18 +1088,8 @@ export function DiscoveryWorkspace({
   initialPreferences?: ShellPreferences;
   initialSnapshot?: ShellDiscoverySessionsSnapshot | null;
   routeScope?: DiscoveryRouteScope;
-}) {
+  }) {
   const router = useRouter();
-  const { preferences } = useShellPreferences(initialPreferences);
-  const reviewHref = useMemo(
-    () =>
-      buildRememberedDiscoveryReviewScopeHref({
-        scope: routeScope,
-        preferences,
-        bucket: resolveReviewMemoryBucket({ scope: routeScope }),
-      }),
-    [preferences, routeScope]
-  );
   const { isRefreshing, refresh, refreshNonce: manualRefreshNonce } = useShellManualRefresh();
   const { applyEffect, isPending, refreshNonce } =
     useShellRouteMutationRunner<DiscoveryMutationEffect>({
@@ -1151,15 +1126,12 @@ export function DiscoveryWorkspace({
   );
   const sessions = snapshot.sessions;
   const linkedIdeas = snapshot.linkedIdeas;
-  const chainStats = snapshot.chainStats;
   const sessionsState: SessionLoadState =
     snapshot.sessionsLoadState === "ready"
       ? "ready"
       : loadState === "loading" && sessions.length === 0
         ? "loading"
         : "error";
-  const sessionsError = snapshot.sessionsError;
-  const chainsError = snapshot.chainsError;
   const launchPresets = snapshot.launchPresets;
   const sessionState: SessionLoadState = activeSessionId
     ? snapshot.sessionLoadState === "ready"
@@ -1185,32 +1157,24 @@ export function DiscoveryWorkspace({
   }, [activeSessionId, routeScope, router, scopeActive, sessions]);
 
   return (
-    <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[1600px] gap-4 px-4 py-4 md:h-[calc(100vh-89px)] md:px-6">
-      <aside className="hidden min-h-0 w-[340px] shrink-0 lg:block">
+    <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[1600px] gap-3 px-3 py-3 md:h-[calc(100vh-89px)] md:px-4">
+      <aside className="hidden min-h-0 w-[320px] shrink-0 lg:block">
         <DiscoverySessionsList
           sessions={sessions}
           linkedIdeas={linkedIdeas}
-          chainStats={chainStats}
           activeSessionId={activeSessionId}
           loadState={sessionsState}
-          error={sessionsError}
-          chainsError={chainsError}
-          reviewHref={reviewHref}
           routeScope={routeScope}
         />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
         <div className="xl:hidden">
           <DiscoverySessionsList
             sessions={sessions}
             linkedIdeas={linkedIdeas}
-            chainStats={chainStats}
             activeSessionId={activeSessionId}
             loadState={sessionsState}
-            error={sessionsError}
-            chainsError={chainsError}
-            reviewHref={reviewHref}
             routeScope={routeScope}
           />
         </div>

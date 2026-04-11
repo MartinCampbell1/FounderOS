@@ -5,14 +5,16 @@ import type {
   ShellPreferences,
 } from "@founderos/api-clients";
 import { Badge } from "@founderos/ui/components/badge";
-import { cn } from "@founderos/ui/lib/utils";
-import { Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellEmptyState,
+  ShellHero,
   ShellLoadingState,
   ShellPage,
+  ShellMetricCard,
+  ShellSearchSectionCard,
+  ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import type { ShellDiscoveryTracesSnapshot } from "@/lib/discovery-history";
 import { fetchShellDiscoveryTracesSnapshot } from "@/lib/shell-snapshot-client";
@@ -74,25 +76,34 @@ function ObservationRow({ item }: { item: QuorumIdeaTraceBundle }) {
     : null;
 
   return (
-    <div className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0">
+    <div className="flex items-start gap-3 border-b border-border/50 px-4 py-2.5 transition-colors last:border-b-0 hover:bg-muted/30">
       <div className="mt-0.5 shrink-0">
         <Badge tone={tone}>{sourceLabel}</Badge>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-medium leading-5 text-foreground">
-          {item.title}
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <div className="text-[13px] font-medium leading-5 text-foreground">
+            {item.title}
+          </div>
+          <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+            {item.steps.length} steps
+          </span>
         </div>
         {truncated ? (
-          <div className="mt-0.5 truncate text-[12px] leading-5 text-muted-foreground">
+          <div className="truncate text-[12px] leading-5 text-muted-foreground">
             {truncated}
           </div>
         ) : null}
-      </div>
-      {relativeTime ? (
-        <div className="shrink-0 text-[12px] text-muted-foreground">
-          {relativeTime}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <span>{item.latest_stage}</span>
+          {relativeTime ? (
+            <>
+              <span>·</span>
+              <span>{relativeTime}</span>
+            </>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -157,38 +168,82 @@ export function DiscoveryTracesWorkspace({
         )
     );
   }, [query, traceItems]);
+  const traceStats = useMemo(
+    () => ({
+      totalCount: traceItems.length,
+      executedCount: traceItems.filter((item) => item.latest_stage === "executed").length,
+      handoffCount: traceItems.filter((item) => item.latest_stage === "handed_off").length,
+      simulatedCount: traceItems.filter(
+        (item) => item.latest_stage === "simulated" || item.latest_stage === "debated"
+      ).length,
+    }),
+    [traceItems]
+  );
 
   return (
     <ShellPage>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search observations..."
-          className={cn(
-            "h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
-          )}
-        />
-      </div>
+      <ShellHero
+        title="Discovery traces"
+        description="Search the latest observation bundle, then inspect the trace surface for the current idea."
+        meta={
+          <>
+            <span>{traceStats.totalCount} observations</span>
+            <span>{traceStats.executedCount} executed</span>
+            <span>{traceStats.handoffCount} handed off</span>
+            <span>{traceStats.simulatedCount} simulated or debated</span>
+          </>
+        }
+      />
 
-      <div className="rounded-lg border border-border">
+      {snapshot.errors.length > 0 ? (
+        <ShellStatusBanner tone="danger">{snapshot.errors.join(" ")}</ShellStatusBanner>
+      ) : null}
+
+      <section className="grid gap-3 md:grid-cols-4">
+        <ShellMetricCard
+          label="Observations"
+          value={String(traceStats.totalCount)}
+          detail="Trace bundles visible in the current discovery slice."
+        />
+        <ShellMetricCard
+          label="Executed"
+          value={String(traceStats.executedCount)}
+          detail="Signals that already crossed into execution."
+        />
+        <ShellMetricCard
+          label="Handed off"
+          value={String(traceStats.handoffCount)}
+          detail="Observations that left discovery review."
+        />
+        <ShellMetricCard
+          label="Simulated"
+          value={String(traceStats.simulatedCount)}
+          detail="Debated or simulated trace bundles."
+        />
+      </section>
+
+      <ShellSearchSectionCard
+        title="Trace observations"
+        description="Search the latest observation bundle and review the source trail."
+        actions={<Badge tone="info">{filteredItems.length}</Badge>}
+        searchValue={query}
+        onSearchChange={(e) => setQuery(e.target.value)}
+        searchPlaceholder="Search observations..."
+        className="rounded-[8px] border border-[color:var(--shell-control-border)] bg-[color:var(--shell-control-bg)]/72"
+        contentClassName="space-y-0"
+      >
         {loadState === "loading" && traceItems.length === 0 ? (
-          <div className="px-4 py-6">
+          <div className="px-1 py-3">
             <ShellLoadingState description="Loading research observations..." />
           </div>
         ) : filteredItems.length > 0 ? (
-          filteredItems.map((item) => (
-            <ObservationRow key={item.idea_id} item={item} />
-          ))
+          filteredItems.map((item) => <ObservationRow key={item.idea_id} item={item} />)
         ) : (
-          <div className="px-4 py-6">
+          <div className="px-1 py-3">
             <ShellEmptyState description="No observations yet. Run a research scan to discover insights." />
           </div>
         )}
-      </div>
+      </ShellSearchSectionCard>
     </ShellPage>
   );
 }

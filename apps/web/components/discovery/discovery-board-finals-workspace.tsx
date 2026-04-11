@@ -411,7 +411,7 @@ export function DiscoveryBoardFinalsWorkspace({
     effectiveSelectedIds.includes(item.idea.idea_id)
   );
   const ballots = buildShellFinalsBallots(selectedFinalists);
-  const errors =[...snapshot.errors, errorMessage ?? ""].filter(Boolean);
+  const errors = [...snapshot.errors, errorMessage ?? ""].filter(Boolean);
 
   function toggleCandidate(ideaId: string) {
     setSelectedCandidateIds((current) => {
@@ -472,71 +472,110 @@ export function DiscoveryBoardFinalsWorkspace({
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       ) : null}
 
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Shortlist
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {leaderboardItems.length} ranked ideas
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {selectedFinalists.length} selected · {ballots.length} ballots staged
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Resolution
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {selectedFinalists.length >= 2 ? "Ready to resolve" : "Select at least two"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {selectedFinalists.length >= 2
+              ? "Ballots will preserve verdict flow."
+              : "Ballots stay disabled until there is enough signal."}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Review
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {routeScope.projectId || routeScope.intakeSessionId
+              ? "Scoped finals"
+              : "Unscoped finals"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Review memory and board links stay intact.
+          </div>
+        </div>
+      </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
         <ShellSectionCard
           title="Finalists shortlist"
-          contentClassName="space-y-3"
+          contentClassName="space-y-2"
         >
-            {leaderboardItems.length ? (
-              leaderboardItems.map((item) => (
-                <FinalsCandidateCard
-                  key={item.idea.idea_id}
-                  item={item}
-                  selected={effectiveSelectedIds.includes(item.idea.idea_id)}
-                  onToggle={toggleCandidate}
-                  routeScope={routeScope}
-                />
-              ))
-            ) : (
-              <ShellEmptyState description="Ranking candidates are not available yet." />
-            )}
+          {leaderboardItems.length ? (
+            leaderboardItems.map((item) => (
+              <FinalsCandidateCard
+                key={item.idea.idea_id}
+                item={item}
+                selected={effectiveSelectedIds.includes(item.idea.idea_id)}
+                onToggle={toggleCandidate}
+                routeScope={routeScope}
+              />
+            ))
+          ) : (
+            <ShellEmptyState description="Ranking candidates are not available yet." />
+          )}
         </ShellSectionCard>
 
         <ShellSectionCard
           title="Shell finals ballots"
-          contentClassName="space-y-4"
+          contentClassName="space-y-3"
         >
-            <div className="space-y-3">
-              {ballots.length ? (() => {
-                const finalistsById = new Map(selectedFinalists.map((item) => [item.idea.idea_id, item.idea.title]));
-                return ballots.map((ballot) => (
-                  <ShellRecordCard key={ballot.voter_id}>
-                    <ShellRecordHeader
-                      title={ballot.judge_model}
-                      description={ballot.ranked_idea_ids.map((id) => finalistsById.get(id) ?? id.slice(0, 8)).join(" -> ")}
-                      accessory={
-                        <ShellRecordAccessory
-                          label="Weight"
-                          value={ballot.weight.toFixed(2)}
-                        />
-                      }
-                    />
-                    <ShellRecordBody>
-                      <ShellRecordMeta>
-                        <span>{ballot.voter_id}</span>
-                        <span>{ballot.judge_source}</span>
-                        <span>{ballot.confidence?.toFixed(2) ?? "n/a"} confidence</span>
-                      </ShellRecordMeta>
-                    </ShellRecordBody>
-                  </ShellRecordCard>
-                ));
-              })() : (
-                <ShellEmptyState description="Select at least two finalists to generate shell ballots." />
-              )}
-            </div>
-            <ShellPillButton
-              type="button"
-              tone="primary"
-              disabled={Boolean(busyActionKey) || selectedFinalists.length < 2}
-              onClick={handleResolve}
-            >
-              <ShellActionStateLabel
-                busy={busyActionKey === "finals:resolve"}
-                idleLabel="Resolve finals in shell"
-                busyLabel="Resolve finals in shell"
-              />
-            </ShellPillButton>
+          <div className="space-y-3">
+            {ballots.length ? (() => {
+              const finalistsById = new Map(selectedFinalists.map((item) => [item.idea.idea_id, item.idea.title]));
+              return ballots.map((ballot) => (
+                <ShellRecordCard key={ballot.voter_id}>
+                  <ShellRecordHeader
+                    title={ballot.judge_model}
+                    description={ballot.ranked_idea_ids.map((id) => finalistsById.get(id) ?? id.slice(0, 8)).join(" -> ")}
+                    accessory={
+                      <ShellRecordAccessory
+                        label="Weight"
+                        value={ballot.weight.toFixed(2)}
+                      />
+                    }
+                  />
+                  <ShellRecordBody>
+                    <ShellRecordMeta>
+                      <span>{ballot.voter_id}</span>
+                      <span>{ballot.judge_source}</span>
+                      <span>{ballot.confidence?.toFixed(2) ?? "n/a"} confidence</span>
+                    </ShellRecordMeta>
+                  </ShellRecordBody>
+                </ShellRecordCard>
+              ));
+            })() : (
+              <ShellEmptyState description="Select at least two finalists to generate shell ballots." />
+            )}
+          </div>
+          <ShellPillButton
+            type="button"
+            tone="primary"
+            disabled={Boolean(busyActionKey) || selectedFinalists.length < 2}
+            onClick={handleResolve}
+          >
+            <ShellActionStateLabel
+              busy={busyActionKey === "finals:resolve"}
+              idleLabel="Resolve finals in shell"
+              busyLabel="Resolve finals in shell"
+            />
+          </ShellPillButton>
         </ShellSectionCard>
       </section>
 

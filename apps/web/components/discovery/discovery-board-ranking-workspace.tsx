@@ -8,7 +8,6 @@ import type {
   QuorumRankedIdeaRecord,
   ShellPreferences,
 } from "@founderos/api-clients";
-import { cn } from "@founderos/ui/lib/utils";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
@@ -27,7 +26,6 @@ import {
   buildRememberedDiscoveryReviewScopeHref,
   resolveReviewMemoryBucket,
 } from "@/lib/review-memory";
-import { safeFormatDate } from "@/lib/format-utils";
 import { fetchShellDiscoveryRankingSnapshot } from "@/lib/shell-snapshot-client";
 import {
   getShellPollInterval,
@@ -63,8 +61,37 @@ const EMPTY_DISCOVERY_RANKING_SNAPSHOT: ShellDiscoveryRankingSnapshot = {
   loadState: "ready",
 };
 
-function formatDate(value?: string | null) {
-  return safeFormatDate(value, "n/a");
+function formatMetricValue(value?: number | null, digits = 0) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "n/a";
+  }
+
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  });
+}
+
+function MetricTile({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 text-[13px] font-medium text-foreground">{value}</div>
+      <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+        {detail}
+      </div>
+    </div>
+  );
 }
 
 function LeaderboardTable({
@@ -84,20 +111,20 @@ function LeaderboardTable({
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-[13px]">
         <thead>
-          <tr className="border-b border-border">
-            <th className="w-10 pb-2 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <tr className="border-b border-border/70">
+            <th className="w-10 pb-2.5 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               #
             </th>
-            <th className="pb-2 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <th className="pb-2.5 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Idea
             </th>
-            <th className="w-24 pb-2 pr-4 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <th className="w-24 pb-2.5 pr-4 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Score
             </th>
-            <th className="w-16 pb-2 pr-4 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <th className="w-16 pb-2.5 pr-4 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Wins
             </th>
-            <th className="w-20 pb-2 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <th className="w-20 pb-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Matches
             </th>
           </tr>
@@ -126,13 +153,13 @@ function LeaderboardRow({
   const href = buildDiscoveryIdeaScopeHref(item.idea.idea_id, routeScope);
 
   return (
-    <tr className="group border-b border-border last:border-0 hover:bg-muted/40">
-      <td className="py-2.5 pr-4 align-middle">
+    <tr className="group border-b border-border/70 last:border-0 hover:bg-muted/30">
+      <td className="py-2 pr-4 align-middle">
         <span className="font-medium tabular-nums text-muted-foreground">
           {item.rank_position}
         </span>
       </td>
-      <td className="py-2.5 pr-4 align-middle">
+      <td className="py-2 pr-4 align-middle">
         <Link
           href={href}
           className="block max-w-[480px] truncate font-medium text-foreground hover:text-foreground/80"
@@ -140,18 +167,18 @@ function LeaderboardRow({
           {item.idea.title}
         </Link>
         {item.idea.summary || item.idea.thesis ? (
-          <p className="mt-0.5 max-w-[480px] truncate text-[12px] text-muted-foreground">
+          <p className="mt-0.5 max-w-[480px] truncate text-[12px] leading-5 text-muted-foreground">
             {item.idea.summary ?? item.idea.thesis}
           </p>
         ) : null}
       </td>
-      <td className="py-2.5 pr-4 text-right align-middle tabular-nums text-foreground">
+      <td className="py-2 pr-4 text-right align-middle tabular-nums text-foreground">
         {Math.round(item.rating).toLocaleString()}
       </td>
-      <td className="py-2.5 pr-4 text-right align-middle tabular-nums text-foreground">
+      <td className="py-2 pr-4 text-right align-middle tabular-nums text-foreground">
         {item.wins}
       </td>
-      <td className="py-2.5 text-right align-middle tabular-nums text-muted-foreground">
+      <td className="py-2 text-right align-middle tabular-nums text-muted-foreground">
         {item.matches_played}
       </td>
     </tr>
@@ -175,9 +202,9 @@ function NextPairPanel({
     <ShellSectionCard
       title="Compare next pair"
       description={nextPair.reason}
-      contentClassName="space-y-4"
+      contentClassName="space-y-4 pt-0"
       actions={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {(
             [
               ["left", "Left wins"],
@@ -203,19 +230,30 @@ function NextPairPanel({
         </div>
       }
     >
+      <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+        <span>Utility {nextPair.utility_score.toFixed(2)}</span>
+        <span>·</span>
+        <span>{nextPair.direct_comparisons} direct comparisons</span>
+        <span>·</span>
+        <span>Pool {nextPair.candidate_pool_size}</span>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         {[nextPair.left, nextPair.right].map((item, index) => (
           <div
             key={`${item.idea.idea_id}:${index}`}
-            className="rounded-md border border-border p-3"
+            className="rounded-[10px] border border-border/70 bg-muted/20 p-3"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {index === 0 ? "Left" : "Right"}
+                </div>
                 <p className="truncate text-[13px] font-medium text-foreground">
                   {item.idea.title}
                 </p>
                 {item.idea.summary || item.idea.thesis ? (
-                  <p className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">
+                  <p className="mt-0.5 line-clamp-2 text-[12px] leading-5 text-muted-foreground">
                     {item.idea.summary ?? item.idea.thesis}
                   </p>
                 ) : null}
@@ -224,9 +262,12 @@ function NextPairPanel({
                 #{item.rank_position}
               </span>
             </div>
-            <div className="mt-2 flex items-center gap-3 text-[12px] text-muted-foreground">
+            <div className="mt-2 flex flex-wrap gap-2 text-[12px] text-muted-foreground">
               <span>{Math.round(item.rating).toLocaleString()} pts</span>
-              <span>{item.wins}W–{item.losses}L</span>
+              <span>·</span>
+              <span>
+                {item.wins}W–{item.losses}L
+              </span>
             </div>
           </div>
         ))}
@@ -325,15 +366,30 @@ export function DiscoveryBoardRankingWorkspace({
   );
 
   const metrics = snapshot.leaderboard?.metrics;
-  const settingsTargetIdeaId = useMemo(
-    () =>
-      snapshot.nextPair?.left.idea.idea_id ||
-      snapshot.leaderboard?.items[0]?.idea.idea_id ||
-      "",
-    [snapshot.leaderboard, snapshot.nextPair]
-  );
   const errors = [...snapshot.errors, errorMessage ?? ""].filter(Boolean);
   const leaderboardItems = snapshot.leaderboard?.items ?? [];
+  const leaderboardMetricTiles = [
+    {
+      label: "Comparisons",
+      value: formatMetricValue(metrics?.comparisons_count),
+      detail: "Total pairwise votes.",
+    },
+    {
+      label: "Unique pairs",
+      value: formatMetricValue(metrics?.unique_pairs),
+      detail: "Distinct pairs covered.",
+    },
+    {
+      label: "Reliability",
+      value: formatMetricValue(metrics?.reliability_weighted, 2),
+      detail: "Weighted confidence.",
+    },
+    {
+      label: "Stability",
+      value: formatMetricValue(metrics?.rank_stability, 2),
+      detail: "Order consistency.",
+    },
+  ];
 
   return (
     <ShellPage className="max-w-[1600px]">
@@ -370,8 +426,25 @@ export function DiscoveryBoardRankingWorkspace({
         onCompare={handleCompare}
       />
 
-      <ShellSectionCard title="Leaderboard">
-        <LeaderboardTable items={leaderboardItems} routeScope={routeScope} />
+      <ShellSectionCard
+        title="Leaderboard"
+        description={`${leaderboardItems.length} ideas · ${formatMetricValue(metrics?.comparisons_count)} comparisons`}
+        contentClassName="space-y-3 pt-0"
+      >
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {leaderboardMetricTiles.map((tile) => (
+            <MetricTile
+              key={tile.label}
+              label={tile.label}
+              value={tile.value}
+              detail={tile.detail}
+            />
+          ))}
+        </div>
+
+        <div className="overflow-hidden rounded-[10px] border border-border/70 bg-card">
+          <LeaderboardTable items={leaderboardItems} routeScope={routeScope} />
+        </div>
       </ShellSectionCard>
 
     </ShellPage>

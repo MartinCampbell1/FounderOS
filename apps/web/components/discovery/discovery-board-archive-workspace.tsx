@@ -425,134 +425,169 @@ export function DiscoveryBoardArchiveWorkspace({
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       ) : null}
 
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Frontier
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {archiveableIdeas.length} archive candidates
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {archive?.cells.length ?? 0} cells and {archive?.checkpoints.length ?? 0} checkpoints
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Filed
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {archivedIdeaCount} archived ideas
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Archive semantics and mutation flow stay intact.
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-card/60 px-4 py-3 shadow-sm shadow-black/5 dark:bg-card/40">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Review
+          </div>
+          <div className="mt-2 text-sm font-medium text-foreground">
+            {selectedIdea ? selectedIdea.title : "Select an idea"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Archive note and dossier links are ready below.
+          </div>
+        </div>
+      </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <ShellSectionCard
           title="Archive frontier"
-          contentClassName="grid gap-4"
+          contentClassName="grid gap-3"
         >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-3">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Occupied niches
-                </div>
-                {archive?.cells.length ? (
-                  archive.cells.slice(0, 8).map((cell) => (
-                    <ArchiveCellRow
-                      key={cell.cell_id}
-                      cell={cell}
-                      routeScope={routeScope}
-                    />
-                  ))
-                ) : (
-                  <ShellEmptyState description="Archive cells are not available yet." />
-                )}
-              </div>
-              <div className="space-y-3">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Generation checkpoints
-                </div>
-                {archive?.checkpoints.length ? (
-                  archive.checkpoints.slice(0, 8).map((item) => (
-                    <CheckpointRow key={item.checkpoint_id} item={item} />
-                  ))
-                ) : (
-                  <ShellEmptyState description="Archive checkpoints are not available yet." />
-                )}
-              </div>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-3">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Prompt profiles
-                </div>
-                {archive?.prompt_profiles.length ? (
-                  archive.prompt_profiles.slice(0, 6).map((profile) => (
-                    <PromptProfileRow key={profile.profile_id} profile={profile} />
-                  ))
-                ) : (
-                  <ShellEmptyState description="No prompt evolution profiles have landed yet." />
-                )}
-              </div>
-              <div className="space-y-3">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Archive recommendations
-                </div>
-                {archive?.recommendations.length ? (
-                  archive.recommendations.slice(0, 6).map((item) => (
-                    <ShellRecordCard key={item.recommendation_id}>
-                      <ShellRecordHeader
-                        title={item.headline}
-                        description={item.description}
-                      />
-                      <ShellRecordBody>
-                        <ShellRecordSection title="Target axes">
-                          <div className="flex flex-wrap gap-2">
-                            {Object.entries(item.target_axes)
-                              .slice(0, 3)
-                              .map(([label, value]) => (
-                                <Badge key={`${item.recommendation_id}:${label}`} tone="neutral">
-                                  {label}: {String(value)}
-                                </Badge>
-                              ))}
-                          </div>
-                        </ShellRecordSection>
-                      </ShellRecordBody>
-                    </ShellRecordCard>
-                  ))
-                ) : (
-                  <ShellEmptyState description="No archive recommendations are visible yet." />
-                )}
-              </div>
-            </div>
-        </ShellSectionCard>
-
-        <ShellSectionCard
-          title="Archive candidate"
-          contentClassName="space-y-4"
-        >
+          <div className="grid gap-3 lg:grid-cols-2">
             <div className="space-y-3">
-              {archiveableIdeas.length ? (
-                archiveableIdeas.slice(0, 8).map((idea) => (
-                  <ArchiveCandidateRow
-                    key={idea.idea_id}
-                    idea={idea}
-                    selected={idea.idea_id === selectedIdeaId}
-                    onSelect={setArchiveIdeaId}
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Occupied niches
+              </div>
+              {archive?.cells.length ? (
+                archive.cells.slice(0, 8).map((cell) => (
+                  <ArchiveCellRow
+                    key={cell.cell_id}
+                    cell={cell}
                     routeScope={routeScope}
                   />
                 ))
               ) : (
-                <ShellEmptyState description="No active discovery ideas are ready to archive yet." />
+                <ShellEmptyState description="Archive cells are not available yet." />
               )}
             </div>
-            <ShellRecordSection title="Archive note" className="p-4">
-              <div className="space-y-3">
-                <ShellComposerTextarea
-                  value={archiveReason}
-                  onChange={(event) => setArchiveReason(event.target.value)}
-                  placeholder="Why should this idea move into the archive frontier?"
-                  className="min-h-[104px]"
-                />
-                <ShellInputField
-                  value={supersededByIdeaId}
-                  onChange={(event) => setSupersededByIdeaId(event.target.value)}
-                  placeholder="Optional superseded by idea id"
-                />
-                <ShellPillButton
-                  type="button"
-                  tone="primary"
-                  disabled={Boolean(busyActionKey) || !selectedIdea}
-                  onClick={handleArchive}
-                >
-                  <ShellActionStateLabel
-                    busy={Boolean(busyActionKey)}
-                    idleLabel="Archive selected idea"
-                    busyLabel="Archive selected idea"
-                  />
-                </ShellPillButton>
+            <div className="space-y-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Generation checkpoints
               </div>
-            </ShellRecordSection>
+              {archive?.checkpoints.length ? (
+                archive.checkpoints.slice(0, 8).map((item) => (
+                  <CheckpointRow key={item.checkpoint_id} item={item} />
+                ))
+              ) : (
+                <ShellEmptyState description="Archive checkpoints are not available yet." />
+              )}
+            </div>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="space-y-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Prompt profiles
+              </div>
+              {archive?.prompt_profiles.length ? (
+                archive.prompt_profiles.slice(0, 6).map((profile) => (
+                  <PromptProfileRow key={profile.profile_id} profile={profile} />
+                ))
+              ) : (
+                <ShellEmptyState description="No prompt evolution profiles have landed yet." />
+              )}
+            </div>
+            <div className="space-y-3">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Archive recommendations
+              </div>
+              {archive?.recommendations.length ? (
+                archive.recommendations.slice(0, 6).map((item) => (
+                  <ShellRecordCard key={item.recommendation_id}>
+                    <ShellRecordHeader
+                      title={item.headline}
+                      description={item.description}
+                    />
+                    <ShellRecordBody>
+                      <ShellRecordSection title="Target axes">
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(item.target_axes)
+                            .slice(0, 3)
+                            .map(([label, value]) => (
+                              <Badge key={`${item.recommendation_id}:${label}`} tone="neutral">
+                                {label}: {String(value)}
+                              </Badge>
+                            ))}
+                        </div>
+                      </ShellRecordSection>
+                    </ShellRecordBody>
+                  </ShellRecordCard>
+                ))
+              ) : (
+                <ShellEmptyState description="No archive recommendations are visible yet." />
+              )}
+            </div>
+          </div>
+        </ShellSectionCard>
+
+        <ShellSectionCard
+          title="Archive candidate"
+          contentClassName="space-y-3"
+        >
+          <div className="space-y-3">
+            {archiveableIdeas.length ? (
+              archiveableIdeas.slice(0, 8).map((idea) => (
+                <ArchiveCandidateRow
+                  key={idea.idea_id}
+                  idea={idea}
+                  selected={idea.idea_id === selectedIdeaId}
+                  onSelect={setArchiveIdeaId}
+                  routeScope={routeScope}
+                />
+              ))
+            ) : (
+              <ShellEmptyState description="No active discovery ideas are ready to archive yet." />
+            )}
+          </div>
+          <ShellRecordSection title="Archive note" className="p-3">
+            <div className="space-y-3">
+              <ShellComposerTextarea
+                value={archiveReason}
+                onChange={(event) => setArchiveReason(event.target.value)}
+                placeholder="Why should this idea move into the archive frontier?"
+                className="min-h-[96px]"
+              />
+              <ShellInputField
+                value={supersededByIdeaId}
+                onChange={(event) => setSupersededByIdeaId(event.target.value)}
+                placeholder="Optional superseded by idea id"
+              />
+              <ShellPillButton
+                type="button"
+                tone="primary"
+                disabled={Boolean(busyActionKey) || !selectedIdea}
+                onClick={handleArchive}
+              >
+                <ShellActionStateLabel
+                  busy={Boolean(busyActionKey)}
+                  idleLabel="Archive selected idea"
+                  busyLabel="Archive selected idea"
+                />
+              </ShellPillButton>
+            </div>
+          </ShellRecordSection>
         </ShellSectionCard>
       </section>
 

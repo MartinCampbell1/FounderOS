@@ -19,15 +19,15 @@ body {
 }
 
 ::selection {
-  background: rgba(94, 106, 210, 0.18);
+  background: rgba(94, 105, 209, 0.16);
 }
 .dark ::selection {
-  background: rgba(94, 106, 210, 0.35);
+  background: rgba(94, 105, 209, 0.28);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(107, 111, 118, 0.38) transparent;
+  scrollbar-color: rgba(107, 111, 118, 0.32) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -49,8 +49,9 @@ body {
 .shell-sidebar-panel {
   width: var(--shell-sidebar-width);
   border-color: var(--shell-sidebar-border);
-  background: linear-gradient(180deg, var(--shell-sidebar-bg) 0%, color-mix(in srgb, var(--shell-sidebar-bg) 97%, var(--shell-sidebar-border)) 100%);
-  transition: width 200ms ease;
+  background: linear-gradient(180deg, var(--shell-sidebar-bg) 0%, color-mix(in srgb, var(--shell-sidebar-bg) 95%, var(--shell-sidebar-border)) 100%);
+  overflow: hidden;
+  transition: width 220ms cubic-bezier(0.2, 0, 0, 1), background-color 180ms ease, border-color 180ms ease;
 }
 
 @media (min-width: 768px) {
@@ -66,23 +67,25 @@ body {
 /* Nav item premium hover */
 .shell-nav-item {
   position: relative;
-  transition: all 150ms ease;
+  border-radius: 8px;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .shell-nav-item:hover {
-  background: var(--shell-control-hover);
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
 }
 
 .shell-nav-item[data-active="true"] {
   background: var(--shell-nav-active);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 .shell-nav-item[data-active="true"]::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 25%;
-  height: 50%;
+  top: 22%;
+  height: 56%;
   width: 2px;
   border-radius: 0 2px 2px 0;
   background: var(--primary);
@@ -110,29 +113,31 @@ body {
 
 /* Refined section spacing */
 .shell-section + .shell-section {
-  margin-top: 32px;
+  margin-top: 28px;
 }
 
 /* Page title — strong section header with heading font */
 .shell-page-title {
   font-family: var(--font-heading, var(--font-sans));
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   color: var(--foreground);
 }
 
 /* Subtle dividers */
 .shell-divider {
-  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
 }
 
 /* Section headers — stronger than body text */
 .shell-section-header {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--foreground);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-sidebar-muted);
 }
 
 /* Accent link — uses primary color on hover */
@@ -164,18 +169,19 @@ body {
 
 /* Surface ramp — background → panel → card → elevated */
 .shell-surface-panel {
-  background: color-mix(in srgb, var(--background) 97%, var(--border));
+  background: color-mix(in srgb, var(--background) 96%, var(--border));
 }
 
 .shell-surface-card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
   border-radius: 8px;
+  box-shadow: var(--shadow-card);
 }
 
 .shell-surface-elevated {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
   border-radius: 8px;
   box-shadow: var(--shadow-elevated);
 }

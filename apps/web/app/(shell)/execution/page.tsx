@@ -1,34 +1,23 @@
-import { cookies } from "next/headers";
-
 import { ExecutionWorkspace } from "@/components/execution/execution-workspace";
-import { readShellRouteScopeFromQueryRecord } from "@/lib/route-scope";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
-} from "@/lib/shell-preferences-contract";
-
-type ExecutionSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
 
 export default async function ExecutionPage({
   searchParams,
 }: {
-  searchParams?: ExecutionSearchParams;
+  searchParams?: ShellPageSearchParams;
 }) {
-  const params = searchParams ? await searchParams : undefined;
-  const routeScope = readShellRouteScopeFromQueryRecord(params);
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
-  );
+  const { routeScope, initialPreferences } =
+    await resolveShellRoutePageBootstrap(searchParams);
   const activeProjectId = routeScope.projectId || null;
 
   return (
     <ExecutionWorkspace
       activeProjectId={activeProjectId}
       initialSnapshot={null}
-      initialPreferences={operatorControls.preferences}
+      initialPreferences={initialPreferences}
       routeScope={routeScope}
     />
   );

@@ -1,5 +1,5 @@
 import type {
-  QuorumIdeaDossier,
+  QuorumIdeaDossierSummary,
   QuorumIdeaTraceBundle,
   QuorumSessionSummary,
 } from "@founderos/api-clients";
@@ -42,7 +42,7 @@ export interface ShellDiscoveryReviewRecord {
   priority: number;
   reason: string;
   recommendedAction: string;
-  dossier: QuorumIdeaDossier;
+  dossier: QuorumIdeaDossierSummary;
   chain: LinkedShellChainRecord | null;
   trace: ShellDiscoveryReviewTraceSummary | null;
   searchText: string;
@@ -126,7 +126,7 @@ function needsTraceReview(trace: ShellDiscoveryReviewTraceSummary | null) {
 }
 
 function deriveReviewKind(args: {
-  dossier: QuorumIdeaDossier;
+  dossier: QuorumIdeaDossierSummary;
   chain: LinkedShellChainRecord | null;
   trace: ShellDiscoveryReviewTraceSummary | null;
 }): {
@@ -181,7 +181,7 @@ function reviewPriority(args: {
   recordKind: ShellDiscoveryReviewKind;
   chain: LinkedShellChainRecord | null;
   trace: ShellDiscoveryReviewTraceSummary | null;
-  dossier: QuorumIdeaDossier;
+  dossier: QuorumIdeaDossierSummary;
 }) {
   const kindBase =
     args.recordKind === "authoring"
@@ -208,7 +208,7 @@ function reviewPriority(args: {
 }
 
 function buildSearchText(args: {
-  dossier: QuorumIdeaDossier;
+  dossier: QuorumIdeaDossierSummary;
   chain: LinkedShellChainRecord | null;
   trace: ShellDiscoveryReviewTraceSummary | null;
   reason: string;

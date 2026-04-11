@@ -1,4 +1,4 @@
-import type { QuorumIdeaDossier } from "@founderos/api-clients";
+import type { QuorumIdeaDossierSummary } from "@founderos/api-clients";
 import type { LinkedShellChainRecord } from "@/lib/chain-graph";
 import type { ShellChainGraphSnapshotData } from "@/lib/chain-graph-data";
 
@@ -10,7 +10,7 @@ import {
 
 export interface ShellDiscoveryAuthoringQueueRecord {
   key: string;
-  dossier: QuorumIdeaDossier;
+  dossier: QuorumIdeaDossierSummary;
   authoring: ShellDiscoveryAuthoringSummary;
   chain: LinkedShellChainRecord | null;
   priority: number;
@@ -57,7 +57,7 @@ function stagePriority(stage: string) {
 }
 
 function buildAuthoringPriority(
-  dossier: QuorumIdeaDossier,
+  dossier: QuorumIdeaDossierSummary,
   authoring: ShellDiscoveryAuthoringSummary,
   chain: LinkedShellChainRecord | null
 ) {
@@ -70,7 +70,7 @@ function buildAuthoringPriority(
 }
 
 function buildSearchText(
-  dossier: QuorumIdeaDossier,
+  dossier: QuorumIdeaDossierSummary,
   authoring: ShellDiscoveryAuthoringSummary,
   chain: LinkedShellChainRecord | null
 ) {

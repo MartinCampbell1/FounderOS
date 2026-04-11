@@ -1,36 +1,36 @@
-import { cookies } from "next/headers";
-
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
 import { buildShellParityAuditSnapshot } from "@/lib/shell-parity-audit";
 import { buildShellParityTargetsSnapshot } from "@/lib/shell-parity-targets";
 import {
+  resolveShellRoutePageBootstrap,
+  type ShellPageSearchParams,
+} from "@/lib/shell-route-page-bootstrap";
+import {
   normalizeShellRouteScope,
   normalizeShellSettingsParityTargets,
-  readShellRouteScopeFromQueryRecord,
   readShellSettingsParityTargetsFromQueryRecord,
 } from "@/lib/route-scope";
 import { buildShellContractAuditSnapshot } from "@/lib/shell-contract-audit";
 import { buildShellRuntimeSnapshot } from "@/lib/runtime";
 import {
-  resolveShellOperatorPreferencesSnapshot,
-  SHELL_PREFERENCES_COOKIE_NAME,
+  buildShellOperatorPreferencesSnapshot,
 } from "@/lib/shell-preferences-contract";
 
-type SettingsSearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
+type SettingsSearchParams = ShellPageSearchParams;
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams?: SettingsSearchParams;
 }) {
-  const params = searchParams ? await searchParams : undefined;
-  const routeScope = readShellRouteScopeFromQueryRecord(params);
-  const parityTargets = readShellSettingsParityTargetsFromQueryRecord(params);
-  const cookieStore = await cookies();
-  const operatorControls = resolveShellOperatorPreferencesSnapshot(
-    cookieStore.get(SHELL_PREFERENCES_COOKIE_NAME)?.value
+  const bootstrap = await resolveShellRoutePageBootstrap(searchParams);
+  const routeScope = bootstrap.routeScope;
+  const parityTargets = readShellSettingsParityTargetsFromQueryRecord(
+    bootstrap.query
+  );
+  const operatorControls = buildShellOperatorPreferencesSnapshot(
+    bootstrap.initialPreferences,
+    "cookie"
   );
   const [
     initialRuntimeSnapshot,

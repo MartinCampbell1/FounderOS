@@ -8,14 +8,18 @@ import { Orbit } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
-  ShellEmptyState,
+  ShellHero,
   ShellFilterChipButton,
   ShellFilterChipLink,
   ShellLoadingState,
+  ShellMetricCard,
   ShellPage,
   ShellQueueSectionCard,
   ShellRefreshButton,
   ShellRefreshStateCard,
+  ShellScopeBadgeRow,
+  ShellSelectionEmptyState,
+  ShellToolbarSurface,
   ShellStatusBanner,
 } from "@/components/shell/shell-screen-primitives";
 import {
@@ -76,16 +80,6 @@ const EMPTY_DISCOVERY_AUTHORING_QUEUE_SNAPSHOT: ShellDiscoveryAuthoringQueueSnap
   error: null,
   loadState: "ready",
 };
-
-function formatDate(value?: string | null) {
-  if (!value) return "n/a";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
 
 function formatRelativeTime(value?: string | null) {
   if (!value) return "";
@@ -166,23 +160,22 @@ function AuthoringQueueRow({
     scopedRoute
   );
   const time = formatRelativeTime(record.authoring.lastUpdatedAt);
+  const attentionCount = record.chain?.attention?.total ?? 0;
 
   return (
-    <div className="flex items-start gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40">
-      {/* Status dot */}
+    <div className="grid grid-cols-[12px_minmax(0,1fr)_auto] gap-x-3 gap-y-1 border-b border-border/50 px-4 py-2 transition-colors last:border-b-0 hover:bg-muted/30">
       <div className="mt-1.5 flex-none">
         <span
           className={cn(
-            "block h-2 w-2 rounded-full",
+            "block h-2 w-2 rounded-full ring-2 ring-background",
             statusDotClass(record.authoring.status)
           )}
           title={record.authoring.status}
         />
       </div>
 
-      {/* Main content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={authoringHref}
             className="text-[13px] font-medium leading-5 text-foreground hover:underline"
@@ -190,35 +183,63 @@ function AuthoringQueueRow({
             {record.dossier.idea.title}
           </Link>
           {record.authoring.gaps.length > 0 ? (
-            <span className="shrink-0 text-[11px] text-muted-foreground">
-              missing:{" "}
-              {record.authoring.gaps
-                .map(discoveryAuthoringGapLabel)
-                .join(", ")}
+            <span className="shrink-0 text-[11px] text-muted-foreground/80">
+              missing {record.authoring.gaps.map(discoveryAuthoringGapLabel).join(", ")}
             </span>
           ) : null}
         </div>
-        <div className="mt-0.5 flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+          <span className="font-mono text-[10px] text-foreground/70">
             idea_{record.dossier.idea.idea_id}
           </span>
-          {record.authoring.gaps.map((gap) => (
-            <span
-              key={gap}
-              className="rounded border border-border/60 px-1.5 py-px text-[10px] text-muted-foreground"
-            >
-              {discoveryAuthoringGapLabel(gap)}
-            </span>
-          ))}
+          <span>·</span>
+          <Badge tone={record.authoring.gapCount > 0 ? "warning" : "success"} className="h-5 px-1.5 text-[10px] uppercase tracking-[0.08em]">
+            {record.authoring.status}
+          </Badge>
+          {record.chain ? (
+            <>
+              <span>·</span>
+              <span>chain-linked</span>
+            </>
+          ) : null}
+          {attentionCount > 0 ? (
+            <>
+              <span>·</span>
+              <span>{attentionCount} attention</span>
+            </>
+          ) : null}
+          {time ? (
+            <>
+              <span>·</span>
+              <span>{time}</span>
+            </>
+          ) : null}
         </div>
+        {record.authoring.gaps.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {record.authoring.gaps.map((gap) => (
+              <Badge
+                key={gap}
+                tone="neutral"
+                className="h-5 px-1.5 text-[10px] uppercase tracking-[0.08em]"
+              >
+                {discoveryAuthoringGapLabel(gap)}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
       </div>
 
-      {/* Time */}
-      {time ? (
-        <div className="flex-none pt-0.5 text-[12px] text-muted-foreground">
-          {time}
+      <div className="flex flex-none flex-col items-end gap-1 pt-0.5 text-right">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/60">
+          {record.authoring.gapCount > 0 ? "needs work" : "ready"}
         </div>
-      ) : null}
+        <div>
+          <Badge tone={record.authoring.gapCount > 0 ? "warning" : "success"}>
+            {record.authoring.gapCount > 0 ? "needs work" : "ready"}
+          </Badge>
+        </div>
+      </div>
     </div>
   );
 }
@@ -301,25 +322,104 @@ export function DiscoveryAuthoringQueueWorkspace({
     () => buildScopedStats(routeScopedRecords),
     [routeScopedRecords]
   );
+
+  const filterOptions: Array<{ key: AuthoringFilter; label: string; count: number }> = [
+    { key: "needs_work", label: "Needs work", count: scopedStats.needsWorkCount },
+    { key: "all", label: "All", count: scopedStats.totalCount },
+    { key: "ready", label: "Ready", count: scopedStats.readyCount },
+    { key: "linked", label: "Chain-linked", count: scopedStats.linkedCount },
+    {
+      key: "attention",
+      label: "Attention",
+      count: scopedStats.attentionLinkedCount,
+    },
+    {
+      key: "evidence",
+      label: "Evidence",
+      count: scopedStats.evidenceGapCount,
+    },
+    {
+      key: "validation",
+      label: "Validation",
+      count: scopedStats.validationGapCount,
+    },
+    {
+      key: "decision",
+      label: "Decision",
+      count: scopedStats.decisionGapCount,
+    },
+    {
+      key: "timeline",
+      label: "Timeline",
+      count: scopedStats.timelineGapCount,
+    },
+  ];
+
   return (
     <ShellPage>
-      <div className="flex items-center justify-end gap-2">
-        <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />
-        <ShellFilterChipLink href={buildDiscoveryIdeasScopeHref(routeScope)} label="Ideas" />
-        <ShellFilterChipLink href={buildDiscoveryBoardScopeHref(routeScope)} label="Board" />
-        <ShellFilterChipLink
-          href={buildRememberedDiscoveryReviewScopeHref({
-            scope: routeScope,
-            preferences,
-            bucket: resolveReviewMemoryBucket({ scope: routeScope }),
-          })}
-          label="Review"
-        />
-      </div>
+      <ShellHero
+        title="Discovery authoring queue"
+        description="Finish dossiers before they move into review. Keep the queue narrow by closing evidence, validation, decision, and timeline gaps."
+        meta={
+          <>
+            <span>{scopedStats.totalCount} total</span>
+            <span>{scopedStats.needsWorkCount} need work</span>
+            <span>{scopedStats.readyCount} ready</span>
+            <span>{scopedStats.attentionLinkedCount} attention-linked</span>
+          </>
+        }
+        actions={<ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} />}
+      />
 
+      <ShellToolbarSurface>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ShellScopeBadgeRow
+            projectId={routeScope.projectId}
+            intakeSessionId={routeScope.intakeSessionId}
+            description={
+              scopeActive ? "Scoped authoring lane" : "All discovery dossiers in the queue"
+            }
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ShellFilterChipLink href={buildDiscoveryIdeasScopeHref(routeScope)} label="Ideas" />
+            <ShellFilterChipLink href={buildDiscoveryBoardScopeHref(routeScope)} label="Board" />
+            <ShellFilterChipLink
+              href={buildRememberedDiscoveryReviewScopeHref({
+                scope: routeScope,
+                preferences,
+                bucket: resolveReviewMemoryBucket({ scope: routeScope }),
+              })}
+              label="Review"
+            />
+          </div>
+        </div>
+      </ShellToolbarSurface>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <ShellMetricCard
+          label="Need work"
+          value={String(scopedStats.needsWorkCount)}
+          detail="Records still missing required dossier coverage."
+        />
+        <ShellMetricCard
+          label="Ready"
+          value={String(scopedStats.readyCount)}
+          detail="Dossiers with complete authoring coverage."
+        />
+        <ShellMetricCard
+          label="Chain-linked"
+          value={String(scopedStats.linkedCount)}
+          detail="Authoring records tied back to execution context."
+        />
+        <ShellMetricCard
+          label="Attention linked"
+          value={String(scopedStats.attentionLinkedCount)}
+          detail="Linked chains with active attention pressure."
+        />
+      </section>
 
       {snapshot.error ? (
-        <ShellStatusBanner tone="warning">{snapshot.error}</ShellStatusBanner>
+        <ShellStatusBanner tone="danger">{snapshot.error}</ShellStatusBanner>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -332,21 +432,12 @@ export function DiscoveryAuthoringQueueWorkspace({
             searchPlaceholder="Filter by idea, stage, gap, project, intake, or brief"
             hint={scopeActive ? "scope" : "queue"}
             summary={`${filteredRecords.length} visible after filter`}
-            chips={[
-              ["needs_work", "Needs work"],
-              ["all", "All"],
-              ["ready", "Ready"],
-              ["linked", "Chain-linked"],
-              ["attention", "Attention"],
-              ["evidence", "Evidence"],
-              ["validation", "Validation"],
-              ["decision", "Decision"],
-              ["timeline", "Timeline"],
-            ].map(([key, label]) => (
+            chips={filterOptions.map(({ key, label, count }) => (
               <ShellFilterChipButton
                 key={key}
-                onClick={() => setFilter(key as AuthoringFilter)}
-                label={String(label ?? key ?? "")}
+                onClick={() => setFilter(key)}
+                label={label}
+                count={count}
                 active={filter === key}
               />
             ))}
@@ -364,10 +455,12 @@ export function DiscoveryAuthoringQueueWorkspace({
               ))}
 
               {loadState !== "loading" && filteredRecords.length === 0 ? (
-                <ShellEmptyState
-                  centered
+                <ShellSelectionEmptyState
+                  title="Queue clear"
                   description="All dossiers have complete coverage. No authoring work needed."
-                  className="py-10"
+                  icon={<Orbit className="h-5 w-5" />}
+                  className="py-6"
+                  minHeightClassName="min-h-[220px]"
                 />
               ) : null}
           </ShellQueueSectionCard>

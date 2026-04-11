@@ -29,8 +29,10 @@ import {
   ShellComposerTextarea,
   ShellEmptyState,
   ShellFilterChipLink,
+  ShellHero,
   ShellInputField,
   ShellListLink,
+  ShellMetricCard,
   ShellPage,
   ShellPillButton,
   ShellRefreshButton,
@@ -193,8 +195,9 @@ function IdeaRail({
       actions={<Badge tone="info">{ideas.length} total</Badge>}
       searchValue={query}
       onSearchChange={(event) => setQuery(event.target.value)}
-      searchPlaceholder="Filter ideas"
-      contentClassName="space-y-3"
+      searchPlaceholder="Search title, stage, or tag"
+      description="Tight rail for fast jumps between ideas."
+      contentClassName="space-y-2"
     >
         {filteredIdeas.length ? (
           filteredIdeas.slice(0, 18).map((idea) => {
@@ -203,11 +206,25 @@ function IdeaRail({
               <ShellListLink
                 key={idea.idea_id}
                 href={buildDiscoveryIdeaAuthoringScopeHref(idea.idea_id, routeScope)}
-                className={active ? "border-primary/35 bg-[color:var(--shell-nav-active)]" : undefined}
+                className={`space-y-2 py-2.5 ${
+                  active ? "border-primary/35 bg-[color:var(--shell-nav-active)]" : ""
+                }`}
               >
-                <div className="text-sm font-semibold text-foreground">{idea.title}</div>
-                <div className="mt-1 text-xs leading-6 text-muted-foreground">
-                  {idea.idea_id} · {idea.latest_stage} · {formatDate(idea.updated_at)}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-foreground">{idea.title}</div>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {idea.topic_tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} tone="neutral">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge tone={stageTone(idea.latest_stage)}>{idea.latest_stage}</Badge>
+                </div>
+                <div className="text-xs leading-5 text-muted-foreground">
+                  {idea.idea_id} · {formatDate(idea.updated_at)}
                 </div>
               </ShellListLink>
             );
@@ -246,44 +263,43 @@ function LinkedChainPanel({
   return (
     <ShellSectionCard
       title="Cross-plane context"
+      description="Keep this idea pinned to its linked execution path."
       contentClassName="space-y-3"
     >
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="info">{chain.briefId}</Badge>
-          {chain.project ? (
-            <Badge tone="success">{chain.project.status}</Badge>
-          ) : (
-            <Badge tone="warning">No project yet</Badge>
-          )}
-          {chain.outcome ? (
-            <Badge tone="neutral">{chain.outcome.status}</Badge>
-          ) : null}
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <ShellListLink href={buildPortfolioScopeHref(scopedRoute)}>
-            <div className="text-sm font-medium text-foreground">Open scoped portfolio</div>
+      <div className="flex flex-wrap gap-2">
+        <Badge tone="info">{chain.briefId}</Badge>
+        {chain.project ? (
+          <Badge tone="success">{chain.project.status}</Badge>
+        ) : (
+          <Badge tone="warning">No project yet</Badge>
+        )}
+        {chain.outcome ? <Badge tone="neutral">{chain.outcome.status}</Badge> : null}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <ShellListLink href={buildPortfolioScopeHref(scopedRoute)}>
+          <div className="text-sm font-medium text-foreground">Open scoped portfolio</div>
+        </ShellListLink>
+        <ShellListLink href={buildInboxScopeHref(scopedRoute)}>
+          <div className="text-sm font-medium text-foreground">Open scoped inbox</div>
+        </ShellListLink>
+        {chain.project ? (
+          <ShellListLink href={buildExecutionProjectScopeHref(chain.project.id, scopedRoute)}>
+            <div className="text-sm font-medium text-foreground">Open execution project</div>
           </ShellListLink>
-          <ShellListLink href={buildInboxScopeHref(scopedRoute)}>
-            <div className="text-sm font-medium text-foreground">Open scoped inbox</div>
+        ) : null}
+        {chain.intakeSession ? (
+          <ShellListLink href={buildExecutionIntakeScopeHref(chain.intakeSession.id, scopedRoute)}>
+            <div className="text-sm font-medium text-foreground">Open intake session</div>
           </ShellListLink>
-          {chain.project ? (
-            <ShellListLink href={buildExecutionProjectScopeHref(chain.project.id, scopedRoute)}>
-              <div className="text-sm font-medium text-foreground">Open execution project</div>
-            </ShellListLink>
-          ) : null}
-          {chain.intakeSession ? (
-            <ShellListLink href={buildExecutionIntakeScopeHref(chain.intakeSession.id, scopedRoute)}>
-              <div className="text-sm font-medium text-foreground">Open intake session</div>
-            </ShellListLink>
-          ) : null}
-          <ShellListLink
-            href={buildSettingsScopeHref(scopedRoute, {
-              discoveryIdeaId: chain.idea.idea_id,
-            })}
-          >
-            <div className="text-sm font-medium text-foreground">Open scoped settings</div>
-          </ShellListLink>
-        </div>
+        ) : null}
+        <ShellListLink
+          href={buildSettingsScopeHref(scopedRoute, {
+            discoveryIdeaId: chain.idea.idea_id,
+          })}
+        >
+          <div className="text-sm font-medium text-foreground">Open scoped settings</div>
+        </ShellListLink>
+      </div>
     </ShellSectionCard>
   );
 }
@@ -293,31 +309,108 @@ function CurrentDossierPanel({
 }: {
   dossier: QuorumIdeaDossier;
 }) {
+  const evidenceItems = dossier.evidence_bundle?.items ?? [];
+  const latestDecision = dossier.decisions[0] ?? null;
+  const latestValidation = dossier.validation_reports[0] ?? null;
+  const latestTimelineEvent = dossier.timeline[0] ?? null;
+  const latestOutcome = dossier.execution_outcomes[0] ?? null;
+  const summary =
+    dossier.idea.summary || dossier.idea.thesis || dossier.idea.description || "No summary recorded.";
+
   return (
     <ShellSectionCard
       title="Current dossier state"
-      contentClassName="space-y-3 text-sm leading-7 text-muted-foreground"
+      description="Live summary of the selected idea, its confidence, and the authoring footprint."
+      contentClassName="space-y-3"
     >
+      <ShellSubtlePanel className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Selected idea
+            </div>
+            <div className="mt-1 text-[15px] font-semibold text-foreground">{dossier.idea.title}</div>
+            <p className="mt-2 max-w-[72ch] text-sm leading-7 text-muted-foreground">
+              {truncate(summary, 240)}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {dossier.idea.topic_tags.slice(0, 4).map((tag) => (
+                <Badge key={tag} tone="neutral">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Badge tone={stageTone(dossier.idea.latest_stage)}>{dossier.idea.latest_stage}</Badge>
+              <Badge tone="neutral">{percent(dossier.idea.rank_score)} rank</Badge>
+              <Badge tone="neutral">{percent(dossier.idea.belief_score)} belief</Badge>
+              <Badge tone="info">{dossier.evidence_bundle?.overall_confidence ?? "medium"} evidence</Badge>
+            </div>
+            <div className="text-[11px] leading-5 text-muted-foreground">
+              Updated {formatDate(dossier.evidence_bundle?.updated_at ?? dossier.idea.updated_at)}
+            </div>
+          </div>
+        </div>
+      </ShellSubtlePanel>
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <ShellMetricCard
+          label="Observations"
+          value={String(dossier.observations.length)}
+          detail="Captured notes"
+        />
+        <ShellMetricCard
+          label="Evidence"
+          value={String(evidenceItems.length)}
+          detail={`Bundle ${dossier.evidence_bundle?.overall_confidence ?? "medium"}`}
+        />
+        <ShellMetricCard
+          label="Validations"
+          value={String(dossier.validation_reports.length)}
+          detail={latestValidation ? latestValidation.verdict : "No reports yet"}
+        />
+        <ShellMetricCard
+          label="Decisions"
+          value={String(dossier.decisions.length)}
+          detail={latestDecision ? latestDecision.decision_type : "No decisions yet"}
+        />
+        <ShellMetricCard
+          label="Timeline"
+          value={String(dossier.timeline.length)}
+          detail={latestTimelineEvent ? formatDate(latestTimelineEvent.created_at) : "No events yet"}
+        />
+        <ShellMetricCard
+          label="Outcomes"
+          value={String(dossier.execution_outcomes.length)}
+          detail={latestOutcome ? latestOutcome.status : "No execution outcomes"}
+        />
+      </div>
+
+      {latestDecision ? (
         <ShellSubtlePanel className="p-4">
-          <div className="font-medium text-foreground">{dossier.idea.title}</div>
-          <div className="mt-2">{truncate(dossier.idea.summary || dossier.idea.thesis || dossier.idea.description)}</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge tone={stageTone(dossier.idea.latest_stage)}>{dossier.idea.latest_stage}</Badge>
-            <Badge tone="neutral">{percent(dossier.idea.rank_score)} rank</Badge>
-            <Badge tone="neutral">{percent(dossier.idea.belief_score)} belief</Badge>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Latest decision
+              </div>
+              <div className="mt-2 text-sm font-medium text-foreground">
+                {latestDecision.decision_type}
+              </div>
+              <div className="mt-1 text-sm leading-7 text-muted-foreground">
+                {truncate(latestDecision.rationale || "", 160)}
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <Badge tone="neutral">{latestDecision.actor}</Badge>
+              <span className="text-[11px] text-muted-foreground">
+                {formatDate(latestDecision.created_at)}
+              </span>
+            </div>
           </div>
         </ShellSubtlePanel>
-        {dossier.decisions.length ? (
-          <ShellSubtlePanel className="p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              Latest decision
-            </div>
-            <div className="mt-2 font-medium text-foreground">
-              {dossier.decisions[0]?.decision_type}
-            </div>
-            <div className="mt-1">{truncate(dossier.decisions[0]?.rationale || "")}</div>
-          </ShellSubtlePanel>
-        ) : null}
+      ) : null}
     </ShellSectionCard>
   );
 }
@@ -721,30 +814,56 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
   return (
     <ShellPage>
-      <div className="flex items-center justify-end gap-2">
-        <ShellRefreshButton
-          type="button"
-          onClick={() => refreshClient()}
-          icon={<TimerReset className="h-4 w-4" />}
-        />
-        <ShellFilterChipLink
-          href={buildDiscoveryIdeaScopeHref(activeIdeaId, chainRouteScope)}
-          label="Dossier"
-        />
-        <ShellFilterChipLink
-          href={buildDiscoveryBoardScopeHref(chainRouteScope)}
-          label="Board"
-        />
-        <ShellFilterChipLink
-          href={buildDiscoveryAuthoringScopeHref(chainRouteScope)}
-          label="Queue"
-        />
-        <ShellFilterChipLink href={reviewHref} label="Review" />
-        <ShellFilterChipLink
-          href={buildDiscoveryIdeasScopeHref(chainRouteScope)}
-          label="Ideas"
-        />
-      </div>
+      <ShellHero
+        title="Discovery idea authoring"
+        description={
+          activeIdea
+            ? `${activeIdea.title} · ${truncate(
+                activeIdea.summary || activeIdea.thesis || activeIdea.description || "No summary recorded.",
+                180
+              )}`
+            : "Select an idea in the rail to edit its dossier, evidence bundle, and decisions."
+        }
+        meta={
+          activeIdea ? (
+            <>
+              <Badge tone={stageTone(activeIdea.latest_stage)}>{activeIdea.latest_stage}</Badge>
+              <span>idea {activeIdea.idea_id}</span>
+              <span>rank {Math.round(activeIdea.rank_score)}</span>
+              <span>belief {activeIdea.belief_score.toFixed(2)}</span>
+              <span>updated {formatDate(activeIdea.updated_at)}</span>
+            </>
+          ) : (
+            <span>Select an idea to begin authoring.</span>
+          )
+        }
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ShellRefreshButton
+              type="button"
+              onClick={() => refreshClient()}
+              icon={<TimerReset className="h-4 w-4" />}
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryIdeaScopeHref(activeIdeaId, chainRouteScope)}
+              label="Dossier"
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryBoardScopeHref(chainRouteScope)}
+              label="Board"
+            />
+            <ShellFilterChipLink
+              href={buildDiscoveryAuthoringScopeHref(chainRouteScope)}
+              label="Queue"
+            />
+            <ShellFilterChipLink href={reviewHref} label="Review" />
+            <ShellFilterChipLink
+              href={buildDiscoveryIdeasScopeHref(chainRouteScope)}
+              label="Ideas"
+            />
+          </div>
+        }
+      />
 
       {statusMessage ? (
         <ShellStatusBanner tone="success">{statusMessage}</ShellStatusBanner>
@@ -753,8 +872,6 @@ export function DiscoveryIdeaAuthoringWorkspace({
       {errors.length > 0 ? (
         <ShellStatusBanner tone="warning">{errors.join(" ")}</ShellStatusBanner>
       ) : null}
-
-
       <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
         <IdeaRail
           ideas={ideas}
@@ -771,6 +888,7 @@ export function DiscoveryIdeaAuthoringWorkspace({
               <section className="grid gap-4 xl:grid-cols-2">
                 <ShellSectionCard
                   title="Add observation"
+                  description="Capture one source-backed signal at a time."
                   contentClassName="space-y-3"
                 >
                     <div className="grid gap-3 md:grid-cols-2">
@@ -839,6 +957,7 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
                 <ShellSectionCard
                   title="Add validation report"
+                  description="Summarize a verdict with explicit findings."
                   contentClassName="space-y-3"
                 >
                     <ShellComposerTextarea
@@ -891,6 +1010,7 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
                 <ShellSectionCard
                   title="Add decision"
+                  description="Record the decision and why it was taken."
                   contentClassName="space-y-3"
                 >
                     <div className="grid gap-3 md:grid-cols-2">
@@ -932,6 +1052,7 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
                 <ShellSectionCard
                   title="Add timeline event"
+                  description="Mark stage movement and context changes."
                   contentClassName="space-y-3"
                 >
                     <div className="grid gap-3 md:grid-cols-2">
@@ -974,6 +1095,13 @@ export function DiscoveryIdeaAuthoringWorkspace({
 
               <ShellSectionCard
                 title="Evidence bundle editor"
+                description="Stage bundle items on the right, then persist the bundle."
+                actions={
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone="neutral">{effectiveEvidenceItems.length} staged</Badge>
+                    <Badge tone="warning">{removedEvidenceIds.length} removed</Badge>
+                  </div>
+                }
                 contentClassName="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]"
               >
                   <div className="space-y-3">

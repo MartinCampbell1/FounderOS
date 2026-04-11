@@ -1,21 +1,26 @@
 "use client";
 
 import type { ShellPreferences } from "@founderos/api-clients";
-import {
-  Briefcase,
-  Search,
-  ShieldAlert,
-} from "lucide-react";
-import Link from "next/link";
+import { Badge } from "@founderos/ui/components/badge";
+import { Briefcase, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   ShellActionLink,
   ShellEmptyState,
+  ShellHero,
   ShellPage,
   ShellRefreshButton,
-  ShellStatusBanner,
+  ShellSectionCard,
+  ShellSummaryCard,
 } from "@/components/shell/shell-screen-primitives";
+import {
+  ShellRecordActionBar,
+  ShellRecordBody,
+  ShellRecordCard,
+  ShellRecordHeader,
+  ShellRecordMeta,
+} from "@/components/shell/shell-record-primitives";
 import { SkeletonList } from "@/components/shell/shell-skeleton";
 import {
   executionSourceLabel,
@@ -39,7 +44,6 @@ import {
   buildDiscoveryIdeaScopeHref,
   buildExecutionIntakeScopeHref,
   buildExecutionProjectScopeHref,
-  hasShellRouteScope,
   type ShellRouteScope,
 } from "@/lib/route-scope";
 import {
@@ -64,6 +68,16 @@ function formatShortDate(value?: string | null): string | null {
 function formatCost(usd: number) {
   if (usd === 0) return null;
   return `$${usd.toFixed(2)}`;
+}
+
+function toneForProjectStatus(status?: string | null) {
+  if (status === "running") return "success" as const;
+  if (status === "paused" || status === "pause_requested") return "warning" as const;
+  if (status === "failed" || status === "cancel_requested" || status === "cancelled") {
+    return "danger" as const;
+  }
+  if (status === "completed") return "info" as const;
+  return "neutral" as const;
 }
 
 // Lifecycle dot component: filled = completed stage, empty = pending
@@ -178,47 +192,55 @@ function LinkedPortfolioRow({
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
-      <div className="flex items-start justify-between gap-4">
-        <span className="truncate text-[14px] font-medium text-foreground leading-snug">
-          {record.idea.title}
-        </span>
-        {dateText ? (
-          <span className="shrink-0 text-[12px] text-muted-foreground">{dateText}</span>
-        ) : null}
-      </div>
-
-      <LinkedLifecycleBar
-        hasBrief={record.brief !== null}
-        hasProject={record.project !== null}
-        hasOutcome={record.outcome !== null}
+    <ShellRecordCard className="border-border/70 bg-[color:var(--shell-control-bg)] shadow-none">
+      <ShellRecordHeader
+        badges={
+          <>
+            <Badge tone="neutral">{executionSourceLabel(record.project?.task_source?.source_kind ?? "idea")}</Badge>
+            {record.project ? (
+              <Badge tone={toneForProjectStatus(record.project.status)}>{record.project.status}</Badge>
+            ) : (
+              <Badge tone="neutral">linked</Badge>
+            )}
+          </>
+        }
+        title={record.idea.title}
+        description={
+          metaParts.length > 0 ? metaParts.join(" · ") : "Linked idea record"
+        }
+        accessory={
+          dateText ? (
+            <span className="text-[11px] leading-5 text-muted-foreground">{dateText}</span>
+          ) : null
+        }
       />
-
-      {metaParts.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
-          {metaParts.map((part, i) => (
-            <span key={i}>
-              {i > 0 ? <span className="mr-2 text-muted-foreground/30">·</span> : null}
-              {part}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-        <ShellActionLink href={ideaHref} label="Open idea" />
-        {projectHref ? (
-          <ShellActionLink href={projectHref} label="Open project" />
-        ) : null}
-        <ShellActionLink
-          href={buildShellEntrySettingsHref(
-            scopedRecordRoute,
-            shellSettingsParityTargetsFromChainRecord(record)
-          )}
-          label="Settings"
+      <ShellRecordBody className="space-y-2 p-3 pt-2">
+        <LinkedLifecycleBar
+          hasBrief={record.brief !== null}
+          hasProject={record.project !== null}
+          hasOutcome={record.outcome !== null}
         />
-      </div>
-    </div>
+        <ShellRecordMeta className="gap-x-2.5 gap-y-0.5 text-[11px] leading-4">
+          <span>{record.idea.latest_stage}</span>
+          {record.project ? <span>{record.project.status}</span> : null}
+          {storiesText ? <span>{storiesText}</span> : null}
+          {costText ? <span>{costText}</span> : null}
+        </ShellRecordMeta>
+        <ShellRecordActionBar className="gap-1.5">
+          <ShellActionLink href={ideaHref} label="Idea" />
+          {projectHref ? (
+            <ShellActionLink href={projectHref} label="Project" />
+          ) : null}
+          <ShellActionLink
+            href={buildShellEntrySettingsHref(
+              scopedRecordRoute,
+              shellSettingsParityTargetsFromChainRecord(record)
+            )}
+            label="Settings"
+          />
+        </ShellRecordActionBar>
+      </ShellRecordBody>
+    </ShellRecordCard>
   );
 }
 
@@ -245,47 +267,41 @@ function OrphanProjectRow({
   const metaParts = [record.project.status, storiesText].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-1.5">
-          <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <span className="truncate text-[14px] font-medium text-foreground leading-snug">
-            {record.project.name}
-          </span>
-        </div>
-        {dateText ? (
-          <span className="shrink-0 text-[12px] text-muted-foreground">{dateText}</span>
-        ) : null}
-      </div>
-
-      <OrphanLifecycleBar />
-
-      {metaParts.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
-          {metaParts.map((part, i) => (
-            <span key={i}>
-              {i > 0 ? <span className="mr-2 text-muted-foreground/30">·</span> : null}
-              {part}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-        <ShellActionLink href={projectHref} label="Open project" />
-        <ShellActionLink
-          href={buildDashboardScopeHref(scopedRecordRoute)}
-          label="Dashboard"
-        />
-        <ShellActionLink
-          href={buildShellEntrySettingsHref(
-            scopedRecordRoute,
-            shellSettingsParityTargetsFromChainRecord(record)
-          )}
-          label="Settings"
-        />
-      </div>
-    </div>
+    <ShellRecordCard className="border-border/70 bg-[color:var(--shell-control-bg)] shadow-none">
+      <ShellRecordHeader
+        badges={<Badge tone="warning">orphan project</Badge>}
+        title={record.project.name}
+        description={
+          metaParts.length > 0 ? metaParts.join(" · ") : "Project without a linked idea"
+        }
+        accessory={
+          dateText ? (
+            <span className="text-[11px] leading-5 text-muted-foreground">{dateText}</span>
+          ) : null
+        }
+      />
+      <ShellRecordBody className="space-y-2 p-3 pt-2">
+        <OrphanLifecycleBar />
+        <ShellRecordMeta className="gap-x-2.5 gap-y-0.5 text-[11px] leading-4">
+          <span>{record.project.status}</span>
+          {storiesText ? <span>{storiesText}</span> : null}
+        </ShellRecordMeta>
+        <ShellRecordActionBar className="gap-1.5">
+          <ShellActionLink href={projectHref} label="Project" />
+          <ShellActionLink
+            href={buildDashboardScopeHref(scopedRecordRoute)}
+            label="Dashboard"
+          />
+          <ShellActionLink
+            href={buildShellEntrySettingsHref(
+              scopedRecordRoute,
+              shellSettingsParityTargetsFromChainRecord(record)
+            )}
+            label="Settings"
+          />
+        </ShellRecordActionBar>
+      </ShellRecordBody>
+    </ShellRecordCard>
   );
 }
 
@@ -322,43 +338,41 @@ function IntakePortfolioRow({
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
-      <div className="flex items-start justify-between gap-4">
-        <span className="truncate text-[14px] font-medium text-foreground leading-snug">
-          {record.intakeSession?.title ?? `Intake ${record.intakeSessionId}`}
-        </span>
-        {dateText ? (
-          <span className="shrink-0 text-[12px] text-muted-foreground">{dateText}</span>
-        ) : null}
-      </div>
-
-      <IntakeLifecycleBar hasProject={record.project !== null} />
-
-      {metaParts.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
-          {metaParts.map((part, i) => (
-            <span key={i}>
-              {i > 0 ? <span className="mr-2 text-muted-foreground/30">·</span> : null}
-              {part}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-        <ShellActionLink href={intakeHref} label="Open intake" />
-        {projectHref ? (
-          <ShellActionLink href={projectHref} label="Open project" />
-        ) : null}
-        <ShellActionLink
-          href={buildShellEntrySettingsHref(
-            scopedRecordRoute,
-            shellSettingsParityTargetsFromChainRecord(record)
-          )}
-          label="Settings"
-        />
-      </div>
-    </div>
+    <ShellRecordCard className="border-border/70 bg-[color:var(--shell-control-bg)] shadow-none">
+      <ShellRecordHeader
+        badges={<Badge tone="neutral">intake-linked</Badge>}
+        title={record.intakeSession?.title ?? `Intake ${record.intakeSessionId}`}
+        description={
+          metaParts.length > 0 ? metaParts.join(" · ") : "Intake record"
+        }
+        accessory={
+          dateText ? (
+            <span className="text-[11px] leading-5 text-muted-foreground">{dateText}</span>
+          ) : null
+        }
+      />
+      <ShellRecordBody className="space-y-2 p-3 pt-2">
+        <IntakeLifecycleBar hasProject={record.project !== null} />
+        <ShellRecordMeta className="gap-x-2.5 gap-y-0.5 text-[11px] leading-4">
+          <span>{executionSourceLabel(sourceKind)}</span>
+          <span>{record.project?.status ?? "no project"}</span>
+          {storiesText ? <span>{storiesText}</span> : null}
+        </ShellRecordMeta>
+        <ShellRecordActionBar className="gap-1.5">
+          <ShellActionLink href={intakeHref} label="Intake" />
+          {projectHref ? (
+            <ShellActionLink href={projectHref} label="Project" />
+          ) : null}
+          <ShellActionLink
+            href={buildShellEntrySettingsHref(
+              scopedRecordRoute,
+              shellSettingsParityTargetsFromChainRecord(record)
+            )}
+            label="Settings"
+          />
+        </ShellRecordActionBar>
+      </ShellRecordBody>
+    </ShellRecordCard>
   );
 }
 
@@ -426,12 +440,25 @@ export function PortfolioWorkspace({
     initialPreferences,
     initialSnapshot
   );
-  const scopeActive = hasShellRouteScope(routeScope);
 
   const routeScopedRecords = useMemo(
     () =>
       records.filter((record) => matchesShellChainRouteScope(record, routeScope)),
     [records, routeScope]
+  );
+  const linkedRecordCount = useMemo(
+    () => routeScopedRecords.filter((record) => record.kind === "linked").length,
+    [routeScopedRecords]
+  );
+  const intakeLinkedRecordCount = useMemo(
+    () =>
+      routeScopedRecords.filter((record) => record.kind === "intake-linked").length,
+    [routeScopedRecords]
+  );
+  const orphanRecordCount = useMemo(
+    () =>
+      routeScopedRecords.filter((record) => record.kind === "orphan-project").length,
+    [routeScopedRecords]
   );
 
   const filteredRecords = useMemo(() => {
@@ -442,16 +469,75 @@ export function PortfolioWorkspace({
   }, [query, routeScopedRecords]);
 
   return (
-    <ShellPage className="max-w-[1600px]">
-      <div className="flex h-8 max-w-md items-center gap-2 rounded-md border border-border px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
-        <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <input
-          type="text"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Filter portfolio..."
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
+    <ShellPage className="max-w-[1600px] gap-5 py-5">
+      <ShellHero
+        title="Portfolio"
+        description="Linked ideas, intake sessions, and execution projects in one route-scoped view."
+        meta={
+          <>
+            <span>{routeScopedRecords.length} records</span>
+            <span>{linkedRecordCount} linked</span>
+            <span>{intakeLinkedRecordCount} intake-linked</span>
+            <span>{orphanRecordCount} orphan projects</span>
+          </>
+        }
+        actions={
+          <>
+            <ShellActionLink href="/discovery" label="Discovery" />
+            <ShellActionLink href="/execution" label="Execution" />
+            <ShellRefreshButton type="button" onClick={refresh} busy={isRefreshing} compact />
+          </>
+        }
+      />
+
+      <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+        <ShellSummaryCard
+          title="Scope"
+          description="Record mix in this slice."
+          items={[
+            {
+              key: "linked",
+              label: "Linked",
+              detail: "Ideas already tied to projects.",
+              count: linkedRecordCount,
+            },
+            {
+              key: "intake-linked",
+              label: "Intake-linked",
+              detail: "Intake sessions that promoted into projects.",
+              count: intakeLinkedRecordCount,
+            },
+            {
+              key: "orphan",
+              label: "Orphans",
+              detail: "Projects without a linked idea.",
+              count: orphanRecordCount,
+            },
+          ]}
+          className="bg-card/60"
         />
+        <ShellSectionCard
+          title="Filter"
+          description="Search titles, statuses, and source kinds."
+          className="space-y-3"
+          contentClassName="space-y-3 pt-0"
+        >
+          <div className="flex h-8 max-w-md items-center gap-2 rounded-[8px] border border-border/70 bg-card px-2.5 focus-within:ring-2 focus-within:ring-primary/20">
+            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter portfolio"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[12px] text-muted-foreground">
+            <span>{routeScopedRecords.length} total</span>
+            <span>·</span>
+            <span>{filteredRecords.length} visible</span>
+          </div>
+        </ShellSectionCard>
       </div>
 
       {loadState === "loading" && records.length === 0 ? (
@@ -459,46 +545,50 @@ export function PortfolioWorkspace({
       ) : null}
 
       {loadState !== "loading" && (error || filteredRecords.length === 0) ? (
-        <div className="space-y-6">
-          {/* Empty state with CTA */}
-          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              <Briefcase className="h-5 w-5" />
-            </div>
-            <div className="text-[14px] font-medium tracking-tight text-foreground">Portfolio overview</div>
-            <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">Link discovery ideas to execution projects to track end-to-end progress here.</p>
-            <Link href="/discovery" className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
-              Start discovery
-            </Link>
-          </div>
-
-        </div>
+        <ShellEmptyState
+          centered
+          title={error ? "Portfolio unavailable" : "No records"}
+          description={
+            error
+              ? "Refresh and try again."
+              : "Widen the filter or jump to Discovery to create the next link."
+          }
+          icon={<Briefcase className="h-5 w-5" />}
+          className="py-10"
+        />
       ) : null}
 
       {filteredRecords.length > 0 ? (
-        <div className="rounded-md border border-border px-4">
-          {filteredRecords.map((record) =>
-            record.kind === "linked" ? (
-              <LinkedPortfolioRow
-                key={record.key}
-                record={record}
-                routeScope={routeScope}
-              />
-            ) : record.kind === "intake-linked" ? (
-              <IntakePortfolioRow
-                key={record.key}
-                record={record}
-                routeScope={routeScope}
-              />
-            ) : (
-              <OrphanProjectRow
-                key={record.key}
-                record={record}
-                routeScope={routeScope}
-              />
-            )
-          )}
-        </div>
+        <ShellSectionCard
+          title="Records"
+          description={`${filteredRecords.length} matches`}
+          className="space-y-3"
+          contentClassName="overflow-hidden rounded-[10px] border border-border/70 bg-card"
+        >
+          <div className="divide-y divide-border/70">
+            {filteredRecords.map((record) =>
+              record.kind === "linked" ? (
+                <LinkedPortfolioRow
+                  key={record.key}
+                  record={record}
+                  routeScope={routeScope}
+                />
+              ) : record.kind === "intake-linked" ? (
+                <IntakePortfolioRow
+                  key={record.key}
+                  record={record}
+                  routeScope={routeScope}
+                />
+              ) : (
+                <OrphanProjectRow
+                  key={record.key}
+                  record={record}
+                  routeScope={routeScope}
+                />
+              )
+            )}
+          </div>
+        </ShellSectionCard>
       ) : null}
     </ShellPage>
   );
