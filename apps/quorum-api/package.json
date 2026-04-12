@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "sh -c 'cd ../../quorum && ${QUORUM_PYTHON_BIN:-./.venv/bin/python} gateway.py'",
+    "dev": "sh -c 'cd ../../quorum && PYTHONPATH=..:.${PYTHONPATH:+:$PYTHONPATH} ${QUORUM_PYTHON_BIN:-./.venv/bin/python} gateway.py'",
     "test": "sh -c 'cd ../../quorum && bash ./scripts/test_backend.sh'",
     "build": "sh -c 'cd ../../quorum && ./.venv/bin/python -m compileall -q orchestrator gateway.py'",
     "lint": "sh -c 'cd ../../quorum && ./.venv/bin/python -m ruff check gateway.py orchestrator/api.py orchestrator/brief_v2_adapter.py orchestrator/discovery_store.py orchestrator/founder_bootstrap.py orchestrator/handoff_bridge.py orchestrator/shared_contracts.py'",
