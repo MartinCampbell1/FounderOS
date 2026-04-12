@@ -77,6 +77,15 @@ function envValue(key, fallback) {
   return value || fallback;
 }
 
+function joinEnvPathSegments(...segments) {
+  const delimiter = process.platform === "win32" ? ";" : ":";
+  return segments
+    .flatMap((segment) => (segment || "").split(delimiter))
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join(delimiter);
+}
+
 function defaultPortForProtocol(protocol) {
   return protocol === "https:" ? "443" : "80";
 }
@@ -606,6 +615,7 @@ const rootEnv = {
   FOUNDEROS_WEB_PORT: webPort,
   ...stackStateEnv,
 };
+const repoPythonPath = joinEnvPathSegments(repoRoot, process.env.PYTHONPATH || "");
 
 process.on("SIGINT", async () => {
   await teardown(0);
@@ -651,6 +661,7 @@ try {
     cwd: quorumRoot,
     env: {
       ...rootEnv,
+      PYTHONPATH: repoPythonPath,
       GATEWAY_HOST: quorumBase.host,
       GATEWAY_PORT: quorumBase.port,
     },
@@ -663,6 +674,7 @@ try {
     cwd: autopilotRoot,
     env: {
       ...rootEnv,
+      PYTHONPATH: repoPythonPath,
       AUTOPILOT_API_HOST: autopilotBase.host,
       AUTOPILOT_API_PORT: autopilotBase.port,
     },
